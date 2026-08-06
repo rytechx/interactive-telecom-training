@@ -5,6 +5,7 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
+import useTrainingStore from '../store/useTrainingStore.js'
 
 const highlightColor = new Color('#79bfff')
 
@@ -20,6 +21,9 @@ export default function InteractiveTool({ tool, children }) {
   const hoveredToolId = useToolStore((state) => state.hoveredToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
+  const isProcedureAnimating = useTrainingStore(
+    (state) => state.isProcedureAnimating,
+  )
   const setHoveredTool = useToolStore((state) => state.setHoveredTool)
   const clearHoveredTool = useToolStore((state) => state.clearHoveredTool)
   const requestToolInspection = useToolStore(
@@ -29,6 +33,7 @@ export default function InteractiveTool({ tool, children }) {
     workstationPhase === WORKSTATION_PHASES.FOCUSED &&
     isTrainingMode &&
     toolViewState === TOOL_VIEW_STATES.IDLE &&
+    !isProcedureAnimating &&
     !activeToolId
   const isHovered = canInteract && hoveredToolId === tool.id
   const isActive = activeToolId === tool.id

@@ -12,7 +12,6 @@ const useInteractionStore = create((set) => ({
   activeInteractable: null,
   isPointerLocked: false,
   isTrainingMode: false,
-  trainingStarted: false,
   workstationPhase: WORKSTATION_PHASES.EXPLORATION,
 
   setPointerLocked: (isPointerLocked) => {
@@ -45,7 +44,6 @@ const useInteractionStore = create((set) => ({
         activeInteractable: interactable,
         isPointerLocked: false,
         isTrainingMode: false,
-        trainingStarted: false,
         workstationPhase: WORKSTATION_PHASES.ENTERING,
       }
     })
@@ -57,14 +55,6 @@ const useInteractionStore = create((set) => ({
             isTrainingMode: true,
             workstationPhase: WORKSTATION_PHASES.FOCUSED,
           }
-        : {},
-    )
-  },
-  beginTraining: () => {
-    set((state) =>
-      state.workstationPhase === WORKSTATION_PHASES.FOCUSED &&
-      state.isTrainingMode
-        ? { trainingStarted: true }
         : {},
     )
   },
@@ -80,7 +70,6 @@ const useInteractionStore = create((set) => ({
       return {
         isPointerLocked: false,
         isTrainingMode: false,
-        trainingStarted: false,
         workstationPhase: WORKSTATION_PHASES.EXITING,
       }
     })
@@ -93,7 +82,6 @@ const useInteractionStore = create((set) => ({
             activeInteractable: null,
             isPointerLocked: false,
             isTrainingMode: false,
-            trainingStarted: false,
             workstationPhase: WORKSTATION_PHASES.EXPLORATION,
           },
     )

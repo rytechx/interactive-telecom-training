@@ -1,7 +1,8 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { Suspense, useCallback, useRef } from 'react'
+import { Suspense, useCallback, useRef, useState } from 'react'
 import InteractionSystem from '../../interaction/InteractionSystem.jsx'
+import RJ45TrainingModule from '../../modules/rj45/RJ45TrainingModule.jsx'
 import FirstPersonPlayer from '../../player/FirstPersonPlayer.jsx'
 import useInteractionStore, {
   WORKSTATION_PHASES,
@@ -27,6 +28,7 @@ const canvasStyle = {
 
 export default function TelecomLabScene() {
   const playerBodyRef = useRef(null)
+  const [isCableHovered, setIsCableHovered] = useState(false)
   const isPointerLocked = useInteractionStore(
     (state) => state.isPointerLocked,
   )
@@ -46,7 +48,7 @@ export default function TelecomLabScene() {
     <div
       className={`telecom-lab${
         isExploring ? '' : ' is-workstation-active'
-      }${hoveredToolId ? ' is-tool-hovered' : ''}`}
+      }${hoveredToolId || isCableHovered ? ' is-tool-hovered' : ''}`}
     >
       <Canvas camera={cameraSettings} shadows style={canvasStyle}>
         <Environment />
@@ -64,6 +66,10 @@ export default function TelecomLabScene() {
           </Physics>
         </Suspense>
         <ToolFocusController />
+        <RJ45TrainingModule
+          isCableHovered={isCableHovered}
+          onCableHoverChange={setIsCableHovered}
+        />
       </Canvas>
 
       <div

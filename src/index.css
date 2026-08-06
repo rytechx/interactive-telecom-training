@@ -176,6 +176,55 @@ canvas {
   font-size: 22px;
 }
 
+.procedure-panel .procedure-step-number {
+  display: block;
+  margin-bottom: 6px;
+  color: #8fc9f7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.procedure-panel h1 {
+  margin-bottom: 8px;
+}
+
+.procedure-panel h2 {
+  margin: 0 0 14px;
+  color: #cdd7dc;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.procedure-instruction,
+.procedure-feedback,
+.procedure-next {
+  margin: 0 0 16px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  border-radius: 8px;
+}
+
+.procedure-instruction {
+  color: #e9f2ec;
+  background: rgb(82 150 105 / 18%);
+  border: 1px solid rgb(102 190 132 / 30%);
+}
+
+.procedure-feedback {
+  color: #ffe6ad;
+  background: rgb(191 133 52 / 18%);
+  border: 1px solid rgb(230 170 75 / 34%);
+}
+
+.procedure-next {
+  color: #cdd7dc;
+  background: rgb(121 191 255 / 10%);
+  border: 1px solid rgb(121 191 255 / 22%);
+}
+
 .training-step {
   margin: 0 0 22px;
   padding: 14px;

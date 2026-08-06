@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
+import RJ45ProcedurePanel from '../modules/rj45/RJ45ProcedurePanel.jsx'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useTrainingStore from '../store/useTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { getToolConfig } from '../tools/toolConfigs.js'
 import { getWorkstationConfig } from '../workstations/workstationConfigs.js'
@@ -28,12 +30,19 @@ export default function InteractionSystem() {
   const activeInteractable = useInteractionStore(
     (state) => state.activeInteractable,
   )
-  const trainingStarted = useInteractionStore(
-    (state) => state.trainingStarted,
-  )
-  const beginTraining = useInteractionStore((state) => state.beginTraining)
   const requestWorkstationExit = useInteractionStore(
     (state) => state.requestWorkstationExit,
+  )
+  const trainingStarted = useTrainingStore((state) => state.trainingStarted)
+  const beginRJ45Training = useTrainingStore(
+    (state) => state.beginRJ45Training,
+  )
+  const restartRJ45Training = useTrainingStore(
+    (state) => state.restartRJ45Training,
+  )
+  const resetTraining = useTrainingStore((state) => state.resetTraining)
+  const handleToolActivated = useTrainingStore(
+    (state) => state.handleToolActivated,
   )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
@@ -62,6 +71,7 @@ export default function InteractionSystem() {
 
       const interactionState = useInteractionStore.getState()
       const toolState = useToolStore.getState()
+      const trainingState = useTrainingStore.getState()
 
       if (
         event.code === 'KeyE' &&
@@ -115,6 +125,7 @@ export default function InteractionSystem() {
         event.preventDefault()
         event.stopPropagation()
         toolState.resetToolState()
+        trainingState.resetTraining()
         interactionState.requestWorkstationExit()
       }
     }
@@ -128,7 +139,25 @@ export default function InteractionSystem() {
 
   const handleWorkstationExit = () => {
     resetToolState()
+    resetTraining()
     requestWorkstationExit()
+  }
+
+  const handleBeginTraining = () => {
+    resetToolState()
+    beginRJ45Training()
+  }
+
+  const handleRestartStep = () => {
+    resetToolState()
+    restartRJ45Training()
+  }
+
+  const handleActivateSelectedTool = () => {
+    const toolId = useToolStore.getState().selectedToolId
+
+    activateSelectedTool()
+    handleToolActivated(toolId)
   }
 
   return (
@@ -165,39 +194,36 @@ export default function InteractionSystem() {
 
       {workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode && (
         <div className="training-overlay">
-          <section
-            className="training-panel"
-            role="dialog"
-            aria-modal="false"
-            aria-labelledby="training-title"
-          >
-            <h1 id="training-title">
-              {activeWorkstation?.displayName ?? activeInteractable?.label}
-            </h1>
+          {trainingStarted ? (
+            <RJ45ProcedurePanel
+              onRestart={handleRestartStep}
+              onExit={handleWorkstationExit}
+            />
+          ) : (
+            <section
+              className="training-panel"
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby="training-title"
+            >
+              <h1 id="training-title">
+                {activeWorkstation?.displayName ?? activeInteractable?.label}
+              </h1>
 
-            {trainingStarted && (
-              <p className="training-step">
-                Step 1: Inspect the tools on the workbench.
-              </p>
-            )}
-
-            <div className="training-actions">
-              <button
-                type="button"
-                onClick={beginTraining}
-                disabled={trainingStarted}
-              >
-                Begin Training
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleWorkstationExit}
-              >
-                Exit
-              </button>
-            </div>
-          </section>
+              <div className="training-actions">
+                <button type="button" onClick={handleBeginTraining}>
+                  Begin Training
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={handleWorkstationExit}
+                >
+                  Exit
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       )}
 
@@ -207,7 +233,7 @@ export default function InteractionSystem() {
           <h2 id="tool-title">{selectedTool.name}</h2>
           <p>{selectedTool.purpose}</p>
           <div className="tool-panel-actions">
-            <button type="button" onClick={activateSelectedTool}>
+            <button type="button" onClick={handleActivateSelectedTool}>
               Select Tool
             </button>
             <button
