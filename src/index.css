@@ -22,6 +22,14 @@ canvas {
   cursor: crosshair;
 }
 
+.telecom-lab.is-workstation-active canvas {
+  cursor: default;
+}
+
+.telecom-lab.is-tool-hovered canvas {
+  cursor: pointer;
+}
+
 .player-crosshair {
   position: absolute;
   top: 50%;
@@ -121,22 +129,42 @@ canvas {
   border-radius: 4px;
 }
 
+.workstation-status {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  z-index: 3;
+  padding: 9px 14px;
+  color: #eef3f5;
+  font: 500 13px/1.2 system-ui, sans-serif;
+  pointer-events: none;
+  background: rgb(18 24 28 / 72%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+}
+
 .training-overlay {
   position: absolute;
   inset: 0;
   z-index: 4;
-  display: grid;
-  place-items: center;
   padding: 24px;
-  background: rgb(7 11 14 / 58%);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgb(7 11 14 / 42%) 0,
+    rgb(7 11 14 / 16%) 48%,
+    transparent 72%
+  );
 }
 
 .training-panel {
-  width: min(420px, 100%);
-  padding: 28px;
+  width: min(360px, calc(100% - 48px));
+  padding: 22px;
   color: #f5f7f8;
   font-family: system-ui, sans-serif;
-  text-align: center;
+  pointer-events: auto;
   background: rgb(23 30 35 / 94%);
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 12px;
@@ -144,8 +172,8 @@ canvas {
 }
 
 .training-panel h1 {
-  margin: 0 0 18px;
-  font-size: 24px;
+  margin: 0 0 14px;
+  font-size: 22px;
 }
 
 .training-step {
@@ -159,7 +187,6 @@ canvas {
 
 .training-actions {
   display: flex;
-  justify-content: center;
   gap: 10px;
 }
 
@@ -189,4 +216,131 @@ canvas {
 
 .training-actions button.secondary:hover {
   background: #5a666e;
+}
+
+.tool-tooltip {
+  padding: 6px 9px;
+  color: #f7fbff;
+  font: 600 12px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgb(18 24 28 / 88%);
+  border: 1px solid rgb(121 191 255 / 48%);
+  border-radius: 5px;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 28%);
+}
+
+.tool-inspection-panel {
+  position: absolute;
+  top: 50%;
+  right: 24px;
+  z-index: 6;
+  width: min(320px, calc(100% - 48px));
+  padding: 22px;
+  color: #eef3f5;
+  font-family: system-ui, sans-serif;
+  background: rgb(23 30 35 / 96%);
+  border: 1px solid rgb(121 191 255 / 28%);
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 36%);
+  transform: translateY(-50%);
+}
+
+.tool-panel-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #8fc9f7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool-inspection-panel h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.tool-inspection-panel p {
+  margin: 0 0 20px;
+  color: #cdd7dc;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tool-panel-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.tool-panel-actions button,
+.active-tool-hud button {
+  padding: 9px 13px;
+  color: #132019;
+  font: 700 13px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #72c68d;
+  border: 0;
+  border-radius: 7px;
+}
+
+.tool-panel-actions button:hover:not(:disabled),
+.active-tool-hud button:hover:not(:disabled) {
+  background: #86d59f;
+}
+
+.tool-panel-actions button.secondary {
+  color: #f5f7f8;
+  background: #4a555c;
+}
+
+.tool-panel-actions button.secondary:hover {
+  background: #5a666e;
+}
+
+.active-tool-hud {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 15px;
+  color: #f1f6f8;
+  font: 600 13px/1.2 system-ui, sans-serif;
+  background: rgb(23 30 35 / 92%);
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 28%);
+}
+
+.active-tool-hud button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (max-width: 760px) {
+  .training-overlay {
+    padding: 14px;
+  }
+
+  .training-panel {
+    width: min(320px, calc(100% - 28px));
+    padding: 18px;
+  }
+
+  .tool-inspection-panel {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    width: min(320px, calc(100% - 28px));
+    padding: 18px;
+    transform: none;
+  }
+
+  .active-tool-hud {
+    right: 14px;
+    bottom: 14px;
+  }
 }

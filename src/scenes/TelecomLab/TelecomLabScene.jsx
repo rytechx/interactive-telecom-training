@@ -1,9 +1,14 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { Suspense, useCallback } from 'react'
+import { Suspense, useCallback, useRef } from 'react'
 import InteractionSystem from '../../interaction/InteractionSystem.jsx'
 import FirstPersonPlayer from '../../player/FirstPersonPlayer.jsx'
-import useInteractionStore from '../../store/useInteractionStore.js'
+import useInteractionStore, {
+  WORKSTATION_PHASES,
+} from '../../store/useInteractionStore.js'
+import useToolStore from '../../store/useToolStore.js'
+import ToolFocusController from '../../tools/ToolFocusController.jsx'
+import WorkstationFocusController from '../../workstations/WorkstationFocusController.jsx'
 import Environment from './Environment.jsx'
 import LabRoom from './LabRoom.jsx'
 import Lighting from './Lighting.jsx'
@@ -21,21 +26,28 @@ const canvasStyle = {
 }
 
 export default function TelecomLabScene() {
+  const playerBodyRef = useRef(null)
   const isPointerLocked = useInteractionStore(
     (state) => state.isPointerLocked,
   )
-  const isTrainingMode = useInteractionStore(
-    (state) => state.isTrainingMode,
+  const workstationPhase = useInteractionStore(
+    (state) => state.workstationPhase,
   )
+  const hoveredToolId = useToolStore((state) => state.hoveredToolId)
   const setPointerLocked = useInteractionStore(
     (state) => state.setPointerLocked,
   )
   const handleLockChange = useCallback((isLocked) => {
     setPointerLocked(isLocked)
   }, [setPointerLocked])
+  const isExploring = workstationPhase === WORKSTATION_PHASES.EXPLORATION
 
   return (
-    <div className="telecom-lab">
+    <div
+      className={`telecom-lab${
+        isExploring ? '' : ' is-workstation-active'
+      }${hoveredToolId ? ' is-tool-hovered' : ''}`}
+    >
       <Canvas camera={cameraSettings} shadows style={canvasStyle}>
         <Environment />
         <Lighting />
@@ -45,21 +57,24 @@ export default function TelecomLabScene() {
             <FirstPersonPlayer
               spawnPosition={playerSpawnPosition}
               onLockChange={handleLockChange}
-              enabled={!isTrainingMode}
+              enabled={isExploring}
+              playerBodyRef={playerBodyRef}
             />
+            <WorkstationFocusController playerBodyRef={playerBodyRef} />
           </Physics>
         </Suspense>
+        <ToolFocusController />
       </Canvas>
 
       <div
-        className={`player-crosshair${isTrainingMode ? ' is-hidden' : ''}`}
+        className={`player-crosshair${isExploring ? '' : ' is-hidden'}`}
         aria-hidden="true"
       />
       <div
         className={`player-instructions${
-          isPointerLocked || isTrainingMode ? ' is-hidden' : ''
+          isPointerLocked || !isExploring ? ' is-hidden' : ''
         }`}
-        aria-hidden={isPointerLocked || isTrainingMode}
+        aria-hidden={isPointerLocked || !isExploring}
       >
         <strong>Click to start</strong>
         <span>WASD to move</span>

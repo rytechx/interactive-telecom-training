@@ -21,8 +21,10 @@ export default function FirstPersonPlayer({
   spawnPosition = [0, 0.85, 4],
   onLockChange,
   enabled = true,
+  playerBodyRef,
 }) {
-  const rigidBody = useRef(null)
+  const internalRigidBody = useRef(null)
+  const rigidBody = playerBodyRef ?? internalRigidBody
   const pointerLockControls = useRef(null)
   const keyboard = useKeyboardControls()
   const camera = useThree((state) => state.camera)
@@ -57,12 +59,12 @@ export default function FirstPersonPlayer({
     const forwardInput = isPointerLocked ? Number(forward) - Number(backward) : 0
     const rightInput = isPointerLocked ? Number(right) - Number(left) : 0
 
-    camera.position.set(position.x, position.y + EYE_OFFSET, position.z)
-
     if (!enabled) {
-      body.setLinvel({ x: 0, y: currentVelocity.y, z: 0 }, true)
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true)
       return
     }
+
+    camera.position.set(position.x, position.y + EYE_OFFSET, position.z)
 
     camera.getWorldDirection(cameraForward)
     cameraForward.y = 0

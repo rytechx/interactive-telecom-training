@@ -2,6 +2,7 @@ import StorageCabinet from '../../objects/furniture/StorageCabinet.jsx'
 import Stool from '../../objects/furniture/Stool.jsx'
 import Workbench from '../../objects/furniture/Workbench.jsx'
 import Interactable from '../../interaction/Interactable.jsx'
+import { RJ45_WORKSTATION } from '../../workstations/workstationConfigs.js'
 
 export default function LabFurniture({
   rj45WorkbenchPosition = [-5, 0, -2.5],
@@ -22,8 +23,8 @@ export default function LabFurniture({
   return (
     <group>
       <Interactable
-        id="rj45-workbench"
-        label="RJ45 Cable Termination"
+        id={RJ45_WORKSTATION.id}
+        label={RJ45_WORKSTATION.displayName}
         position={rj45WorkbenchPosition}
         interactionDistance={2.2}
       >
