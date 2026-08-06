@@ -225,6 +225,146 @@ canvas {
   border: 1px solid rgb(121 191 255 / 22%);
 }
 
+.procedure-feedback.is-success {
+  color: #c8f3d5;
+  background: rgb(54 151 88 / 20%);
+  border-color: rgb(93 203 132 / 38%);
+}
+
+.procedure-feedback.is-error {
+  color: #ffd1ca;
+  background: rgb(180 66 54 / 20%);
+  border-color: rgb(226 98 83 / 38%);
+}
+
+.procedure-panel.is-arranging {
+  width: min(390px, calc(100% - 48px));
+  padding: 18px;
+}
+
+.procedure-progress,
+.selected-wire-label {
+  margin: 0 0 9px;
+  color: #dce5e9;
+  font-size: 13px;
+}
+
+.selected-wire-label strong {
+  color: #8fc9f7;
+}
+
+.t568b-guide {
+  margin: 12px 0 14px;
+  padding: 11px;
+  background: rgb(7 11 14 / 32%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 8px;
+}
+
+.t568b-guide > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #dce5e9;
+  font-size: 12px;
+}
+
+.t568b-guide ol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.t568b-guide li {
+  display: grid;
+  grid-template-columns: 20px 14px 1fr;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 4px;
+  color: #d5dfe3;
+  font-size: 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.t568b-guide li.is-correct {
+  border-color: rgb(93 203 132 / 42%);
+}
+
+.t568b-guide li.is-incorrect {
+  border-color: rgb(226 98 83 / 48%);
+}
+
+.guide-slot-number {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: #f2f6f8;
+  font-weight: 700;
+  background: #414d54;
+  border-radius: 4px;
+}
+
+.guide-wire-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 50%;
+}
+
+.guide-wire-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-wire-name small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #aebbc1;
+  font-size: 9px;
+  text-overflow: ellipsis;
+}
+
+.wire-slot-number {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  place-items: center;
+  color: #f5f8fa;
+  font: 700 10px/1 system-ui, sans-serif;
+  pointer-events: none;
+  background: rgb(28 35 40 / 92%);
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 4px;
+}
+
+.wire-slot-number.is-correct {
+  background: rgb(37 112 63 / 96%);
+}
+
+.wire-slot-number.is-incorrect {
+  background: rgb(151 57 49 / 96%);
+}
+
+.procedure-primary-actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.procedure-secondary-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+}
+
 .training-step {
   margin: 0 0 22px;
   padding: 14px;
@@ -377,6 +517,10 @@ canvas {
   .training-panel {
     width: min(320px, calc(100% - 28px));
     padding: 18px;
+  }
+
+  .t568b-guide ol {
+    grid-template-columns: 1fr;
   }
 
   .tool-inspection-panel {

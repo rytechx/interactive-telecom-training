@@ -10,6 +10,12 @@ const RJ45_PROCEDURE_STEPS = Object.freeze({
   STRIP_JACKET: 'strip-jacket',
   JACKET_STRIPPED: 'jacket-stripped',
   COMPLETE_FOR_TASK_1: 'complete-for-task-1',
+  SEPARATE_PAIRS: 'separate-pairs',
+  PAIRS_SEPARATED: 'pairs-separated',
+  ARRANGE_T568B: 'arrange-t568b',
+  VALIDATE_T568B: 'validate-t568b',
+  WIRES_ARRANGED: 'wires-arranged',
+  COMPLETE_FOR_TASK_2: 'complete-for-task-2',
 })
 
 const rj45Procedure = Object.freeze({
@@ -50,7 +56,7 @@ const rj45Procedure = Object.freeze({
     stepNumber: 3,
     title: 'Jacket Removed',
     instruction: 'Jacket removed successfully.',
-    acceptedAction: null,
+    acceptedAction: 'continue',
   }),
   [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1]: Object.freeze({
     id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1,
@@ -58,6 +64,49 @@ const rj45Procedure = Object.freeze({
     title: 'Jacket Removed',
     instruction: 'Jacket removed successfully.',
     nextInstruction: 'Next procedure: Arrange the wire pairs.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.SEPARATE_PAIRS]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.SEPARATE_PAIRS,
+    stepNumber: 4,
+    title: 'Separate the Wire Pairs',
+    instruction: 'Step 4: Separate the wire pairs.',
+    acceptedAction: 'separate-pairs',
+  }),
+  [RJ45_PROCEDURE_STEPS.PAIRS_SEPARATED]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.PAIRS_SEPARATED,
+    stepNumber: 4,
+    title: 'Wire Pairs Separated',
+    instruction: 'The exposed wire pairs are ready for arrangement.',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.ARRANGE_T568B]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.ARRANGE_T568B,
+    stepNumber: 5,
+    title: 'Arrange the Conductors',
+    instruction: 'Step 5: Arrange the wires using the T568B standard.',
+    acceptedAction: 'arrange-wires',
+  }),
+  [RJ45_PROCEDURE_STEPS.VALIDATE_T568B]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.VALIDATE_T568B,
+    stepNumber: 5,
+    title: 'Validate the Arrangement',
+    instruction: 'Step 5: Validate the completed T568B wire order.',
+    acceptedAction: 'validate-wires',
+  }),
+  [RJ45_PROCEDURE_STEPS.WIRES_ARRANGED]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
+    stepNumber: 5,
+    title: 'Wires Arranged',
+    instruction: 'Correct T568B arrangement.',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
+    stepNumber: 5,
+    title: 'T568B Arrangement Complete',
+    instruction: 'All eight conductors are in the correct order.',
+    nextInstruction: 'Next procedure: Trim the wire ends evenly.',
     acceptedAction: null,
   }),
 })

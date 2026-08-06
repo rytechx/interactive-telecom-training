@@ -7,6 +7,7 @@ import useInteractionStore, {
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
+import RJ45WireArrangement from './RJ45WireArrangement.jsx'
 import {
   ETHERNET_CABLE_ID,
   RJ45_PROCEDURE_STEPS,
@@ -16,28 +17,16 @@ const CABLE_LENGTH = 1.55
 const EXPOSED_LENGTH = 0.42
 const STRIPPING_DURATION = 0.9
 
-const conductorConfigs = [
-  { name: 'White-Orange', color: '#fff0df', offset: [-0.042, -0.025] },
-  { name: 'Orange', color: '#f28c28', offset: [-0.014, -0.025] },
-  { name: 'White-Green', color: '#e8f7e9', offset: [0.014, -0.025] },
-  { name: 'Blue', color: '#3578c6', offset: [0.042, -0.025] },
-  { name: 'White-Blue', color: '#e8f1ff', offset: [-0.042, 0.025] },
-  { name: 'Green', color: '#3f9b57', offset: [-0.014, 0.025] },
-  { name: 'White-Brown', color: '#f3e9df', offset: [0.014, 0.025] },
-  { name: 'Brown', color: '#855438', offset: [0.042, 0.025] },
-]
-
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
 }
 
 export default function RJ45Cable({
   position = [-5.15, 0.95, -2.95],
-  isHovered = false,
-  onHoverChange,
+  hoveredObjectId,
+  onHoveredObjectChange,
 }) {
   const jacket = useRef(null)
-  const conductorMeshes = useRef([])
   const animationProgress = useRef(0)
   const completionRequested = useRef(false)
   const workstationPhase = useInteractionStore(
@@ -53,6 +42,7 @@ export default function RJ45Cable({
   const selectedWorkpieceId = useTrainingStore(
     (state) => state.selectedWorkpieceId,
   )
+  const completedSteps = useTrainingStore((state) => state.completedSteps)
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
@@ -78,9 +68,11 @@ export default function RJ45Cable({
     currentStep === RJ45_PROCEDURE_STEPS.STRIP_JACKET &&
     activeToolId === TOOL_IDS.WIRE_STRIPPER
   const canInteract = canSelectCable || canStripCable
+  const isHovered = hoveredObjectId === ETHERNET_CABLE_ID
   const isSelected = selectedWorkpieceId === ETHERNET_CABLE_ID
-  const isComplete =
-    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1
+  const hasStrippedJacket = completedSteps.includes(
+    RJ45_PROCEDURE_STEPS.STRIP_JACKET,
+  )
 
   const applyStrippingProgress = useCallback((rawProgress) => {
     const progress = smoothStep(rawProgress)
@@ -90,21 +82,10 @@ export default function RJ45Cable({
       jacket.current.scale.y = currentJacketLength / CABLE_LENGTH
       jacket.current.position.x = -(EXPOSED_LENGTH * progress) / 2
     }
-
-    conductorMeshes.current.forEach((conductor) => {
-      if (!conductor) {
-        return
-      }
-
-      conductor.visible = progress > 0.02
-      conductor.scale.y = Math.max(progress, 0.001)
-      conductor.position.x =
-        CABLE_LENGTH / 2 - EXPOSED_LENGTH + (EXPOSED_LENGTH * progress) / 2
-    })
   }, [])
 
   useEffect(() => {
-    if (isComplete) {
+    if (hasStrippedJacket) {
       animationProgress.current = 1
       applyStrippingProgress(1)
       return
@@ -118,30 +99,35 @@ export default function RJ45Cable({
       completionRequested.current = false
       applyStrippingProgress(0)
     }
-  }, [applyStrippingProgress, currentStep, isComplete, trainingStarted])
+  }, [
+    applyStrippingProgress,
+    currentStep,
+    hasStrippedJacket,
+    trainingStarted,
+  ])
 
   useEffect(() => {
-    if (isProcedureAnimating) {
+    if (
+      isProcedureAnimating &&
+      currentStep === RJ45_PROCEDURE_STEPS.STRIP_JACKET
+    ) {
       animationProgress.current = 0
       completionRequested.current = false
     }
-  }, [isProcedureAnimating])
+  }, [currentStep, isProcedureAnimating])
 
   useEffect(() => {
     if (!canInteract && isHovered) {
-      onHoverChange?.(false)
+      onHoveredObjectChange?.(null)
     }
-  }, [canInteract, isHovered, onHoverChange])
-
-  useEffect(
-    () => () => {
-      onHoverChange?.(false)
-    },
-    [onHoverChange],
-  )
+  }, [canInteract, isHovered, onHoveredObjectChange])
 
   useFrame((_, delta) => {
-    if (!isProcedureAnimating || completionRequested.current) {
+    if (
+      currentStep !== RJ45_PROCEDURE_STEPS.STRIP_JACKET ||
+      !isProcedureAnimating ||
+      completionRequested.current
+    ) {
       return
     }
 
@@ -163,12 +149,12 @@ export default function RJ45Cable({
     }
 
     event.stopPropagation()
-    onHoverChange?.(true)
+    onHoveredObjectChange?.(ETHERNET_CABLE_ID)
   }
 
   const handlePointerLeave = (event) => {
     event.stopPropagation()
-    onHoverChange?.(false)
+    onHoveredObjectChange?.(null)
   }
 
   const handleClick = (event) => {
@@ -177,7 +163,7 @@ export default function RJ45Cable({
     }
 
     event.stopPropagation()
-    onHoverChange?.(false)
+    onHoveredObjectChange?.(null)
 
     if (canSelectCable) {
       selectWorkpiece(ETHERNET_CABLE_ID)
@@ -217,24 +203,13 @@ export default function RJ45Cable({
         />
       </mesh>
 
-      {conductorConfigs.map((conductor, index) => (
-        <mesh
-          key={conductor.name}
-          ref={(mesh) => {
-            conductorMeshes.current[index] = mesh
-          }}
-          position={[CABLE_LENGTH / 2 - EXPOSED_LENGTH / 2, ...conductor.offset]}
-          rotation={[0, 0, Math.PI / 2]}
-          scale={[1, 0.001, 1]}
-          visible={false}
-          castShadow
-        >
-          <cylinderGeometry args={[0.012, 0.012, EXPOSED_LENGTH, 8]} />
-          <meshStandardMaterial color={conductor.color} roughness={0.65} />
-        </mesh>
-      ))}
+      <RJ45WireArrangement
+        jacketProgressRef={animationProgress}
+        hoveredObjectId={hoveredObjectId}
+        onHoveredObjectChange={onHoveredObjectChange}
+      />
 
-      {isHovered && (
+      {isHovered && canInteract && (
         <Html position={[0, 0.22, 0]} center>
           <div className="tool-tooltip" role="tooltip">
             Ethernet Cable

@@ -40,6 +40,9 @@ export default function InteractionSystem() {
   const restartRJ45Training = useTrainingStore(
     (state) => state.restartRJ45Training,
   )
+  const continueRJ45Procedure = useTrainingStore(
+    (state) => state.continueRJ45Procedure,
+  )
   const resetTraining = useTrainingStore((state) => state.resetTraining)
   const handleToolActivated = useTrainingStore(
     (state) => state.handleToolActivated,
@@ -148,9 +151,14 @@ export default function InteractionSystem() {
     beginRJ45Training()
   }
 
-  const handleRestartStep = () => {
+  const handleRestartModule = () => {
     resetToolState()
     restartRJ45Training()
+  }
+
+  const handleContinueProcedure = () => {
+    resetToolState()
+    continueRJ45Procedure()
   }
 
   const handleActivateSelectedTool = () => {
@@ -196,7 +204,8 @@ export default function InteractionSystem() {
         <div className="training-overlay">
           {trainingStarted ? (
             <RJ45ProcedurePanel
-              onRestart={handleRestartStep}
+              onContinue={handleContinueProcedure}
+              onRestartModule={handleRestartModule}
               onExit={handleWorkstationExit}
             />
           ) : (

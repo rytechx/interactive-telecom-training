@@ -28,7 +28,7 @@ const canvasStyle = {
 
 export default function TelecomLabScene() {
   const playerBodyRef = useRef(null)
-  const [isCableHovered, setIsCableHovered] = useState(false)
+  const [hoveredTrainingObjectId, setHoveredTrainingObjectId] = useState(null)
   const isPointerLocked = useInteractionStore(
     (state) => state.isPointerLocked,
   )
@@ -48,7 +48,7 @@ export default function TelecomLabScene() {
     <div
       className={`telecom-lab${
         isExploring ? '' : ' is-workstation-active'
-      }${hoveredToolId || isCableHovered ? ' is-tool-hovered' : ''}`}
+      }${hoveredToolId || hoveredTrainingObjectId ? ' is-tool-hovered' : ''}`}
     >
       <Canvas camera={cameraSettings} shadows style={canvasStyle}>
         <Environment />
@@ -67,8 +67,8 @@ export default function TelecomLabScene() {
         </Suspense>
         <ToolFocusController />
         <RJ45TrainingModule
-          isCableHovered={isCableHovered}
-          onCableHoverChange={setIsCableHovered}
+          hoveredObjectId={hoveredTrainingObjectId}
+          onHoveredObjectChange={setHoveredTrainingObjectId}
         />
       </Canvas>
 

@@ -6,8 +6,8 @@ import useTrainingStore from '../../store/useTrainingStore.js'
 import RJ45Cable from './RJ45Cable.jsx'
 
 export default function RJ45TrainingModule({
-  isCableHovered,
-  onCableHoverChange,
+  hoveredObjectId,
+  onHoveredObjectChange,
 }) {
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
@@ -23,19 +23,19 @@ export default function RJ45TrainingModule({
       hasTemporarySession
     ) {
       resetTraining()
-      onCableHoverChange?.(false)
+      onHoveredObjectChange?.(null)
     }
   }, [
     hasTemporarySession,
-    onCableHoverChange,
+    onHoveredObjectChange,
     resetTraining,
     workstationPhase,
   ])
 
   return (
     <RJ45Cable
-      isHovered={isCableHovered}
-      onHoverChange={onCableHoverChange}
+      hoveredObjectId={hoveredObjectId}
+      onHoveredObjectChange={onHoveredObjectChange}
     />
   )
 }
