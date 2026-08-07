@@ -58,8 +58,7 @@ function RJ45Connector({
   return (
     <group position={position} rotation={rotation} scale={scale}>
       <RJ45ConnectorModel
-        scale={[0.2, 0.4, 0.5]}
-        showPinNumbers={false}
+        scale={[0.65, 0.65, 0.5]}
       />
     </group>
   )

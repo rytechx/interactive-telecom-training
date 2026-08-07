@@ -18,7 +18,11 @@ import RJ45ConnectorModel, {
   CONNECTOR_ALIGNED_ROTATION,
   CONNECTOR_INITIAL_POSITION,
   CONNECTOR_INITIAL_ROTATION,
+  CONNECTOR_JACKET_INITIAL_Z,
+  CONNECTOR_JACKET_LENGTH,
+  JACKET_INSERTION_DISTANCE,
 } from './RJ45ConnectorModel.jsx'
+import { CONNECTOR_WIRE_CENTER_X } from './wireDefinitions.js'
 
 const CONNECTOR_ENTRY_HOVER_ID = 'rj45-connector-entry'
 const alignedQuaternion = new Quaternion().setFromEuler(
@@ -28,6 +32,10 @@ const alignedPosition = new Vector3().fromArray(CONNECTOR_ALIGNED_POSITION)
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum)
 }
 
 function isConnectorWorkspaceStep(currentStep) {
@@ -47,6 +55,7 @@ export default function RJ45ConnectorInsertion({
   onHoveredObjectChange,
 }) {
   const connectorGroup = useRef(null)
+  const connectorJacket = useRef(null)
   const alignmentProgress = useRef(0)
   const alignmentStartPosition = useRef(new Vector3())
   const alignmentStartQuaternion = useRef(new Quaternion())
@@ -194,6 +203,16 @@ export default function RJ45ConnectorInsertion({
       }
     }
 
+    if (connectorJacket.current) {
+      const jacketProgress = smoothStep(
+        clamp((insertionProgressRef.current - 0.18) / 0.68, 0, 1),
+      )
+
+      connectorJacket.current.position.z =
+        CONNECTOR_JACKET_INITIAL_Z +
+        JACKET_INSERTION_DISTANCE * jacketProgress
+    }
+
     if (
       currentStep !== RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS ||
       !isConnectorInserting ||
@@ -216,6 +235,10 @@ export default function RJ45ConnectorInsertion({
   if (!showConnector) {
     return null
   }
+
+  const showAlignmentGuide =
+    currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR ||
+    currentStep === RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS
 
   const handleEntryPointerEnter = (event) => {
     if (!canInsert) {
@@ -246,7 +269,31 @@ export default function RJ45ConnectorInsertion({
 
   return (
     <>
-      <ConnectorAlignmentGuide isAligned={connectorAligned} />
+      {showAlignmentGuide && (
+        <ConnectorAlignmentGuide isAligned={connectorAligned} />
+      )}
+      <group
+        ref={connectorJacket}
+        position={[
+          CONNECTOR_WIRE_CENTER_X,
+          0.05,
+          CONNECTOR_JACKET_INITIAL_Z,
+        ]}
+      >
+        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+          <cylinderGeometry
+            args={[0.055, 0.055, CONNECTOR_JACKET_LENGTH, 12]}
+          />
+          <meshStandardMaterial color="#304e68" roughness={0.72} />
+        </mesh>
+        <mesh
+          position={[0, 0, -CONNECTOR_JACKET_LENGTH / 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry args={[0.057, 0.057, 0.018, 12]} />
+          <meshStandardMaterial color="#223b50" roughness={0.68} />
+        </mesh>
+      </group>
       <group
         ref={connectorGroup}
         position={CONNECTOR_INITIAL_POSITION}

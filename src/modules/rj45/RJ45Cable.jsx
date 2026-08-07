@@ -8,7 +8,6 @@ import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
 import RJ45ConnectorInsertion from './RJ45ConnectorInsertion.jsx'
-import { JACKET_INSERTION_DISTANCE } from './RJ45ConnectorModel.jsx'
 import RJ45WireArrangement from './RJ45WireArrangement.jsx'
 import RJ45WireTrimming from './RJ45WireTrimming.jsx'
 import {
@@ -22,6 +21,17 @@ const STRIPPING_DURATION = 0.9
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
+}
+
+function isConnectorWorkspaceStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+  ].includes(currentStep)
 }
 
 export default function RJ45Cable({
@@ -50,12 +60,6 @@ export default function RJ45Cable({
   const completedSteps = useTrainingStore((state) => state.completedSteps)
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
-  )
-  const isConnectorInserting = useTrainingStore(
-    (state) => state.isConnectorInserting,
-  )
-  const conductorsInserted = useTrainingStore(
-    (state) => state.conductorsInserted,
   )
   const selectWorkpiece = useTrainingStore((state) => state.selectWorkpiece)
   const startJacketStripping = useTrainingStore(
@@ -134,20 +138,9 @@ export default function RJ45Cable({
   }, [canInteract, isHovered, onHoveredObjectChange])
 
   useFrame((_, delta) => {
-    const keepInsertionPosition =
-      currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION ||
-      currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
-      currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
-    const jacketInsertionProgress =
-      conductorsInserted || keepInsertionPosition
-        ? 1
-        : isConnectorInserting
-          ? smoothStep(insertionProgress.current)
-          : 0
-
     if (jacket.current) {
-      jacket.current.position.z =
-        JACKET_INSERTION_DISTANCE * jacketInsertionProgress
+      jacket.current.visible = !isConnectorWorkspaceStep(currentStep)
+      jacket.current.position.z = 0
     }
 
     if (

@@ -11,6 +11,7 @@ import { CONDUCTOR_INSERTION_DISTANCE } from './RJ45ConnectorModel.jsx'
 import { RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
 import {
   CABLE_EXIT_X,
+  getConnectorWirePoints,
   getWireDefinition,
   getWireSlotPoints,
   getWireSlotPosition,
@@ -34,12 +35,12 @@ const conductorGeometry = new CylinderGeometry(
   1,
   10,
 )
-const stripeGeometry = new CylinderGeometry(0.0055, 0.0055, 1, 7)
+const stripeGeometry = new CylinderGeometry(0.0038, 0.0038, 1, 7)
 const wireHitGeometry = new CylinderGeometry(0.048, 0.048, 1, 7)
 const segmentDirection = new Vector3()
 const segmentMidpoint = new Vector3()
 const upAxis = new Vector3(0, 1, 0)
-const insertionPointWeights = [0.25, 0.48, 0.78, 1]
+const insertionPointWeights = [0.58, 0.56, 0.76, 1]
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
@@ -77,6 +78,17 @@ function isGuideVisible(currentStep, pairsSeparated) {
     pairsSeparated &&
     (isArrangementStep(currentStep) || postArrangementSteps.includes(currentStep))
   )
+}
+
+function isConnectorWorkspaceStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+  ].includes(currentStep)
 }
 
 function setSegmentTransform(mesh, startPoint, endPoint, verticalOffset = 0) {
@@ -176,6 +188,7 @@ export default function RJ45WireArrangement({
     !isProcedureAnimating
   const hasIncorrectValidation = wireValidationResults.includes('incorrect')
   const showGuide = isGuideVisible(currentStep, pairsSeparated)
+  const isConnectorWorkspace = isConnectorWorkspaceStep(currentStep)
   const selectedWire = getWireDefinition(selectedWireId)
 
   useEffect(() => {
@@ -268,7 +281,9 @@ export default function RJ45WireArrangement({
       } else {
         const placedSlot = getPlacedSlot(wirePlacements, wire.id)
         const targetPoints = placedSlot
-          ? getWireSlotPoints(placedSlot)
+          ? isConnectorWorkspace
+            ? getConnectorWirePoints(placedSlot)
+            : getWireSlotPoints(placedSlot)
           : wire.separatedPoints
         const damping = 1 - Math.exp(-10 * delta)
         const trimProgress = wiresTrimmed
@@ -280,12 +295,15 @@ export default function RJ45WireArrangement({
           currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION ||
           currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
           currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
-        const insertionProgress =
+        const rawInsertionProgress =
           conductorsInserted || keepInsertionPosition
             ? 1
             : isConnectorInserting
-              ? smoothStep(insertionProgressRef.current)
+              ? insertionProgressRef.current
               : 0
+        const insertionProgress = smoothStep(
+          clamp((rawInsertionProgress - 0.08) / 0.78, 0, 1),
+        )
 
         targetPoints.forEach((point, pointIndex) => {
           segmentMidpoint.fromArray(point)
@@ -297,6 +315,12 @@ export default function RJ45WireArrangement({
 
 
           if (placedSlot && wiresTrimmed) {
+            if (isConnectorWorkspace && pointIndex < 2) {
+              const channelX = targetPoints[2][0]
+              segmentMidpoint.x +=
+                (channelX - point[0]) * insertionProgress
+            }
+
             segmentMidpoint.z +=
               CONDUCTOR_INSERTION_DISTANCE *
               insertionPointWeights[pointIndex] *

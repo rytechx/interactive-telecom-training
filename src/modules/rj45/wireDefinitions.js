@@ -1,6 +1,6 @@
 const CABLE_LENGTH = 1.55
 const WIRE_LENGTH = 0.62
-const WIRE_RADIUS = 0.016
+const WIRE_RADIUS = 0.012
 const CABLE_EXIT_X = CABLE_LENGTH / 2 - WIRE_LENGTH
 const GUIDE_FIRST_SLOT_X = 0.12
 const GUIDE_SLOT_SPACING = 0.115
@@ -10,6 +10,8 @@ const GUIDE_WIDTH = GUIDE_SLOT_SPACING * 8 + 0.08
 const GUIDE_DEPTH = 0.56
 const PRE_TRIM_TIP_Z = GUIDE_CENTER_Z - 0.225
 const TRIMMED_TIP_Z = GUIDE_CENTER_Z - 0.135
+const CONNECTOR_CHANNEL_SPACING = 0.026
+const CONNECTOR_WIRE_CENTER_X = GUIDE_CENTER_X
 
 const bundledOffsets = [
   [-0.02, -0.028],
@@ -74,6 +76,18 @@ const wireDefinitions = Object.freeze(
       [slotX, 0.05, GUIDE_CENTER_Z - 0.075],
       [slotX, 0.05, GUIDE_CENTER_Z - 0.225],
     ])
+    const connectorChannelX =
+      CONNECTOR_WIRE_CENTER_X + (index - 3.5) * CONNECTOR_CHANNEL_SPACING
+    const connectorBundleX =
+      CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.006
+    const connectorFanX =
+      CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.014
+    const connectorPoints = freezePoints([
+      [connectorBundleX, 0.05, 0.18],
+      [connectorFanX, 0.05, 0.11],
+      [connectorChannelX, 0.05, 0.02],
+      [connectorChannelX, 0.05, TRIMMED_TIP_Z],
+    ])
 
     return Object.freeze({
       id,
@@ -85,6 +99,7 @@ const wireDefinitions = Object.freeze(
       initialPoints,
       separatedPoints,
       slotPoints,
+      connectorPoints,
       initialPosition: initialPoints[2],
       separatedPosition: separatedPoints[3],
       slotPosition: Object.freeze([slotX, 0.018, GUIDE_CENTER_Z]),
@@ -110,9 +125,16 @@ function getWireSlotPoints(slotNumber) {
   return wireDefinitions[slotNumber - 1]?.slotPoints ?? null
 }
 
+function getConnectorWirePoints(slotNumber) {
+  return wireDefinitions[slotNumber - 1]?.connectorPoints ?? null
+}
+
 export {
   CABLE_EXIT_X,
   CABLE_LENGTH,
+  CONNECTOR_CHANNEL_SPACING,
+  CONNECTOR_WIRE_CENTER_X,
+  getConnectorWirePoints,
   getWireDefinition,
   getWireSlotPoints,
   getWireSlotPosition,

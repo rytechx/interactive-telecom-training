@@ -90,8 +90,8 @@ export default function RJ45ProcedurePanel({
   const isTrimmingActive = isTrimmingStep(currentStep)
   const isConnectorInsertionActive = isConnectorInsertionStep(currentStep)
   const showConnectorOrientation =
-    isConnectorInsertionActive &&
-    currentStep !== RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR
+    currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR ||
+    currentStep === RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS
   const canContinue =
     currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
     currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1 ||
@@ -114,6 +114,9 @@ export default function RJ45ProcedurePanel({
     procedureFeedback?.startsWith('Align the ') ||
     procedureFeedback?.startsWith('One or more ')
   const showInsertionResults = insertionValidationResults.some(Boolean)
+  const displayedProcedureFeedback = conductorsInserted
+    ? 'All conductors are fully inserted and the cable jacket is seated correctly.'
+    : procedureFeedback
   const canAlignConnector =
     currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
     !connectorAligned
@@ -151,7 +154,9 @@ export default function RJ45ProcedurePanel({
       </span>
       <h1 id="procedure-title">RJ45 Cable Termination</h1>
       <h2>{procedureStep.title}</h2>
-      <p className="procedure-instruction">{procedureStep.instruction}</p>
+      {!conductorsInserted && (
+        <p className="procedure-instruction">{procedureStep.instruction}</p>
+      )}
 
       {isArrangementActive && (
         <>
@@ -179,11 +184,16 @@ export default function RJ45ProcedurePanel({
         </>
       )}
 
-      {(isTrimmingActive || isConnectorInsertionActive) && (
-        <p className="selected-tool-label" role="status">
-          Selected tool: <strong>{selectedTool?.name ?? 'None'}</strong>
-        </p>
-      )}
+      {(isTrimmingActive || isConnectorInsertionActive) &&
+        (conductorsInserted ? (
+          <p className="selected-tool-label" role="status">
+            Workpiece: <strong>RJ45 Connector</strong>
+          </p>
+        ) : (
+          <p className="selected-tool-label" role="status">
+            Selected tool: <strong>{selectedTool?.name ?? 'None'}</strong>
+          </p>
+        ))}
 
       {showConnectorOrientation && (
         <div className="connector-orientation-instruction" role="note">
@@ -192,9 +202,9 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
-      {procedureFeedback && (
+      {displayedProcedureFeedback && (
         <p className={feedbackClassName} role="status">
-          {procedureFeedback}
+          {displayedProcedureFeedback}
         </p>
       )}
 
@@ -203,26 +213,24 @@ export default function RJ45ProcedurePanel({
       )}
 
       {showInsertionResults && (
-        <div className="connector-verification" aria-label="Connector pin verification">
+        <div
+          className="connector-verification"
+          aria-label="Connector pin verification"
+        >
           <strong>Insertion verification</strong>
           <ol className="connector-pin-results">
             {insertionValidationResults.map((result, index) => (
               <li
                 key={index}
                 className={result ? `is-${result}` : undefined}
+                aria-label={`Pin ${index + 1}: ${result ?? 'pending'}`}
               >
-                <span>Pin {index + 1}</span>
+                <span>{index + 1}</span>
                 <b>{result === 'correct' ? '\u2713' : '!'}</b>
               </li>
             ))}
           </ol>
         </div>
-      )}
-
-      {conductorsInserted && (
-        <p className="connector-jacket-status" role="status">
-          The cable jacket is positioned inside the connector.
-        </p>
       )}
 
       {(canContinue || isArrangementActive) && (

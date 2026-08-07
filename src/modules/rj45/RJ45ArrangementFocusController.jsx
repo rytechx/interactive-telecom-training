@@ -170,7 +170,9 @@ export default function RJ45ArrangementFocusController() {
     if (workLight.current) {
       const targetIntensity =
         workstationPhase === WORKSTATION_PHASES.FOCUSED && procedureView
-          ? 2.4
+          ? procedureView === 'connector-insertion'
+            ? 1.65
+            : 2.4
           : 0
       const lightDamping = 1 - Math.exp(-6 * delta)
       workLight.current.intensity +=
@@ -220,9 +222,9 @@ export default function RJ45ArrangementFocusController() {
         }
         color="#e5f2ff"
         intensity={0}
-        distance={4}
-        angle={0.58}
-        penumbra={0.72}
+        distance={3.2}
+        angle={0.52}
+        penumbra={0.78}
         decay={2}
       />
       <object3D

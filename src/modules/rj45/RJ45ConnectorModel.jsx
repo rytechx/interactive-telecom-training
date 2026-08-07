@@ -1,36 +1,94 @@
 import { Html } from '@react-three/drei'
+import { BoxGeometry, MeshStandardMaterial } from 'three'
 import {
-  GUIDE_CENTER_X,
-  GUIDE_SLOT_SPACING,
+  CONNECTOR_CHANNEL_SPACING,
+  CONNECTOR_WIRE_CENTER_X,
   TRIMMED_TIP_Z,
   WIRE_COUNT,
 } from './wireDefinitions.js'
 
-const CONNECTOR_WIDTH = GUIDE_SLOT_SPACING * WIRE_COUNT + 0.08
-const CONNECTOR_HEIGHT = 0.24
-const CONNECTOR_LENGTH = 0.42
+const RJ45_SCENE_UNITS_PER_MILLIMETER = 0.02
+const CONNECTOR_LENGTH = 23 * RJ45_SCENE_UNITS_PER_MILLIMETER
+const CONNECTOR_WIDTH = 12 * RJ45_SCENE_UNITS_PER_MILLIMETER
+const CONNECTOR_HEIGHT = 8 * RJ45_SCENE_UNITS_PER_MILLIMETER
+const CONNECTOR_FRONT_WIDTH = 11 * RJ45_SCENE_UNITS_PER_MILLIMETER
 const CONNECTOR_ALIGNED_POSITION = Object.freeze([
-  GUIDE_CENTER_X,
-  0.068,
-  -0.28,
+  CONNECTOR_WIRE_CENTER_X,
+  0.07,
+  -0.31,
 ])
 const CONNECTOR_INITIAL_POSITION = Object.freeze([
-  GUIDE_CENTER_X + 0.46,
-  0.23,
-  -0.13,
+  CONNECTOR_WIRE_CENTER_X + 0.16,
+  0.16,
+  -0.16,
 ])
 const CONNECTOR_ALIGNED_ROTATION = Object.freeze([0, 0, 0])
-const CONNECTOR_INITIAL_ROTATION = Object.freeze([-0.12, 0.18, -0.08])
+const CONNECTOR_INITIAL_ROTATION = Object.freeze([-0.1, 0.16, -0.06])
 const CONNECTOR_REAR_ENTRY_Z =
   CONNECTOR_ALIGNED_POSITION[2] + CONNECTOR_LENGTH / 2
 const CONNECTOR_FRONT_CONTACT_Z =
-  CONNECTOR_ALIGNED_POSITION[2] - CONNECTOR_LENGTH / 2 + 0.045
+  CONNECTOR_ALIGNED_POSITION[2] - CONNECTOR_LENGTH / 2 + 0.04
 const CONDUCTOR_INSERTION_DISTANCE =
   CONNECTOR_FRONT_CONTACT_Z - TRIMMED_TIP_Z
-const JACKET_INSERTION_DISTANCE = -0.09
+const CONNECTOR_JACKET_LENGTH = 0.72
+const CONNECTOR_JACKET_FRONT_START_Z = 0.18
+const CONNECTOR_JACKET_INITIAL_Z =
+  CONNECTOR_JACKET_FRONT_START_Z + CONNECTOR_JACKET_LENGTH / 2
+const JACKET_INSERTION_DISTANCE = -0.32
+
+const unitBoxGeometry = new BoxGeometry(1, 1, 1)
+const housingMaterial = new MeshStandardMaterial({
+  color: '#b8d6dc',
+  transparent: true,
+  opacity: 0.42,
+  roughness: 0.3,
+  metalness: 0.02,
+  depthWrite: false,
+})
+const housingEdgeMaterial = new MeshStandardMaterial({
+  color: '#78949d',
+  transparent: true,
+  opacity: 0.74,
+  roughness: 0.34,
+  metalness: 0.05,
+})
+const highlightedEdgeMaterial = new MeshStandardMaterial({
+  color: '#e7c866',
+  emissive: '#a06b18',
+  emissiveIntensity: 0.38,
+  roughness: 0.32,
+  metalness: 0.12,
+})
+const channelMaterial = new MeshStandardMaterial({
+  color: '#66828b',
+  transparent: true,
+  opacity: 0.62,
+  roughness: 0.48,
+  depthWrite: false,
+})
+const contactMaterial = new MeshStandardMaterial({
+  color: '#c59a38',
+  emissive: '#5c4417',
+  emissiveIntensity: 0.16,
+  metalness: 0.72,
+  roughness: 0.34,
+})
 
 function getChannelX(index) {
-  return (index - (WIRE_COUNT - 1) / 2) * GUIDE_SLOT_SPACING
+  return (index - (WIRE_COUNT - 1) / 2) * CONNECTOR_CHANNEL_SPACING
+}
+
+function BoxPart({ position, scale, material, castShadow, receiveShadow }) {
+  return (
+    <mesh
+      geometry={unitBoxGeometry}
+      material={material}
+      position={position}
+      scale={scale}
+      castShadow={castShadow}
+      receiveShadow={receiveShadow}
+    />
+  )
 }
 
 export default function RJ45ConnectorModel({
@@ -38,211 +96,163 @@ export default function RJ45ConnectorModel({
   rotation = [0, 0, 0],
   scale = 1,
   isEntryHighlighted = false,
-  showPinNumbers = true,
   onEntryPointerEnter,
   onEntryPointerLeave,
   onEntryClick,
 }) {
-  const shellColor = isEntryHighlighted ? '#dff8ff' : '#b8d7df'
+  const entryMaterial = isEntryHighlighted
+    ? highlightedEdgeMaterial
+    : housingEdgeMaterial
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh
-        position={[0, CONNECTOR_HEIGHT / 2 - 0.018, 0]}
+      <BoxPart
+        position={[0, 0, 0.13]}
+        scale={[CONNECTOR_WIDTH, CONNECTOR_HEIGHT, 0.2]}
+        material={housingMaterial}
         castShadow
-      >
-        <boxGeometry args={[CONNECTOR_WIDTH, 0.036, CONNECTOR_LENGTH]} />
-        <meshStandardMaterial
-          color={shellColor}
-          transparent
-          opacity={0.34}
-          roughness={0.24}
-          depthWrite={false}
-        />
-      </mesh>
-
-      <mesh
-        position={[0, -CONNECTOR_HEIGHT / 2 + 0.018, 0]}
         receiveShadow
-      >
-        <boxGeometry args={[CONNECTOR_WIDTH, 0.036, CONNECTOR_LENGTH]} />
-        <meshStandardMaterial
-          color={shellColor}
-          transparent
-          opacity={0.4}
-          roughness={0.28}
-          depthWrite={false}
-        />
-      </mesh>
+      />
+      <BoxPart
+        position={[0, 0.004, -0.095]}
+        scale={[CONNECTOR_FRONT_WIDTH, 0.145, 0.29]}
+        material={housingMaterial}
+        castShadow
+        receiveShadow
+      />
 
       {[-1, 1].map((side) => (
-        <mesh
-          key={side}
-          position={[side * (CONNECTOR_WIDTH / 2 - 0.018), 0, 0]}
-          castShadow
-        >
-          <boxGeometry args={[0.036, CONNECTOR_HEIGHT, CONNECTOR_LENGTH]} />
-          <meshStandardMaterial
-            color={shellColor}
-            transparent
-            opacity={0.38}
-            roughness={0.24}
-            depthWrite={false}
+        <group key={side}>
+          <BoxPart
+            position={[side * (CONNECTOR_WIDTH / 2 - 0.009), 0, 0.13]}
+            scale={[0.018, CONNECTOR_HEIGHT, 0.2]}
+            material={housingEdgeMaterial}
+            castShadow
           />
-        </mesh>
+          <BoxPart
+            position={[
+              side * (CONNECTOR_FRONT_WIDTH / 2 - 0.008),
+              0.004,
+              -0.095,
+            ]}
+            scale={[0.016, 0.145, 0.29]}
+            material={housingEdgeMaterial}
+            castShadow
+          />
+        </group>
       ))}
 
-      <mesh position={[0, 0, -CONNECTOR_LENGTH / 2 + 0.014]}>
-        <boxGeometry args={[CONNECTOR_WIDTH, CONNECTOR_HEIGHT, 0.028]} />
-        <meshStandardMaterial
-          color="#bad7dd"
-          transparent
-          opacity={0.26}
-          roughness={0.22}
-          depthWrite={false}
-        />
-      </mesh>
+      <BoxPart
+        position={[0, CONNECTOR_HEIGHT / 2 - 0.009, -0.07]}
+        scale={[CONNECTOR_FRONT_WIDTH, 0.018, 0.34]}
+        material={housingEdgeMaterial}
+        castShadow
+      />
+      <BoxPart
+        position={[0, -CONNECTOR_HEIGHT / 2 + 0.009, 0.015]}
+        scale={[CONNECTOR_WIDTH, 0.018, 0.37]}
+        material={housingEdgeMaterial}
+        receiveShadow
+      />
+      <BoxPart
+        position={[0, 0, -CONNECTOR_LENGTH / 2 + 0.008]}
+        scale={[CONNECTOR_FRONT_WIDTH, 0.145, 0.016]}
+        material={housingEdgeMaterial}
+      />
 
       {Array.from({ length: WIRE_COUNT }, (_, index) => {
         const channelX = getChannelX(index)
 
         return (
           <group key={index}>
-            <mesh position={[channelX, -0.018, 0.005]}>
-              <boxGeometry
-                args={[
-                  GUIDE_SLOT_SPACING * 0.68,
-                  0.026,
-                  CONNECTOR_LENGTH * 0.82,
-                ]}
-              />
-              <meshStandardMaterial
-                color="#55717b"
-                transparent
-                opacity={0.3}
-                roughness={0.5}
-                depthWrite={false}
-              />
-            </mesh>
-            <mesh
+            <BoxPart
+              position={[channelX, -0.035, -0.045]}
+              scale={[0.018, 0.006, 0.34]}
+              material={channelMaterial}
+            />
+            <BoxPart
               position={[
                 channelX,
-                CONNECTOR_HEIGHT / 2 - 0.038,
-                -CONNECTOR_LENGTH / 2 + 0.068,
+                CONNECTOR_HEIGHT / 2 - 0.014,
+                -0.15,
               ]}
+              scale={[0.012, 0.008, 0.11]}
+              material={contactMaterial}
               castShadow
-            >
-              <boxGeometry
-                args={[GUIDE_SLOT_SPACING * 0.54, 0.026, 0.105]}
-              />
-              <meshStandardMaterial
-                color="#d9ad42"
-                emissive="#74551a"
-                emissiveIntensity={0.22}
-                metalness={0.78}
-                roughness={0.3}
-              />
-            </mesh>
+            />
+            <BoxPart
+              position={[channelX, 0.025, -0.105]}
+              scale={[0.012, 0.066, 0.01]}
+              material={contactMaterial}
+            />
           </group>
         )
       })}
 
       {Array.from({ length: WIRE_COUNT - 1 }, (_, index) => (
-        <mesh
+        <BoxPart
           key={index}
           position={[
-            (index - (WIRE_COUNT - 2) / 2) * GUIDE_SLOT_SPACING,
-            0.008,
-            0.01,
+            (index - (WIRE_COUNT - 2) / 2) * CONNECTOR_CHANNEL_SPACING,
+            -0.001,
+            -0.045,
           ]}
-        >
-          <boxGeometry args={[0.012, 0.13, CONNECTOR_LENGTH * 0.76]} />
-          <meshStandardMaterial
-            color="#9db8bf"
-            transparent
-            opacity={0.28}
-            roughness={0.35}
-            depthWrite={false}
-          />
-        </mesh>
+          scale={[0.004, 0.05, 0.34]}
+          material={channelMaterial}
+        />
       ))}
 
-      <group position={[0, 0, CONNECTOR_LENGTH / 2 - 0.018]}>
+      <group position={[0, 0, CONNECTOR_LENGTH / 2 - 0.008]}>
         {[-1, 1].map((side) => (
-          <mesh key={side} position={[side * CONNECTOR_WIDTH * 0.43, 0, 0]}>
-            <boxGeometry args={[0.035, CONNECTOR_HEIGHT * 0.76, 0.055]} />
-            <meshStandardMaterial
-              color={isEntryHighlighted ? '#f2d276' : '#6f8991'}
-              emissive={isEntryHighlighted ? '#c28a24' : '#000000'}
-              emissiveIntensity={isEntryHighlighted ? 0.72 : 0}
-              metalness={0.25}
-              roughness={0.42}
-            />
-          </mesh>
+          <BoxPart
+            key={side}
+            position={[side * 0.079, 0, 0]}
+            scale={[0.018, 0.118, 0.035]}
+            material={entryMaterial}
+          />
         ))}
-        <mesh position={[0, CONNECTOR_HEIGHT * 0.34, 0]}>
-          <boxGeometry args={[CONNECTOR_WIDTH * 0.86, 0.035, 0.055]} />
-          <meshStandardMaterial
-            color={isEntryHighlighted ? '#f2d276' : '#6f8991'}
-            emissive={isEntryHighlighted ? '#c28a24' : '#000000'}
-            emissiveIntensity={isEntryHighlighted ? 0.72 : 0}
-            metalness={0.25}
-            roughness={0.42}
-          />
-        </mesh>
-        <mesh position={[0, -CONNECTOR_HEIGHT * 0.34, 0]}>
-          <boxGeometry args={[CONNECTOR_WIDTH * 0.86, 0.035, 0.055]} />
-          <meshStandardMaterial
-            color={isEntryHighlighted ? '#f2d276' : '#6f8991'}
-            emissive={isEntryHighlighted ? '#c28a24' : '#000000'}
-            emissiveIntensity={isEntryHighlighted ? 0.72 : 0}
-            metalness={0.25}
-            roughness={0.42}
-          />
-        </mesh>
+        <BoxPart
+          position={[0, 0.059, 0]}
+          scale={[0.176, 0.018, 0.035]}
+          material={entryMaterial}
+        />
+        <BoxPart
+          position={[0, -0.059, 0]}
+          scale={[0.176, 0.018, 0.035]}
+          material={entryMaterial}
+        />
+      </group>
+
+      <group position={[0, -CONNECTOR_HEIGHT / 2 - 0.012, 0.04]}>
+        <mesh
+          geometry={unitBoxGeometry}
+          material={housingEdgeMaterial}
+          position={[0, -0.012, 0]}
+          rotation={[-0.16, 0, 0]}
+          scale={[0.09, 0.018, 0.18]}
+          castShadow
+        />
+        <BoxPart
+          position={[0, -0.018, 0.085]}
+          scale={[0.105, 0.026, 0.045]}
+          material={housingEdgeMaterial}
+          castShadow
+        />
       </group>
 
       <mesh
-        position={[0, -CONNECTOR_HEIGHT / 2 - 0.055, 0.055]}
-        rotation={[-0.22, 0, 0]}
-        castShadow
-      >
-        <boxGeometry args={[CONNECTOR_WIDTH * 0.48, 0.035, 0.22]} />
-        <meshStandardMaterial
-          color="#9fb9c0"
-          transparent
-          opacity={0.64}
-          roughness={0.32}
-        />
-      </mesh>
-
-      <mesh
-        position={[0, 0, CONNECTOR_LENGTH / 2 + 0.025]}
+        geometry={unitBoxGeometry}
+        position={[0, 0, CONNECTOR_LENGTH / 2 + 0.018]}
+        scale={[0.18, 0.125, 0.07]}
         onPointerEnter={onEntryPointerEnter}
         onPointerLeave={onEntryPointerLeave}
         onClick={onEntryClick}
       >
-        <boxGeometry
-          args={[CONNECTOR_WIDTH * 0.94, CONNECTOR_HEIGHT * 0.82, 0.08]}
-        />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {showPinNumbers && (
-        <Html
-          position={[0, CONNECTOR_HEIGHT / 2 + 0.11, -CONNECTOR_LENGTH * 0.3]}
-          center
-        >
-          <div className="connector-pin-labels" aria-label="RJ45 pins 1 through 8">
-            {Array.from({ length: WIRE_COUNT }, (_, index) => (
-              <span key={index}>{index + 1}</span>
-            ))}
-          </div>
-        </Html>
-      )}
-
       {isEntryHighlighted && (
-        <Html position={[0, CONNECTOR_HEIGHT / 2 + 0.24, 0.12]} center>
+        <Html position={[0, CONNECTOR_HEIGHT / 2 + 0.09, 0.13]} center>
           <div className="tool-tooltip" role="tooltip">
             Insert Conductors
           </div>
@@ -260,8 +270,11 @@ export {
   CONNECTOR_HEIGHT,
   CONNECTOR_INITIAL_POSITION,
   CONNECTOR_INITIAL_ROTATION,
+  CONNECTOR_JACKET_INITIAL_Z,
+  CONNECTOR_JACKET_LENGTH,
   CONNECTOR_LENGTH,
   CONNECTOR_REAR_ENTRY_Z,
   CONNECTOR_WIDTH,
   JACKET_INSERTION_DISTANCE,
+  RJ45_SCENE_UNITS_PER_MILLIMETER,
 }

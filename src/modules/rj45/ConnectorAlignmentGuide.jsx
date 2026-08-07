@@ -1,16 +1,14 @@
-import { Html } from '@react-three/drei'
 import {
   CONNECTOR_ALIGNED_POSITION,
   CONNECTOR_REAR_ENTRY_Z,
-  CONNECTOR_WIDTH,
 } from './RJ45ConnectorModel.jsx'
-import { GUIDE_CENTER_X } from './wireDefinitions.js'
+import { CONNECTOR_WIRE_CENTER_X } from './wireDefinitions.js'
 
-const GUIDE_SEGMENTS = 7
+const GUIDE_SEGMENTS = 4
 
 export default function ConnectorAlignmentGuide({ isAligned }) {
-  const pathStartZ = 0.08
-  const pathLength = pathStartZ - CONNECTOR_REAR_ENTRY_Z
+  const pathStartZ = 0.035
+  const pathEndZ = CONNECTOR_REAR_ENTRY_Z + 0.035
   const pathColor = isAligned ? '#75d792' : '#70c8e8'
 
   return (
@@ -22,16 +20,16 @@ export default function ConnectorAlignmentGuide({ isAligned }) {
           <mesh
             key={index}
             position={[
-              GUIDE_CENTER_X,
-              0.018,
-              pathStartZ - pathLength * segmentProgress,
+              CONNECTOR_WIRE_CENTER_X,
+              CONNECTOR_ALIGNED_POSITION[1],
+              pathStartZ + (pathEndZ - pathStartZ) * segmentProgress,
             ]}
           >
-            <boxGeometry args={[0.025, 0.012, 0.025]} />
+            <boxGeometry args={[0.009, 0.009, 0.014]} />
             <meshStandardMaterial
               color={pathColor}
               emissive={pathColor}
-              emissiveIntensity={0.66}
+              emissiveIntensity={0.5}
               toneMapped={false}
             />
           </mesh>
@@ -39,56 +37,21 @@ export default function ConnectorAlignmentGuide({ isAligned }) {
       })}
 
       <mesh
-        position={[GUIDE_CENTER_X, 0.03, CONNECTOR_REAR_ENTRY_Z + 0.035]}
+        position={[
+          CONNECTOR_WIRE_CENTER_X,
+          CONNECTOR_ALIGNED_POSITION[1],
+          pathEndZ - 0.018,
+        ]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <coneGeometry args={[0.055, 0.12, 8]} />
+        <coneGeometry args={[0.016, 0.045, 8]} />
         <meshStandardMaterial
           color={pathColor}
           emissive={pathColor}
-          emissiveIntensity={0.45}
+          emissiveIntensity={0.42}
           toneMapped={false}
         />
       </mesh>
-
-      <group
-        position={[
-          CONNECTOR_ALIGNED_POSITION[0],
-          CONNECTOR_ALIGNED_POSITION[1],
-          CONNECTOR_REAR_ENTRY_Z,
-        ]}
-      >
-        {[-1, 1].map((side) => (
-          <mesh key={side} position={[side * CONNECTOR_WIDTH * 0.51, 0, 0]}>
-            <boxGeometry args={[0.022, 0.3, 0.03]} />
-            <meshStandardMaterial
-              color={pathColor}
-              emissive={pathColor}
-              emissiveIntensity={0.38}
-            />
-          </mesh>
-        ))}
-      </group>
-
-      <Html position={[GUIDE_CENTER_X, 0.3, -0.01]} center>
-        <div className="connector-insertion-label" role="note">
-          Insert conductors
-        </div>
-      </Html>
-
-      <Html
-        position={[
-          CONNECTOR_ALIGNED_POSITION[0],
-          0.5,
-          CONNECTOR_ALIGNED_POSITION[2],
-        ]}
-        center
-      >
-        <div className="connector-orientation-guide" role="note">
-          <strong>Contacts up, locking tab down.</strong>
-          <span>Pin 1 &rarr; Pin 8</span>
-        </div>
-      </Html>
     </group>
   )
 }

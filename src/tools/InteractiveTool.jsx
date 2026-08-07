@@ -6,8 +6,21 @@ import useInteractionStore, {
 } from '../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
+import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
+import { TOOL_IDS } from './toolConfigs.js'
 
 const highlightColor = new Color('#79bfff')
+
+function isConnectorAssemblyStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+  ].includes(currentStep)
+}
 
 export default function InteractiveTool({ tool, children }) {
   const group = useRef(null)
@@ -24,6 +37,7 @@ export default function InteractiveTool({ tool, children }) {
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const currentStep = useTrainingStore((state) => state.currentStep)
   const setHoveredTool = useToolStore((state) => state.setHoveredTool)
   const clearHoveredTool = useToolStore((state) => state.clearHoveredTool)
   const requestToolInspection = useToolStore(
@@ -37,6 +51,9 @@ export default function InteractiveTool({ tool, children }) {
     !activeToolId
   const isHovered = canInteract && hoveredToolId === tool.id
   const isActive = activeToolId === tool.id
+  const hideWorkbenchConnector =
+    tool.id === TOOL_IDS.RJ45_CONNECTOR &&
+    isConnectorAssemblyStep(currentStep)
 
   useEffect(() => {
     highlightedMaterials.current.forEach(
@@ -51,24 +68,30 @@ export default function InteractiveTool({ tool, children }) {
       return undefined
     }
 
+    const materialsToHighlight = new Set()
+
     group.current.traverse((object) => {
-      const materials = Array.isArray(object.material)
+      const objectMaterials = Array.isArray(object.material)
         ? object.material
         : [object.material]
 
-      materials.filter(Boolean).forEach((material) => {
+      objectMaterials.filter(Boolean).forEach((material) => {
         if (!material.emissive) {
           return
         }
 
-        highlightedMaterials.current.push({
-          material,
-          emissive: material.emissive.clone(),
-          emissiveIntensity: material.emissiveIntensity,
-        })
-        material.emissive.lerp(highlightColor, 0.28)
-        material.emissiveIntensity = Math.max(material.emissiveIntensity, 0.4)
+        materialsToHighlight.add(material)
       })
+    })
+
+    materialsToHighlight.forEach((material) => {
+      highlightedMaterials.current.push({
+        material,
+        emissive: material.emissive.clone(),
+        emissiveIntensity: material.emissiveIntensity,
+      })
+      material.emissive.lerp(highlightColor, 0.28)
+      material.emissiveIntensity = Math.max(material.emissiveIntensity, 0.4)
     })
 
     return () => {
@@ -122,7 +145,7 @@ export default function InteractiveTool({ tool, children }) {
   return (
     <group
       ref={group}
-      visible={!isActive}
+      visible={!isActive && !hideWorkbenchConnector}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onClick={handleClick}
