@@ -43,12 +43,32 @@ const RJ45_WORKSTATION = Object.freeze({
   transitionDuration: 1,
 })
 
+const FIBER_WORKSTATION = Object.freeze({
+  id: 'fiber-workbench',
+  displayName: 'Fiber Optic Fusion Splicing',
+  interactionPosition: Object.freeze([5, 0, -2.5]),
+  workspacePosition: Object.freeze([5, 0.95, -2.5]),
+  focusCameraPosition: Object.freeze([5.18, 1.72, -0.82]),
+  focusCameraTarget: Object.freeze([5, 0.93, -2.5]),
+  technicianCameraPosition: Object.freeze([5.15, 2.55, -1.38]),
+  technicianCameraTarget: Object.freeze([5.05, 0.94, -2.55]),
+  technicianLightPosition: Object.freeze([5.25, 3.05, -2.05]),
+  technicianTransitionDuration: 0.9,
+  transitionDuration: 1,
+})
+
 const workstationConfigs = Object.freeze({
   [RJ45_WORKSTATION.id]: RJ45_WORKSTATION,
+  [FIBER_WORKSTATION.id]: FIBER_WORKSTATION,
 })
 
 function getWorkstationConfig(workstationId) {
   return workstationConfigs[workstationId] ?? null
 }
 
-export { getWorkstationConfig, RJ45_WORKSTATION, workstationConfigs }
+export {
+  FIBER_WORKSTATION,
+  getWorkstationConfig,
+  RJ45_WORKSTATION,
+  workstationConfigs,
+}

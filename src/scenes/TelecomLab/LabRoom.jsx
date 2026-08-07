@@ -1,5 +1,8 @@
 import Ceiling from './Ceiling.jsx'
-import { RJ45_WORKSTATION } from '../../workstations/workstationConfigs.js'
+import {
+  FIBER_WORKSTATION,
+  RJ45_WORKSTATION,
+} from '../../workstations/workstationConfigs.js'
 import CeilingLights from './CeilingLights.jsx'
 import Door from './Door.jsx'
 import Floor from './Floor.jsx'
@@ -10,7 +13,7 @@ import Walls from './Walls.jsx'
 import Windows from './Windows.jsx'
 
 const rj45WorkbenchPosition = RJ45_WORKSTATION.interactionPosition
-const fiberWorkbenchPosition = [5, 0, -2.5]
+const fiberWorkbenchPosition = FIBER_WORKSTATION.interactionPosition
 const networkRackPosition = [-4.8, 0, -9.2]
 const storageCabinetPosition = [4.8, 0, -9.4]
 

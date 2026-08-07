@@ -2,7 +2,10 @@ import StorageCabinet from '../../objects/furniture/StorageCabinet.jsx'
 import Stool from '../../objects/furniture/Stool.jsx'
 import Workbench from '../../objects/furniture/Workbench.jsx'
 import Interactable from '../../interaction/Interactable.jsx'
-import { RJ45_WORKSTATION } from '../../workstations/workstationConfigs.js'
+import {
+  FIBER_WORKSTATION,
+  RJ45_WORKSTATION,
+} from '../../workstations/workstationConfigs.js'
 
 export default function LabFurniture({
   rj45WorkbenchPosition = [-5, 0, -2.5],
@@ -30,7 +33,14 @@ export default function LabFurniture({
       >
         <Workbench position={rj45WorkbenchPosition} topColor="#9b7147" />
       </Interactable>
-      <Workbench position={fiberWorkbenchPosition} topColor="#aeb8be" />
+      <Interactable
+        id={FIBER_WORKSTATION.id}
+        label={FIBER_WORKSTATION.displayName}
+        position={fiberWorkbenchPosition}
+        interactionDistance={2.2}
+      >
+        <Workbench position={fiberWorkbenchPosition} topColor="#aeb8be" />
+      </Interactable>
       <Stool position={rj45StoolPosition} color="#46545d" />
       <Stool position={fiberStoolPosition} color="#46545d" />
       <StorageCabinet position={storageCabinetPosition} />

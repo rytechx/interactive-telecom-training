@@ -315,6 +315,28 @@ canvas {
   width: min(300px, calc(100% - 40px));
 }
 
+.fiber-training-overlay {
+  background: linear-gradient(
+    90deg,
+    rgb(5 12 16 / 34%) 0,
+    rgb(5 12 16 / 10%) 28%,
+    transparent 42%
+  );
+}
+
+.fiber-procedure-panel {
+  width: min(292px, calc(100% - 40px));
+  border-color: rgb(105 202 222 / 24%);
+}
+
+.fiber-procedure-panel .procedure-step-number {
+  color: #83d7e9;
+}
+
+.fiber-tool-inspection {
+  border-color: rgb(105 202 222 / 34%);
+}
+
 .connector-orientation-instruction {
   display: grid;
   gap: 5px;

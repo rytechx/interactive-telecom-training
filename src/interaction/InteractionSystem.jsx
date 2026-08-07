@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import FiberInteractionSystem from './FiberInteractionSystem.jsx'
 import RJ45Assessment from '../modules/rj45/RJ45Assessment.jsx'
 import RJ45ProcedurePanel from '../modules/rj45/RJ45ProcedurePanel.jsx'
 import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
@@ -8,7 +9,11 @@ import useInteractionStore, {
 import useTrainingStore from '../store/useTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { getToolConfig } from '../tools/toolConfigs.js'
-import { getWorkstationConfig } from '../workstations/workstationConfigs.js'
+import {
+  FIBER_WORKSTATION,
+  getWorkstationConfig,
+  RJ45_WORKSTATION,
+} from '../workstations/workstationConfigs.js'
 
 function releasePointerLock() {
   if (document.pointerLockElement) {
@@ -138,6 +143,7 @@ export default function InteractionSystem() {
   const returnActiveTool = useToolStore((state) => state.returnActiveTool)
   const resetToolState = useToolStore((state) => state.resetToolState)
   const activeWorkstation = getWorkstationConfig(activeInteractable?.id)
+  const isRJ45Workstation = activeInteractable?.id === RJ45_WORKSTATION.id
   const selectedTool = getToolConfig(selectedToolId)
   const activeTool = getToolConfig(activeToolId)
   const canInteract =
@@ -175,6 +181,14 @@ export default function InteractionSystem() {
       ) {
         event.preventDefault()
         event.stopPropagation()
+        return
+      }
+
+      if (
+        event.code === 'Escape' &&
+        interactionState.activeInteractable?.id === FIBER_WORKSTATION.id &&
+        interactionState.workstationPhase !== WORKSTATION_PHASES.EXPLORATION
+      ) {
         return
       }
 
@@ -380,7 +394,9 @@ export default function InteractionSystem() {
         </div>
       )}
 
-      {workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode && (
+      {workstationPhase === WORKSTATION_PHASES.FOCUSED &&
+        isTrainingMode &&
+        isRJ45Workstation && (
         <div
           className={`training-overlay${
             assessmentVisible ? ' is-assessment' : ''
@@ -436,7 +452,9 @@ export default function InteractionSystem() {
         </div>
       )}
 
-      {toolViewState === TOOL_VIEW_STATES.INSPECTING && selectedTool && (
+      {isRJ45Workstation &&
+        toolViewState === TOOL_VIEW_STATES.INSPECTING &&
+        selectedTool && (
         <aside className="tool-inspection-panel" aria-labelledby="tool-title">
           <span className="tool-panel-eyebrow">Tool Inspection</span>
           <h2 id="tool-title">{selectedTool.name}</h2>
@@ -468,6 +486,8 @@ export default function InteractionSystem() {
           </button>
         </div>
       )}
+
+      <FiberInteractionSystem />
     </>
   )
 }

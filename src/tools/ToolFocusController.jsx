@@ -144,6 +144,9 @@ export default function ToolFocusController() {
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
   )
+  const activeWorkstationId = useInteractionStore(
+    (state) => state.activeInteractable?.id ?? null,
+  )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
@@ -215,6 +218,11 @@ export default function ToolFocusController() {
       return
     }
 
+    if (activeWorkstationId !== RJ45_WORKSTATION.id) {
+      transition.current = null
+      return
+    }
+
     if (toolViewState === TOOL_VIEW_STATES.ENTERING) {
       const selectedTool = getToolConfig(selectedToolId)
 
@@ -269,6 +277,7 @@ export default function ToolFocusController() {
       }
     }
   }, [
+    activeWorkstationId,
     camera,
     resetToolState,
     selectedToolId,
@@ -277,6 +286,10 @@ export default function ToolFocusController() {
   ])
 
   useFrame((_, delta) => {
+    if (activeWorkstationId !== RJ45_WORKSTATION.id) {
+      return
+    }
+
     const activeTransition = transition.current
 
     if (activeTransition) {

@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Suspense, useCallback, useRef, useState } from 'react'
 import InteractionSystem from '../../interaction/InteractionSystem.jsx'
+import FiberTrainingModule from '../../modules/fiber/FiberTrainingModule.jsx'
 import RJ45ArrangementFocusController from '../../modules/rj45/RJ45ArrangementFocusController.jsx'
 import RJ45TrainingModule from '../../modules/rj45/RJ45TrainingModule.jsx'
 import FirstPersonPlayer from '../../player/FirstPersonPlayer.jsx'
@@ -69,6 +70,10 @@ export default function TelecomLabScene() {
         <ToolFocusController />
         <RJ45ArrangementFocusController />
         <RJ45TrainingModule
+          hoveredObjectId={hoveredTrainingObjectId}
+          onHoveredObjectChange={setHoveredTrainingObjectId}
+        />
+        <FiberTrainingModule
           hoveredObjectId={hoveredTrainingObjectId}
           onHoveredObjectChange={setHoveredTrainingObjectId}
         />
