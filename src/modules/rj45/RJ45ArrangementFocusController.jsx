@@ -34,9 +34,13 @@ function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
 }
 
-function getProcedureView(currentStep, trainingStarted) {
+function getProcedureView(currentStep, trainingStarted, assessmentVisible) {
   if (!trainingStarted) {
     return null
+  }
+
+  if (assessmentVisible) {
+    return 'assessment'
   }
 
   if (
@@ -141,6 +145,13 @@ const procedureCameraConfigs = Object.freeze({
     cameraRoll: 0,
     transitionDuration: RJ45_WORKSTATION.cableTestingTransitionDuration,
   }),
+  assessment: Object.freeze({
+    cameraPosition: RJ45_WORKSTATION.assessmentCameraPosition,
+    cameraTarget: RJ45_WORKSTATION.assessmentCameraTarget,
+    lightPosition: RJ45_WORKSTATION.assessmentLightPosition,
+    cameraRoll: 0,
+    transitionDuration: RJ45_WORKSTATION.assessmentTransitionDuration,
+  }),
 })
 
 export default function RJ45ArrangementFocusController() {
@@ -155,7 +166,14 @@ export default function RJ45ArrangementFocusController() {
   const toolViewState = useToolStore((state) => state.toolViewState)
   const trainingStarted = useTrainingStore((state) => state.trainingStarted)
   const currentStep = useTrainingStore((state) => state.currentStep)
-  const procedureView = getProcedureView(currentStep, trainingStarted)
+  const assessmentVisible = useTrainingStore(
+    (state) => state.assessmentVisible,
+  )
+  const procedureView = getProcedureView(
+    currentStep,
+    trainingStarted,
+    assessmentVisible,
+  )
   const procedureCameraConfig = procedureCameraConfigs[procedureView] ?? null
   const canUseProcedureView =
     workstationPhase === WORKSTATION_PHASES.FOCUSED &&

@@ -36,6 +36,10 @@ const RJ45_WORKSTATION = Object.freeze({
   cableTestingCameraTarget: Object.freeze([-4.5, 1, -2.78]),
   cableTestingLightPosition: Object.freeze([-4.56, 2.94, -2.16]),
   cableTestingTransitionDuration: 0.85,
+  assessmentCameraPosition: Object.freeze([-4.62, 2.78, -1.62]),
+  assessmentCameraTarget: Object.freeze([-4.62, 1, -2.92]),
+  assessmentLightPosition: Object.freeze([-4.72, 3.02, -2.36]),
+  assessmentTransitionDuration: 0.9,
   transitionDuration: 1,
 })
 

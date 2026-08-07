@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import {
+  ASSESSMENT_MISTAKE_TYPES,
+  ASSESSMENT_STAGE_IDS,
+  ASSESSMENT_STAGES,
+  calculateAssessmentResult,
+  createInitialAssessmentState,
+  MISTAKE_GUARD_WINDOW_MS,
+} from '../modules/rj45/rj45Assessment.js'
+import {
   ETHERNET_CABLE_ID,
   getRJ45ProcedureStep,
   RJ45_MODULE_ID,
@@ -66,12 +74,14 @@ function createInitialTrainingState() {
     cableTestResults: createPendingCableTestResults(),
     finalTestResult: null,
     moduleCompleted: false,
+    ...createInitialAssessmentState(),
   }
 }
 
 function createStartedTrainingState() {
   return {
     ...createInitialTrainingState(),
+    ...createInitialAssessmentState(Date.now()),
     activeModuleId: RJ45_MODULE_ID,
     currentStep: RJ45_PROCEDURE_STEPS.SELECT_CABLE,
     trainingStarted: true,
@@ -80,6 +90,69 @@ function createStartedTrainingState() {
 
 function addCompletedSteps(completedSteps, ...stepIds) {
   return [...new Set([...completedSteps, ...stepIds])]
+}
+
+function addCompletedProcedureSteps(completedProcedureSteps, ...stepIds) {
+  return [...new Set([...completedProcedureSteps, ...stepIds])]
+}
+
+function removeCompletedProcedureSteps(completedProcedureSteps, ...stepIds) {
+  return completedProcedureSteps.filter((stepId) => !stepIds.includes(stepId))
+}
+
+function createMistakeUpdate(
+  state,
+  mistakeType,
+  signature = mistakeType,
+  recordedAt = Date.now(),
+) {
+  if (
+    !state.assessmentStartTime ||
+    state.assessmentEndTime ||
+    state.assessmentVisible ||
+    (state.lastMistakeSignature === signature &&
+      recordedAt - state.lastMistakeRecordedAt < MISTAKE_GUARD_WINDOW_MS)
+  ) {
+    return {}
+  }
+
+  const update = {
+    mistakeCount: state.mistakeCount + 1,
+    lastMistakeSignature: signature,
+    lastMistakeRecordedAt: recordedAt,
+  }
+
+  if (mistakeType === ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL) {
+    update.wrongToolCount = state.wrongToolCount + 1
+  } else if (mistakeType === ASSESSMENT_MISTAKE_TYPES.INCORRECT_T568B) {
+    update.incorrectT568BAttempts = state.incorrectT568BAttempts + 1
+  } else {
+    update.otherMistakeCount = state.otherMistakeCount + 1
+  }
+
+  return update
+}
+
+function createWrongToolUpdate(state, toolId, procedureFeedback) {
+  return {
+    ...createMistakeUpdate(
+      state,
+      ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+      `wrong-tool:${state.currentStep}:${toolId}`,
+    ),
+    procedureFeedback,
+  }
+}
+
+function createProcedureMistakeUpdate(state, signature, procedureFeedback) {
+  return {
+    ...createMistakeUpdate(
+      state,
+      ASSESSMENT_MISTAKE_TYPES.PREREQUISITE,
+      signature,
+    ),
+    procedureFeedback,
+  }
 }
 
 function isValidWireId(wireId) {
@@ -100,6 +173,107 @@ function isArrangementStep(currentStep) {
 const useTrainingStore = create((set) => ({
   ...createInitialTrainingState(),
 
+  startAssessment: () =>
+    set((state) =>
+      state.trainingStarted && !state.assessmentStartTime
+        ? createInitialAssessmentState(Date.now())
+        : {},
+    ),
+  recordMistake: (mistakeType, signature) => {
+    set((state) => createMistakeUpdate(state, mistakeType, signature))
+  },
+  recordWrongTool: (toolId) => {
+    set((state) =>
+      createMistakeUpdate(
+        state,
+        ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+        `wrong-tool:${state.currentStep}:${toolId}`,
+      ),
+    )
+  },
+  recordT568BFailure: () => {
+    set((state) => {
+      const mistakeUpdate = createMistakeUpdate(
+        state,
+        ASSESSMENT_MISTAKE_TYPES.INCORRECT_T568B,
+        `incorrect-t568b:${state.wirePlacements.join(':')}`,
+      )
+
+      return Object.hasOwn(mistakeUpdate, 'mistakeCount')
+        ? {
+            ...mistakeUpdate,
+            t568bValidationAttempts: state.t568bValidationAttempts + 1,
+          }
+        : {}
+    })
+  },
+  recordRestartStep: () => {
+    set((state) =>
+      state.assessmentStartTime && !state.assessmentEndTime
+        ? {
+            restartStepCount: state.restartStepCount + 1,
+            procedureRetryCount: state.procedureRetryCount + 1,
+          }
+        : {},
+    )
+  },
+  recordProcedureRetry: () => {
+    set((state) =>
+      state.assessmentStartTime && !state.assessmentEndTime
+        ? { procedureRetryCount: state.procedureRetryCount + 1 }
+        : {},
+    )
+  },
+  recordHint: () => {
+    set((state) =>
+      state.assessmentStartTime && !state.assessmentEndTime
+        ? { hintCount: state.hintCount + 1 }
+        : {},
+    )
+  },
+  completeProcedureStep: (stepId) => {
+    set((state) =>
+      ASSESSMENT_STAGES.some((stage) => stage.id === stepId)
+        ? {
+            completedProcedureSteps: addCompletedProcedureSteps(
+              state.completedProcedureSteps,
+              stepId,
+            ),
+          }
+        : {},
+    )
+  },
+  completeAssessment: () => {
+    set((state) => {
+      if (
+        !state.assessmentStartTime ||
+        state.assessmentEndTime ||
+        state.finalTestResult !== 'PASS'
+      ) {
+        return {}
+      }
+
+      const assessmentEndTime = Date.now()
+
+      return {
+        assessmentEndTime,
+        ...calculateAssessmentResult({
+          ...state,
+          assessmentEndTime,
+        }),
+      }
+    })
+  },
+  resetAssessment: () => set(createInitialAssessmentState()),
+  openAssessment: () => {
+    set((state) =>
+      state.moduleCompleted &&
+      state.finalTestResult === 'PASS' &&
+      Number.isFinite(state.finalScore)
+        ? { assessmentVisible: true }
+        : {},
+    )
+  },
   beginRJ45Training: () => set(createStartedTrainingState()),
   selectWorkpiece: (workpieceId) => {
     set((state) => {
@@ -119,6 +293,10 @@ const useTrainingStore = create((set) => ({
         selectedWorkpieceId: workpieceId,
         currentStep: RJ45_PROCEDURE_STEPS.SELECT_WIRE_STRIPPER,
         procedureFeedback: null,
+        completedProcedureSteps: addCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CABLE_SELECTED,
+        ),
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.SELECT_CABLE,
@@ -139,9 +317,11 @@ const useTrainingStore = create((set) => ({
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER) {
         if (procedureStep.acceptedToolId !== toolId) {
-          return {
-            procedureFeedback: 'Select the cable tester for this step.',
-          }
+          return createWrongToolUpdate(
+            state,
+            toolId,
+            'Select the cable tester for this step.',
+          )
         }
 
         return {
@@ -156,10 +336,11 @@ const useTrainingStore = create((set) => ({
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL) {
         if (procedureStep.acceptedToolId !== toolId) {
-          return {
-            procedureFeedback:
-              'Use the crimping tool to secure the RJ45 connector.',
-          }
+          return createWrongToolUpdate(
+            state,
+            toolId,
+            'Use the crimping tool to secure the RJ45 connector.',
+          )
         }
 
         return {
@@ -174,9 +355,11 @@ const useTrainingStore = create((set) => ({
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR) {
         if (procedureStep.acceptedToolId !== toolId) {
-          return {
-            procedureFeedback: 'Select the RJ45 connector for this step.',
-          }
+          return createWrongToolUpdate(
+            state,
+            toolId,
+            'Select the RJ45 connector for this step.',
+          )
         }
 
         return {
@@ -191,10 +374,11 @@ const useTrainingStore = create((set) => ({
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL) {
         if (procedureStep.acceptedToolId !== toolId) {
-          return {
-            procedureFeedback:
-              'Use the crimping tool\u2019s cutting blade for this step.',
-          }
+          return createWrongToolUpdate(
+            state,
+            toolId,
+            'Use the crimping tool\u2019s cutting blade for this step.',
+          )
         }
 
         return {
@@ -212,7 +396,11 @@ const useTrainingStore = create((set) => ({
       }
 
       if (procedureStep.acceptedToolId !== toolId) {
-        return { procedureFeedback: 'Use the wire stripper for this step.' }
+        return createWrongToolUpdate(
+          state,
+          toolId,
+          'Use the wire stripper for this step.',
+        )
       }
 
       return {
@@ -247,6 +435,10 @@ const useTrainingStore = create((set) => ({
             currentStep: RJ45_PROCEDURE_STEPS.JACKET_STRIPPED,
             procedureFeedback: null,
             isProcedureAnimating: false,
+            completedProcedureSteps: addCompletedProcedureSteps(
+              state.completedProcedureSteps,
+              ASSESSMENT_STAGE_IDS.JACKET_STRIPPED,
+            ),
             completedSteps: addCompletedSteps(
               state.completedSteps,
               RJ45_PROCEDURE_STEPS.STRIP_JACKET,
@@ -337,6 +529,10 @@ const useTrainingStore = create((set) => ({
             pairsSeparated: true,
             isProcedureAnimating: false,
             procedureFeedback: null,
+            completedProcedureSteps: addCompletedProcedureSteps(
+              state.completedProcedureSteps,
+              ASSESSMENT_STAGE_IDS.PAIRS_SEPARATED,
+            ),
             completedSteps: addCompletedSteps(
               state.completedSteps,
               RJ45_PROCEDURE_STEPS.SEPARATE_PAIRS,
@@ -487,6 +683,7 @@ const useTrainingStore = create((set) => ({
             placedWireCount: 0,
             procedureFeedback: null,
             isProcedureAnimating: false,
+            procedureRetryCount: state.procedureRetryCount + 1,
           }
         : {},
     )
@@ -512,10 +709,20 @@ const useTrainingStore = create((set) => ({
       )
 
       if (!isCorrect) {
+        const mistakeUpdate = createMistakeUpdate(
+          state,
+          ASSESSMENT_MISTAKE_TYPES.INCORRECT_T568B,
+          `incorrect-t568b:${state.wirePlacements.join(':')}`,
+        )
+
         return {
+          ...mistakeUpdate,
           currentStep: RJ45_PROCEDURE_STEPS.VALIDATE_T568B,
           selectedWireId: null,
           wireValidationResults,
+          t568bValidationAttempts:
+            state.t568bValidationAttempts +
+            (Object.hasOwn(mistakeUpdate, 'mistakeCount') ? 1 : 0),
           procedureFeedback:
             'The wire order is incorrect. Review the T568B guide.',
         }
@@ -526,6 +733,11 @@ const useTrainingStore = create((set) => ({
         selectedWireId: null,
         wireValidationResults,
         procedureFeedback: null,
+        t568bValidationAttempts: state.t568bValidationAttempts + 1,
+        completedProcedureSteps: addCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.T568B_ARRANGED,
+        ),
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.ARRANGE_T568B,
@@ -564,6 +776,10 @@ const useTrainingStore = create((set) => ({
             isProcedureAnimating: false,
             isTrimming: false,
             wiresTrimmed: true,
+            completedProcedureSteps: addCompletedProcedureSteps(
+              state.completedProcedureSteps,
+              ASSESSMENT_STAGE_IDS.CONDUCTORS_TRIMMED,
+            ),
             completedSteps: addCompletedSteps(
               state.completedSteps,
               RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
@@ -597,6 +813,10 @@ const useTrainingStore = create((set) => ({
         isProcedureAnimating: false,
         isTrimming: false,
         wiresTrimmed: false,
+        completedProcedureSteps: removeCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CONDUCTORS_TRIMMED,
+        ),
         completedSteps: state.completedSteps.filter(
           (stepId) => !trimmingSteps.includes(stepId),
         ),
@@ -645,7 +865,11 @@ const useTrainingStore = create((set) => ({
         !state.connectorAligned &&
         !state.isProcedureAnimating
       ) {
-        return { procedureFeedback: 'Align the connector before insertion.' }
+        return createProcedureMistakeUpdate(
+          state,
+          'connector-insertion-before-alignment',
+          'Align the connector before insertion.',
+        )
       }
 
       if (
@@ -710,11 +934,15 @@ const useTrainingStore = create((set) => ({
 
       if (!isInsertionCorrect) {
         return {
+          ...createProcedureMistakeUpdate(
+            state,
+            `insertion-verification:${failedPins.join('-')}`,
+            `One or more conductors are not fully inserted. Check pin${
+              failedPins.length === 1 ? '' : 's'
+            }: ${failedPins.join(', ')}.`,
+          ),
           conductorsInserted: false,
           insertionValidationResults,
-          procedureFeedback: `One or more conductors are not fully inserted. Check pin${
-            failedPins.length === 1 ? '' : 's'
-          }: ${failedPins.join(', ')}.`,
         }
       }
 
@@ -723,6 +951,10 @@ const useTrainingStore = create((set) => ({
         conductorsInserted: true,
         insertionValidationResults,
         procedureFeedback: 'All conductors are fully inserted.',
+        completedProcedureSteps: addCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CONNECTOR_INSERTED,
+        ),
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
@@ -743,6 +975,7 @@ const useTrainingStore = create((set) => ({
             isConnectorInserting: false,
             conductorsInserted: false,
             insertionValidationResults: emptyInsertionValidationResults(),
+            procedureRetryCount: state.procedureRetryCount + 1,
           }
         : {},
     )
@@ -773,6 +1006,10 @@ const useTrainingStore = create((set) => ({
         conductorsInserted: false,
         insertionValidationResults: emptyInsertionValidationResults(),
         connectorOrientationConfirmed: false,
+        completedProcedureSteps: removeCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CONNECTOR_INSERTED,
+        ),
         completedSteps: state.completedSteps.filter(
           (stepId) => !insertionSteps.includes(stepId),
         ),
@@ -782,7 +1019,23 @@ const useTrainingStore = create((set) => ({
   startConnectorPositioning: (toolId) => {
     set((state) => {
       if (toolId !== TOOL_IDS.CRIMPING_TOOL) {
-        return { procedureFeedback: 'Use the crimping tool for this step.' }
+        return createWrongToolUpdate(
+          state,
+          toolId,
+          'Use the crimping tool for this step.',
+        )
+      }
+
+      if (
+        state.currentStep ===
+          RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER &&
+        !state.conductorsInserted
+      ) {
+        return createProcedureMistakeUpdate(
+          state,
+          'position-connector-before-insertion',
+          'Verify conductor insertion before positioning the connector.',
+        )
       }
 
       if (
@@ -825,14 +1078,19 @@ const useTrainingStore = create((set) => ({
   startConnectorCrimping: (toolId) => {
     set((state) => {
       if (toolId !== TOOL_IDS.CRIMPING_TOOL) {
-        return { procedureFeedback: 'Use the crimping tool for this step.' }
+        return createWrongToolUpdate(
+          state,
+          toolId,
+          'Use the crimping tool for this step.',
+        )
       }
 
       if (!state.connectorPositionedForCrimp) {
-        return {
-          procedureFeedback:
-            'Position the connector inside the crimping slot first.',
-        }
+        return createProcedureMistakeUpdate(
+          state,
+          'crimp-before-positioning',
+          'Position the connector inside the crimping slot first.',
+        )
       }
 
       if (
@@ -878,11 +1136,14 @@ const useTrainingStore = create((set) => ({
 
       if (!verificationPassed) {
         return {
+          ...createProcedureMistakeUpdate(
+            state,
+            'crimp-before-verification',
+            'Verify the connector insertion before attempting the crimp.',
+          ),
           currentStep: RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
           isProcedureAnimating: false,
           isCrimping: false,
-          procedureFeedback:
-            'Verify the connector insertion before attempting the crimp.',
         }
       }
 
@@ -901,6 +1162,10 @@ const useTrainingStore = create((set) => ({
           t568bVerified: true,
         },
         procedureFeedback: 'Crimp completed successfully.',
+        completedProcedureSteps: addCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CONNECTOR_CRIMPED,
+        ),
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
@@ -937,6 +1202,10 @@ const useTrainingStore = create((set) => ({
         contactsSeated: 0,
         strainReliefSecured: false,
         crimpVerification: emptyCrimpVerification(),
+        completedProcedureSteps: removeCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CONNECTOR_CRIMPED,
+        ),
         completedSteps: state.completedSteps.filter(
           (stepId) => !crimpingSteps.includes(stepId),
         ),
@@ -946,7 +1215,22 @@ const useTrainingStore = create((set) => ({
   startCableTesterConnection: (toolId) => {
     set((state) => {
       if (toolId !== TOOL_IDS.CABLE_TESTER) {
-        return { procedureFeedback: 'Select the cable tester for this step.' }
+        return createWrongToolUpdate(
+          state,
+          toolId,
+          'Select the cable tester for this step.',
+        )
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER &&
+        !state.crimpComplete
+      ) {
+        return createProcedureMistakeUpdate(
+          state,
+          'tester-connection-before-crimp',
+          'Complete the connector crimp before cable testing.',
+        )
       }
 
       if (
@@ -987,7 +1271,22 @@ const useTrainingStore = create((set) => ({
   startCableTest: (toolId) => {
     set((state) => {
       if (toolId !== TOOL_IDS.CABLE_TESTER) {
-        return { procedureFeedback: 'Use the cable tester for this step.' }
+        return createWrongToolUpdate(
+          state,
+          toolId,
+          'Use the cable tester for this step.',
+        )
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.READY_TO_TEST &&
+        !state.cableConnectedToTester
+      ) {
+        return createProcedureMistakeUpdate(
+          state,
+          'test-before-connection',
+          'Connect the terminated cable before running the test.',
+        )
       }
 
       if (
@@ -1051,6 +1350,20 @@ const useTrainingStore = create((set) => ({
       }
 
       const outcome = getCableTestOutcome(state)
+      const completedProcedureSteps = outcome.passed
+        ? addCompletedProcedureSteps(
+            state.completedProcedureSteps,
+            ASSESSMENT_STAGE_IDS.CABLE_TESTED,
+          )
+        : state.completedProcedureSteps
+      const assessmentEndTime = outcome.passed ? Date.now() : null
+      const assessmentResult = outcome.passed
+        ? calculateAssessmentResult({
+            ...state,
+            assessmentEndTime,
+            completedProcedureSteps,
+          })
+        : {}
 
       return {
         currentStep: RJ45_PROCEDURE_STEPS.TEST_RESULT,
@@ -1060,6 +1373,13 @@ const useTrainingStore = create((set) => ({
         cableTestResults: outcome.pinResults,
         finalTestResult: outcome.finalResult,
         procedureFeedback: null,
+        completedProcedureSteps,
+        ...(outcome.passed
+          ? {
+              assessmentEndTime,
+              ...assessmentResult,
+            }
+          : {}),
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.READY_TO_TEST,
@@ -1072,7 +1392,7 @@ const useTrainingStore = create((set) => ({
   completeRJ45Module: () => {
     set((state) =>
       state.currentStep === RJ45_PROCEDURE_STEPS.TEST_RESULT &&
-      state.finalTestResult
+      state.finalTestResult === 'PASS'
         ? {
             currentStep: RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
             moduleCompleted: true,
@@ -1110,6 +1430,10 @@ const useTrainingStore = create((set) => ({
         cableTestResults: createPendingCableTestResults(),
         finalTestResult: null,
         moduleCompleted: false,
+        completedProcedureSteps: removeCompletedProcedureSteps(
+          state.completedProcedureSteps,
+          ASSESSMENT_STAGE_IDS.CABLE_TESTED,
+        ),
         completedSteps: state.completedSteps.filter(
           (stepId) => !testingSteps.includes(stepId),
         ),

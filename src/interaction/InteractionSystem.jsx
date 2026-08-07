@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import RJ45Assessment from '../modules/rj45/RJ45Assessment.jsx'
 import RJ45ProcedurePanel from '../modules/rj45/RJ45ProcedurePanel.jsx'
 import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
 import useInteractionStore, {
@@ -73,6 +74,9 @@ export default function InteractionSystem() {
     (state) => state.requestWorkstationExit,
   )
   const trainingStarted = useTrainingStore((state) => state.trainingStarted)
+  const assessmentVisible = useTrainingStore(
+    (state) => state.assessmentVisible,
+  )
   const beginRJ45Training = useTrainingStore(
     (state) => state.beginRJ45Training,
   )
@@ -114,6 +118,10 @@ export default function InteractionSystem() {
     (state) => state.restartCableTesting,
   )
   const resetTraining = useTrainingStore((state) => state.resetTraining)
+  const openAssessment = useTrainingStore((state) => state.openAssessment)
+  const recordRestartStep = useTrainingStore(
+    (state) => state.recordRestartStep,
+  )
 
   const handleToolActivated = useTrainingStore(
     (state) => state.handleToolActivated,
@@ -158,6 +166,15 @@ export default function InteractionSystem() {
         interactionState.requestWorkstationFocus(
           interactionState.nearbyInteractable,
         )
+        return
+      }
+
+      if (
+        event.code === 'Escape' &&
+        trainingState.assessmentVisible
+      ) {
+        event.preventDefault()
+        event.stopPropagation()
         return
       }
 
@@ -253,6 +270,7 @@ export default function InteractionSystem() {
     const currentStep = useTrainingStore.getState().currentStep
 
     resetToolState()
+    recordRestartStep()
 
     if (isCableTestingStep(currentStep)) {
       restartCableTesting()
@@ -324,6 +342,12 @@ export default function InteractionSystem() {
     startCableTest(useToolStore.getState().activeToolId)
   }
 
+  const handleViewAssessment = () => {
+    resetToolState()
+    releasePointerLock()
+    openAssessment()
+  }
+
   return (
     <>
       {canInteract && (
@@ -357,8 +381,18 @@ export default function InteractionSystem() {
       )}
 
       {workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode && (
-        <div className="training-overlay">
-          {trainingStarted && toolViewState !== TOOL_VIEW_STATES.INSPECTING ? (
+        <div
+          className={`training-overlay${
+            assessmentVisible ? ' is-assessment' : ''
+          }`}
+        >
+          {assessmentVisible ? (
+            <RJ45Assessment
+              onRetry={handleRestartModule}
+              onReturnToLaboratory={handleWorkstationExit}
+            />
+          ) : trainingStarted &&
+            toolViewState !== TOOL_VIEW_STATES.INSPECTING ? (
             <RJ45ProcedurePanel
               onContinue={handleContinueProcedure}
               onAlignConnector={startConnectorAlignment}
@@ -370,6 +404,7 @@ export default function InteractionSystem() {
               onTestCable={handleTestCable}
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
+              onViewAssessment={handleViewAssessment}
               onReturnTool={handleReturnActiveTool}
               onExit={handleWorkstationExit}
             />

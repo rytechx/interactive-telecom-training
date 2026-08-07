@@ -93,6 +93,7 @@ export default function RJ45ProcedurePanel({
   onTestCable,
   onRestartStep,
   onRestartModule,
+  onViewAssessment,
   onReturnTool,
   onExit,
 }) {
@@ -139,6 +140,7 @@ export default function RJ45ProcedurePanel({
   const finalTestResult = useTrainingStore(
     (state) => state.finalTestResult,
   )
+  const moduleCompleted = useTrainingStore((state) => state.moduleCompleted)
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const undoLastPlacement = useTrainingStore(
@@ -150,6 +152,7 @@ export default function RJ45ProcedurePanel({
   const validateWireArrangement = useTrainingStore(
     (state) => state.validateWireArrangement,
   )
+  const recordHint = useTrainingStore((state) => state.recordHint)
   const procedureStep = getRJ45ProcedureStep(currentStep)
   const displayInstruction = getDisplayInstruction(procedureStep.instruction)
   const selectedWire = getWireDefinition(selectedWireId)
@@ -247,6 +250,13 @@ export default function RJ45ProcedurePanel({
         ? ' is-error'
         : ''
   }`
+  const handleGuideToggle = () => {
+    if (!isReferenceGuideVisible) {
+      recordHint()
+    }
+
+    setIsReferenceGuideVisible((isVisible) => !isVisible)
+  }
 
   if (activeModuleId !== RJ45_MODULE_ID) {
     return null
@@ -304,7 +314,7 @@ export default function RJ45ProcedurePanel({
             type="button"
             className="guide-toggle-button"
             aria-expanded={isReferenceGuideVisible}
-            onClick={() => setIsReferenceGuideVisible((isVisible) => !isVisible)}
+            onClick={handleGuideToggle}
           >
             {isReferenceGuideVisible ? 'Hide Guide' : 'Show Guide'}
           </button>
@@ -446,11 +456,20 @@ export default function RJ45ProcedurePanel({
               className={`cable-test-result is-${finalTestResult.toLowerCase()}`}
               role="status"
             >
-              <strong>Test Result: {finalTestResult}</strong>
+              <b>CABLE TEST</b>
+              <strong>T568B VERIFIED</strong>
+              <strong>TEST RESULT: {finalTestResult}</strong>
               <span>Continuity: {CONTINUITY_LABEL}</span>
-              <span>Termination Standard: T568B Verified</span>
             </div>
           )}
+        </div>
+      )}
+
+      {moduleCompleted && finalTestResult === 'PASS' && (
+        <div className="training-actions procedure-primary-actions">
+          <button type="button" onClick={onViewAssessment}>
+            View Assessment
+          </button>
         </div>
       )}
 
@@ -589,7 +608,8 @@ export default function RJ45ProcedurePanel({
         {(isTrimmingActive ||
           isConnectorInsertionActive ||
           isCrimpingActive ||
-          isCableTestingActive) && (
+          (isCableTestingActive &&
+            !(moduleCompleted && finalTestResult === 'PASS'))) && (
           <button
             type="button"
             className="secondary"
