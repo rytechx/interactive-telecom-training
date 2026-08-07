@@ -1,7 +1,7 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
-import { Vector3 } from 'three'
+import { CylinderGeometry, Vector3 } from 'three'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
@@ -9,21 +9,41 @@ import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
 import {
+  CABLE_EXIT_X,
   getWireDefinition,
+  getWireSlotPoints,
   getWireSlotPosition,
   GUIDE_CENTER_X,
+  GUIDE_CENTER_Z,
+  GUIDE_DEPTH,
   GUIDE_SLOT_SPACING,
-  WIRE_LENGTH,
+  GUIDE_WIDTH,
+  WIRE_RADIUS,
   wireDefinitions,
 } from './wireDefinitions.js'
 
-const PAIR_SEPARATION_DURATION = 1
+const PAIR_SEPARATION_DURATION = 1.1
 const BUNDLE_HOVER_ID = 'rj45-wire-bundle'
 const WIRE_HOVER_PREFIX = 'rj45-wire:'
 const SLOT_HOVER_PREFIX = 'rj45-slot:'
+const conductorGeometry = new CylinderGeometry(
+  WIRE_RADIUS,
+  WIRE_RADIUS,
+  1,
+  10,
+)
+const stripeGeometry = new CylinderGeometry(0.0055, 0.0055, 1, 7)
+const wireHitGeometry = new CylinderGeometry(0.048, 0.048, 1, 7)
+const segmentDirection = new Vector3()
+const segmentMidpoint = new Vector3()
+const upAxis = new Vector3(0, 1, 0)
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum)
 }
 
 function getPlacedSlot(wirePlacements, wireId) {
@@ -46,15 +66,39 @@ function isGuideVisible(currentStep, pairsSeparated) {
   )
 }
 
+function setSegmentTransform(mesh, startPoint, endPoint, verticalOffset = 0) {
+  if (!mesh) {
+    return
+  }
+
+  segmentDirection.subVectors(endPoint, startPoint)
+  const segmentLength = Math.max(segmentDirection.length(), 0.001)
+  segmentMidpoint.addVectors(startPoint, endPoint).multiplyScalar(0.5)
+  mesh.position.copy(segmentMidpoint)
+  mesh.position.y += verticalOffset
+  mesh.quaternion.setFromUnitVectors(
+    upAxis,
+    segmentDirection.normalize(),
+  )
+  mesh.scale.set(1, segmentLength, 1)
+}
+
+function createVectorPoints(points) {
+  return points.map((point) => new Vector3().fromArray(point))
+}
+
 export default function RJ45WireArrangement({
   jacketProgressRef,
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
   const wireGroups = useRef({})
+  const wireSegments = useRef({})
+  const stripeSegments = useRef({})
+  const hitSegments = useRef({})
+  const currentWirePoints = useRef({})
   const separationProgress = useRef(0)
   const separationCompletionRequested = useRef(false)
-  const targetPosition = useRef(new Vector3())
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
   )
@@ -110,6 +154,7 @@ export default function RJ45WireArrangement({
     !isProcedureAnimating
   const hasIncorrectValidation = wireValidationResults.includes('incorrect')
   const showGuide = isGuideVisible(currentStep, pairsSeparated)
+  const selectedWire = getWireDefinition(selectedWireId)
 
   useEffect(() => {
     if (isSeparating) {
@@ -150,7 +195,7 @@ export default function RJ45WireArrangement({
         ? jacketProgressRef.current
         : 0
 
-    wireDefinitions.forEach((wire) => {
+    wireDefinitions.forEach((wire, wireIndex) => {
       const wireGroup = wireGroups.current[wire.id]
 
       if (!wireGroup) {
@@ -158,57 +203,98 @@ export default function RJ45WireArrangement({
       }
 
       wireGroup.visible = jacketProgress > 0.02
-      wireGroup.scale.x = Math.max(jacketProgress, 0.001)
+
+      if (!currentWirePoints.current[wire.id]) {
+        currentWirePoints.current[wire.id] = createVectorPoints(
+          wire.initialPoints,
+        )
+      }
+
+      const currentPoints = currentWirePoints.current[wire.id]
 
       if (!hasStrippedJacket) {
-        wireGroup.position.set(
-          wire.initialPosition[0] -
-            (WIRE_LENGTH * (1 - jacketProgress)) / 2,
-          wire.initialPosition[1],
-          wire.initialPosition[2],
+        wire.initialPoints.forEach((point, pointIndex) => {
+          currentPoints[pointIndex].set(
+            CABLE_EXIT_X + (point[0] - CABLE_EXIT_X) * jacketProgress,
+            point[1],
+            point[2],
+          )
+        })
+      } else if (isSeparating) {
+        const staggerStart = wireIndex * 0.035
+        const wireProgress = smoothStep(
+          clamp(
+            (separationProgress.current - staggerStart) /
+              (1 - 0.035 * 7),
+            0,
+            1,
+          ),
         )
-        return
+
+        wire.initialPoints.forEach((point, pointIndex) => {
+          const separatedPoint = wire.separatedPoints[pointIndex]
+          currentPoints[pointIndex].set(
+            point[0] + (separatedPoint[0] - point[0]) * wireProgress,
+            point[1] + (separatedPoint[1] - point[1]) * wireProgress,
+            point[2] + (separatedPoint[2] - point[2]) * wireProgress,
+          )
+        })
+      } else if (!pairsSeparated) {
+        wire.initialPoints.forEach((point, pointIndex) => {
+          currentPoints[pointIndex].fromArray(point)
+        })
+      } else {
+        const placedSlot = getPlacedSlot(wirePlacements, wire.id)
+        const targetPoints = placedSlot
+          ? getWireSlotPoints(placedSlot)
+          : wire.separatedPoints
+        const damping = 1 - Math.exp(-10 * delta)
+
+        targetPoints.forEach((point, pointIndex) => {
+          segmentMidpoint.fromArray(point)
+          currentPoints[pointIndex].lerp(segmentMidpoint, damping)
+        })
       }
 
-      wireGroup.scale.x = 1
-
-      if (isSeparating) {
-        const progress = smoothStep(separationProgress.current)
-        wireGroup.position.set(
-          wire.initialPosition[0] +
-            (wire.separatedPosition[0] - wire.initialPosition[0]) * progress,
-          wire.initialPosition[1] +
-            (wire.separatedPosition[1] - wire.initialPosition[1]) * progress,
-          wire.initialPosition[2] +
-            (wire.separatedPosition[2] - wire.initialPosition[2]) * progress,
+      for (let segmentIndex = 0; segmentIndex < 3; segmentIndex += 1) {
+        const startPoint = currentPoints[segmentIndex]
+        const endPoint = currentPoints[segmentIndex + 1]
+        setSegmentTransform(
+          wireSegments.current[wire.id]?.[segmentIndex],
+          startPoint,
+          endPoint,
         )
-        return
+        setSegmentTransform(
+          stripeSegments.current[wire.id]?.[segmentIndex],
+          startPoint,
+          endPoint,
+          WIRE_RADIUS * 0.9,
+        )
+        setSegmentTransform(
+          hitSegments.current[wire.id]?.[segmentIndex],
+          startPoint,
+          endPoint,
+        )
       }
-
-      if (!pairsSeparated) {
-        wireGroup.position.set(...wire.initialPosition)
-        return
-      }
-
-      const placedSlot = getPlacedSlot(wirePlacements, wire.id)
-      const nextPosition = placedSlot
-        ? getWireSlotPosition(placedSlot)
-        : wire.separatedPosition
-      const damping = 1 - Math.exp(-11 * delta)
-
-      targetPosition.current.fromArray(nextPosition)
-      wireGroup.position.lerp(targetPosition.current, damping)
     })
 
-    if (!isSeparating || separationCompletionRequested.current) {
-      return
-    }
-
-    if (separationProgress.current >= 1) {
+    if (
+      isSeparating &&
+      !separationCompletionRequested.current &&
+      separationProgress.current >= 1
+    ) {
       separationCompletionRequested.current = true
       completePairSeparation()
     }
   })
+
+  const setSegmentRef = (collection, wireId, segmentIndex, mesh) => {
+    if (!collection.current[wireId]) {
+      collection.current[wireId] = []
+    }
+
+    collection.current[wireId][segmentIndex] = mesh
+  }
 
   const handleWirePointerEnter = (event, wireId) => {
     const placedSlot = getPlacedSlot(wirePlacements, wireId)
@@ -328,10 +414,15 @@ export default function RJ45WireArrangement({
             : validationResult === 'correct'
               ? '#2f8f57'
               : isSelected
-                ? '#5daeff'
+                ? '#59b9e8'
                 : isHovered
                   ? '#4a8fc7'
                   : '#000000'
+        const emissiveIntensity = isSelected
+          ? 0.9
+          : emissive === '#000000'
+            ? 0
+            : 0.55
 
         return (
           <group
@@ -339,40 +430,72 @@ export default function RJ45WireArrangement({
             ref={(group) => {
               wireGroups.current[wire.id] = group
             }}
-            position={wire.initialPosition}
             onPointerEnter={(event) => handleWirePointerEnter(event, wire.id)}
             onPointerLeave={handleWirePointerLeave}
             onClick={(event) => handleWireClick(event, wire.id)}
           >
-            <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
-              <cylinderGeometry args={[0.012, 0.012, WIRE_LENGTH, 8]} />
-              <meshStandardMaterial
-                color={wire.primaryColor}
-                emissive={emissive}
-                emissiveIntensity={emissive === '#000000' ? 0 : 0.55}
-                roughness={0.65}
-              />
-            </mesh>
+            {Array.from({ length: 3 }, (_, segmentIndex) => (
+              <group key={segmentIndex}>
+                <mesh
+                  ref={(mesh) =>
+                    setSegmentRef(
+                      wireSegments,
+                      wire.id,
+                      segmentIndex,
+                      mesh,
+                    )
+                  }
+                  geometry={conductorGeometry}
+                  castShadow
+                >
+                  <meshStandardMaterial
+                    color={wire.primaryColor}
+                    emissive={emissive}
+                    emissiveIntensity={emissiveIntensity}
+                    roughness={0.62}
+                  />
+                </mesh>
 
-            {wire.stripeColor && (
-              <mesh
-                position={[0, 0.013, 0]}
-                rotation={[0, 0, Math.PI / 2]}
-              >
-                <cylinderGeometry args={[0.004, 0.004, WIRE_LENGTH, 6]} />
-                <meshStandardMaterial
-                  color={wire.stripeColor}
-                  emissive={emissive}
-                  emissiveIntensity={emissive === '#000000' ? 0 : 0.4}
-                  roughness={0.65}
-                />
-              </mesh>
-            )}
+                {wire.stripeColor && (
+                  <mesh
+                    ref={(mesh) =>
+                      setSegmentRef(
+                        stripeSegments,
+                        wire.id,
+                        segmentIndex,
+                        mesh,
+                      )
+                    }
+                    geometry={stripeGeometry}
+                  >
+                    <meshStandardMaterial
+                      color={wire.stripeColor}
+                      emissive={emissive}
+                      emissiveIntensity={Math.min(emissiveIntensity, 0.65)}
+                      roughness={0.62}
+                    />
+                  </mesh>
+                )}
 
-            <mesh>
-              <boxGeometry args={[WIRE_LENGTH, 0.07, 0.055]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
+                <mesh
+                  ref={(mesh) =>
+                    setSegmentRef(
+                      hitSegments,
+                      wire.id,
+                      segmentIndex,
+                      mesh,
+                    )
+                  }
+                  geometry={wireHitGeometry}
+                >
+                  <meshBasicMaterial
+                    transparent
+                    opacity={0}
+                    depthWrite={false}
+                  />
+                </mesh>
+              </group>
+            ))}
           </group>
         )
       })}
@@ -380,13 +503,15 @@ export default function RJ45WireArrangement({
       {showGuide && (
         <group>
           <mesh
-            position={[GUIDE_CENTER_X, -0.015, 0]}
+            position={[GUIDE_CENTER_X, -0.018, GUIDE_CENTER_Z]}
             receiveShadow
           >
-            <boxGeometry
-              args={[0.5, 0.025, GUIDE_SLOT_SPACING * 8 + 0.06]}
+            <boxGeometry args={[GUIDE_WIDTH, 0.045, GUIDE_DEPTH]} />
+            <meshStandardMaterial
+              color="#2b343a"
+              metalness={0.35}
+              roughness={0.56}
             />
-            <meshStandardMaterial color="#2d353b" roughness={0.7} />
           </mesh>
 
           {wireDefinitions.map((wire, index) => {
@@ -403,19 +528,40 @@ export default function RJ45WireArrangement({
                 : validationResult === 'incorrect'
                   ? '#a84949'
                   : isHovered || canPlaceWire
-                    ? '#4c8062'
+                    ? '#4f9fb8'
                     : placedWireId
                       ? '#486475'
-                      : '#3a454d'
+                      : '#222a2f'
             const statusMark =
               validationResult === 'correct'
-                ? '✓'
+                ? '\u2713'
                 : validationResult === 'incorrect'
                   ? '!'
                   : ''
 
             return (
               <group key={wire.id}>
+                <mesh position={slotPosition}>
+                  <boxGeometry
+                    args={[GUIDE_SLOT_SPACING * 0.78, 0.028, 0.46]}
+                  />
+                  <meshStandardMaterial
+                    color={slotColor}
+                    emissive={
+                      isHovered || canPlaceWire ? '#3f9fbd' : '#000000'
+                    }
+                    emissiveIntensity={isHovered ? 0.42 : canPlaceWire ? 0.2 : 0}
+                    roughness={0.6}
+                  />
+                </mesh>
+                <mesh
+                  position={[slotPosition[0], 0.032, slotPosition[2]]}
+                >
+                  <boxGeometry
+                    args={[GUIDE_SLOT_SPACING * 0.52, 0.012, 0.4]}
+                  />
+                  <meshStandardMaterial color="#12181c" roughness={0.72} />
+                </mesh>
                 <mesh
                   position={slotPosition}
                   onPointerEnter={(event) =>
@@ -424,19 +570,20 @@ export default function RJ45WireArrangement({
                   onPointerLeave={handleSlotPointerLeave}
                   onClick={(event) => handleSlotClick(event, slotNumber)}
                 >
-                  <boxGeometry args={[0.46, 0.035, 0.06]} />
-                  <meshStandardMaterial
-                    color={slotColor}
-                    emissive={isHovered ? '#3f9662' : '#000000'}
-                    emissiveIntensity={isHovered ? 0.35 : 0}
-                    roughness={0.62}
+                  <boxGeometry
+                    args={[GUIDE_SLOT_SPACING * 0.98, 0.13, 0.53]}
+                  />
+                  <meshBasicMaterial
+                    transparent
+                    opacity={0}
+                    depthWrite={false}
                   />
                 </mesh>
                 <Html
                   position={[
-                    slotPosition[0] - 0.3,
-                    slotPosition[1] + 0.035,
-                    slotPosition[2],
+                    slotPosition[0],
+                    0.105,
+                    GUIDE_CENTER_Z - GUIDE_DEPTH / 2 - 0.035,
                   ]}
                   center
                 >
@@ -451,11 +598,29 @@ export default function RJ45WireArrangement({
               </group>
             )
           })}
+
+          {isArrangementStep(currentStep) && (
+            <Html
+              position={[
+                GUIDE_CENTER_X,
+                0.19,
+                GUIDE_CENTER_Z + GUIDE_DEPTH / 2 + 0.1,
+              ]}
+              center
+            >
+              <div className="wire-workspace-help" role="status">
+                <span>Select a conductor, then choose a numbered slot.</span>
+                <strong>
+                  Selected: {selectedWire?.displayName ?? 'None'}
+                </strong>
+              </div>
+            </Html>
+          )}
         </group>
       )}
 
       {hoveredObjectId === BUNDLE_HOVER_ID && canSeparate && (
-        <Html position={[0.57, 0.18, 0]} center>
+        <Html position={[0.5, 0.2, 0]} center>
           <div className="tool-tooltip" role="tooltip">
             Separate Wire Pairs
           </div>
@@ -466,7 +631,7 @@ export default function RJ45WireArrangement({
         <Html
           position={[
             hoveredWirePosition[0],
-            hoveredWirePosition[1] + 0.14,
+            hoveredWirePosition[1] + 0.16,
             hoveredWirePosition[2],
           ]}
           center

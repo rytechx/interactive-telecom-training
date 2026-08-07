@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import T568BGuide from './T568BGuide.jsx'
 import { getRJ45ProcedureStep, RJ45_MODULE_ID, RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
@@ -15,6 +16,7 @@ export default function RJ45ProcedurePanel({
   onRestartModule,
   onExit,
 }) {
+  const [isGuideVisible, setIsGuideVisible] = useState(true)
   const activeModuleId = useTrainingStore((state) => state.activeModuleId)
   const currentStep = useTrainingStore((state) => state.currentStep)
   const procedureFeedback = useTrainingStore(
@@ -85,10 +87,20 @@ export default function RJ45ProcedurePanel({
             Selected wire:{' '}
             <strong>{selectedWire?.displayName ?? 'None'}</strong>
           </p>
-          <T568BGuide
-            wirePlacements={wirePlacements}
-            wireValidationResults={wireValidationResults}
-          />
+          <button
+            className="guide-toggle-button"
+            type="button"
+            aria-expanded={isGuideVisible}
+            onClick={() => setIsGuideVisible((isVisible) => !isVisible)}
+          >
+            {isGuideVisible ? 'Hide Guide' : 'Show Guide'}
+          </button>
+          {isGuideVisible && (
+            <T568BGuide
+              wirePlacements={wirePlacements}
+              wireValidationResults={wireValidationResults}
+            />
+          )}
         </>
       )}
 

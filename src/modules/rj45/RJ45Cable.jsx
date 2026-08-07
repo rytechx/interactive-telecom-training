@@ -12,9 +12,9 @@ import {
   ETHERNET_CABLE_ID,
   RJ45_PROCEDURE_STEPS,
 } from './rj45Procedure.js'
+import { CABLE_LENGTH, WIRE_LENGTH } from './wireDefinitions.js'
 
-const CABLE_LENGTH = 1.55
-const EXPOSED_LENGTH = 0.42
+const EXPOSED_LENGTH = WIRE_LENGTH
 const STRIPPING_DURATION = 0.9
 
 function smoothStep(progress) {
