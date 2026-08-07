@@ -7,7 +7,13 @@ import {
   getRJ45ProcedureStep,
   RJ45_MODULE_ID,
   RJ45_PROCEDURE_STEPS,
+  RJ45_TOTAL_STEPS,
 } from './rj45Procedure.js'
+import {
+  CONTINUITY_LABEL,
+  TEST_PIN_COUNT,
+  TEST_PIN_STATUSES,
+} from './testSequenceConfig.js'
 import { getWireDefinition, WIRE_COUNT } from './wireDefinitions.js'
 
 function isArrangementStep(currentStep) {
@@ -40,16 +46,57 @@ function isConnectorInsertionStep(currentStep) {
   ].includes(currentStep)
 }
 
+function isCrimpingStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+    RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+    RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+    RJ45_PROCEDURE_STEPS.CRIMPING,
+    RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+  ].includes(currentStep)
+}
+
+function isCableTestingStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+    RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+    RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+    RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+    RJ45_PROCEDURE_STEPS.TEST_RESULT,
+    RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+  ].includes(currentStep)
+}
+
+function getWireSwatchBackground(wire) {
+  if (!wire) {
+    return '#56636a'
+  }
+
+  return wire.stripeColor
+    ? `linear-gradient(90deg, ${wire.primaryColor} 0 58%, ${wire.stripeColor} 58% 100%)`
+    : wire.primaryColor
+}
+
+function getDisplayInstruction(instruction) {
+  return instruction?.replace(/^Step \d+:\s*/, '') ?? ''
+}
+
 export default function RJ45ProcedurePanel({
   onContinue,
   onAlignConnector,
   onInsertConductors,
   onRetryInsertion,
+  onPositionConnector,
+  onCrimpConnector,
+  onConnectCable,
+  onTestCable,
   onRestartStep,
   onRestartModule,
+  onReturnTool,
   onExit,
 }) {
-  const [isGuideVisible, setIsGuideVisible] = useState(true)
+  const [isReferenceGuideVisible, setIsReferenceGuideVisible] = useState(true)
   const activeModuleId = useTrainingStore((state) => state.activeModuleId)
   const currentStep = useTrainingStore((state) => state.currentStep)
   const procedureFeedback = useTrainingStore(
@@ -66,11 +113,31 @@ export default function RJ45ProcedurePanel({
     (state) => state.isProcedureAnimating,
   )
   const connectorAligned = useTrainingStore((state) => state.connectorAligned)
-  const conductorsInserted = useTrainingStore(
-    (state) => state.conductorsInserted,
-  )
   const insertionValidationResults = useTrainingStore(
     (state) => state.insertionValidationResults,
+  )
+  const connectorPositionedForCrimp = useTrainingStore(
+    (state) => state.connectorPositionedForCrimp,
+  )
+  const crimpComplete = useTrainingStore((state) => state.crimpComplete)
+  const contactsSeated = useTrainingStore((state) => state.contactsSeated)
+  const strainReliefSecured = useTrainingStore(
+    (state) => state.strainReliefSecured,
+  )
+  const crimpVerification = useTrainingStore(
+    (state) => state.crimpVerification,
+  )
+  const cableConnectedToTester = useTrainingStore(
+    (state) => state.cableConnectedToTester,
+  )
+  const cableTestProgress = useTrainingStore(
+    (state) => state.cableTestProgress,
+  )
+  const cableTestResults = useTrainingStore(
+    (state) => state.cableTestResults,
+  )
+  const finalTestResult = useTrainingStore(
+    (state) => state.finalTestResult,
   )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
@@ -84,21 +151,41 @@ export default function RJ45ProcedurePanel({
     (state) => state.validateWireArrangement,
   )
   const procedureStep = getRJ45ProcedureStep(currentStep)
+  const displayInstruction = getDisplayInstruction(procedureStep.instruction)
   const selectedWire = getWireDefinition(selectedWireId)
   const selectedTool = getToolConfig(activeToolId ?? selectedToolId)
   const isArrangementActive = isArrangementStep(currentStep)
   const isTrimmingActive = isTrimmingStep(currentStep)
   const isConnectorInsertionActive = isConnectorInsertionStep(currentStep)
+  const isCrimpingActive = isCrimpingStep(currentStep)
+  const isCableTestingActive = isCableTestingStep(currentStep)
+  const isTechnicianOverview =
+    !isArrangementActive &&
+    !isTrimmingActive &&
+    !isConnectorInsertionActive &&
+    !isCrimpingActive &&
+    !isCableTestingActive
+  const isInsertionCompletionStep =
+    currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
   const showConnectorOrientation =
     currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR ||
     currentStep === RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS
+  const isCrimpCompletionStep =
+    currentStep === RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE ||
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5
+  const isTestCompletionStep =
+    currentStep === RJ45_PROCEDURE_STEPS.TEST_RESULT ||
+    currentStep === RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE
   const canContinue =
     currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
     currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1 ||
     currentStep === RJ45_PROCEDURE_STEPS.WIRES_ARRANGED ||
     currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2 ||
     currentStep === RJ45_PROCEDURE_STEPS.WIRES_TRIMMED ||
-    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3 ||
+    isInsertionCompletionStep ||
+    isCrimpCompletionStep
   const isComplete = [
     RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
@@ -106,17 +193,27 @@ export default function RJ45ProcedurePanel({
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
     RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+    RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+    RJ45_PROCEDURE_STEPS.TEST_RESULT,
+    RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
   ].includes(currentStep)
   const hasIncorrectValidation = wireValidationResults.includes('incorrect')
   const hasProcedureError =
     procedureFeedback?.startsWith('Use the ') ||
     procedureFeedback?.startsWith('Select the ') ||
     procedureFeedback?.startsWith('Align the ') ||
+    procedureFeedback?.startsWith('Position the ') ||
+    procedureFeedback?.startsWith('Verify the ') ||
     procedureFeedback?.startsWith('One or more ')
-  const showInsertionResults = insertionValidationResults.some(Boolean)
-  const displayedProcedureFeedback = conductorsInserted
+  const showInsertionResults =
+    isConnectorInsertionActive && insertionValidationResults.some(Boolean)
+  const displayedProcedureFeedback = isInsertionCompletionStep
     ? 'All conductors are fully inserted and the cable jacket is seated correctly.'
     : procedureFeedback
+  const showProcedureFeedback =
+    displayedProcedureFeedback &&
+    getDisplayInstruction(displayedProcedureFeedback) !== displayInstruction
   const canAlignConnector =
     currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
     !connectorAligned
@@ -126,6 +223,23 @@ export default function RJ45ProcedurePanel({
   const canRetryInsertion =
     currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION &&
     insertionValidationResults.includes('incorrect')
+  const canPositionConnector =
+    currentStep === RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER &&
+    !connectorPositionedForCrimp
+  const canAttemptCrimp =
+    (currentStep === RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER ||
+      currentStep === RJ45_PROCEDURE_STEPS.READY_TO_CRIMP) &&
+    !crimpComplete
+  const canConnectCable =
+    currentStep === RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER &&
+    !cableConnectedToTester
+  const canRunCableTest =
+    currentStep === RJ45_PROCEDURE_STEPS.READY_TO_TEST &&
+    cableConnectedToTester
+  const testProgressPercent = Math.round(cableTestProgress * 100)
+  const activeTestPin = cableTestResults.findIndex(
+    (result) => result === TEST_PIN_STATUSES.TESTING,
+  )
   const feedbackClassName = `procedure-feedback${
     isComplete
       ? ' is-success'
@@ -144,38 +258,57 @@ export default function RJ45ProcedurePanel({
         isArrangementActive ? ' is-arranging' : ''
       }${isTrimmingActive ? ' is-trimming' : ''}${
         isConnectorInsertionActive ? ' is-inserting' : ''
-      }`}
+      }${isCrimpingActive ? ' is-crimping' : ''}${
+        isCableTestingActive ? ' is-testing' : ''
+      }${isTechnicianOverview ? ' is-technician-overview' : ''}`}
       role="dialog"
       aria-modal="false"
       aria-labelledby="procedure-title"
     >
       <span className="procedure-step-number">
-        Step {procedureStep.stepNumber}
+        Step {procedureStep.stepNumber} of {RJ45_TOTAL_STEPS}
       </span>
       <h1 id="procedure-title">RJ45 Cable Termination</h1>
       <h2>{procedureStep.title}</h2>
-      {!conductorsInserted && (
-        <p className="procedure-instruction">{procedureStep.instruction}</p>
-      )}
+      {!isInsertionCompletionStep &&
+        !isCrimpCompletionStep &&
+        !isTestCompletionStep && (
+        <p className="procedure-instruction">{displayInstruction}</p>
+        )}
 
       {isArrangementActive && (
         <>
-          <p className="procedure-progress" role="status">
-            Wires placed: {placedWireCount} / {WIRE_COUNT}
-          </p>
-          <p className="selected-wire-label">
-            Selected wire:{' '}
-            <strong>{selectedWire?.displayName ?? 'None'}</strong>
+          <div className="arrangement-status" role="status">
+            <span className="arrangement-status-chip">
+              <small>Placed</small>
+              <strong>
+                {placedWireCount} / {WIRE_COUNT}
+              </strong>
+            </span>
+            <span className="arrangement-status-chip is-selected-wire">
+              <i
+                className="selected-wire-swatch"
+                style={{ background: getWireSwatchBackground(selectedWire) }}
+                aria-hidden="true"
+              />
+              <span>
+                <small>Selected</small>
+                <strong>{selectedWire?.displayName ?? 'None'}</strong>
+              </span>
+            </span>
+          </div>
+          <p className="arrangement-hint">
+            Select a conductor, then choose its matching comb slot.
           </p>
           <button
-            className="guide-toggle-button"
             type="button"
-            aria-expanded={isGuideVisible}
-            onClick={() => setIsGuideVisible((isVisible) => !isVisible)}
+            className="guide-toggle-button"
+            aria-expanded={isReferenceGuideVisible}
+            onClick={() => setIsReferenceGuideVisible((isVisible) => !isVisible)}
           >
-            {isGuideVisible ? 'Hide Guide' : 'Show Guide'}
+            {isReferenceGuideVisible ? 'Hide Guide' : 'Show Guide'}
           </button>
-          {isGuideVisible && (
+          {isReferenceGuideVisible && (
             <T568BGuide
               wirePlacements={wirePlacements}
               wireValidationResults={wireValidationResults}
@@ -184,14 +317,26 @@ export default function RJ45ProcedurePanel({
         </>
       )}
 
-      {(isTrimmingActive || isConnectorInsertionActive) &&
-        (conductorsInserted ? (
+      {(isTrimmingActive ||
+        isConnectorInsertionActive ||
+        isCrimpingActive ||
+        isCableTestingActive ||
+        (isTechnicianOverview && selectedTool)) &&
+        (isCableTestingActive ? (
+          <p className="selected-tool-label" role="status">
+            Active Tool: <strong>{selectedTool?.name ?? 'None'}</strong>
+          </p>
+        ) : crimpComplete ? (
+          <p className="selected-tool-label" role="status">
+            Workpiece: <strong>Crimped RJ45 Connector</strong>
+          </p>
+        ) : isInsertionCompletionStep ? (
           <p className="selected-tool-label" role="status">
             Workpiece: <strong>RJ45 Connector</strong>
           </p>
         ) : (
           <p className="selected-tool-label" role="status">
-            Selected tool: <strong>{selectedTool?.name ?? 'None'}</strong>
+            Active Tool: <strong>{selectedTool?.name ?? 'None'}</strong>
           </p>
         ))}
 
@@ -202,7 +347,7 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
-      {displayedProcedureFeedback && (
+      {showProcedureFeedback && (
         <p className={feedbackClassName} role="status">
           {displayedProcedureFeedback}
         </p>
@@ -233,6 +378,82 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
+      {connectorPositionedForCrimp && !crimpComplete && (
+        <p className="crimp-position-status" role="status">
+          Connector positioned
+        </p>
+      )}
+
+      {isCrimpingActive && crimpComplete && (
+        <div className="crimp-verification" aria-label="Crimp verification">
+          <strong>Crimp verification</strong>
+          <ul>
+            <li>
+              <span>Contacts seated:</span>
+              <b>{contactsSeated} / {WIRE_COUNT}</b>
+            </li>
+            <li>
+              <span>Strain relief:</span>
+              <b>{strainReliefSecured ? 'Secured' : 'Pending'}</b>
+            </li>
+            <li>
+              <span>T568B arrangement:</span>
+              <b>{crimpVerification.t568bVerified ? 'Verified' : 'Pending'}</b>
+            </li>
+          </ul>
+        </div>
+      )}
+
+      {isCableTestingActive && (
+        <div className="cable-test-status" aria-label="Cable test status">
+          <div className="cable-test-progress-heading">
+            <strong>Test progress</strong>
+            <span>{testProgressPercent}%</span>
+          </div>
+          <div
+            className="cable-test-progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow={testProgressPercent}
+          >
+            <span style={{ width: `${testProgressPercent}%` }} />
+          </div>
+          {!finalTestResult && (
+            <p className="cable-test-progress-text" role="status">
+              {activeTestPin >= 0
+                ? `Testing Pin ${activeTestPin + 1} of ${TEST_PIN_COUNT}`
+                : cableConnectedToTester
+                  ? 'Cable connected and ready to test.'
+                  : 'Cable tester connection pending.'}
+            </p>
+          )}
+          <ol className="cable-test-pin-results">
+            {cableTestResults.map((result, index) => (
+              <li
+                key={index}
+                className={`is-${result}`}
+                aria-label={`Pin ${index + 1} ${result}`}
+              >
+                <span>Pin {index + 1}</span>
+                <b>{result.toUpperCase()}</b>
+              </li>
+            ))}
+          </ol>
+
+          {finalTestResult && (
+            <div
+              className={`cable-test-result is-${finalTestResult.toLowerCase()}`}
+              role="status"
+            >
+              <strong>Test Result: {finalTestResult}</strong>
+              <span>Continuity: {CONTINUITY_LABEL}</span>
+              <span>Termination Standard: T568B Verified</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {(canContinue || isArrangementActive) && (
         <div className="training-actions procedure-primary-actions">
           {canContinue && (
@@ -253,7 +474,7 @@ export default function RJ45ProcedurePanel({
                 onClick={undoLastPlacement}
                 disabled={placementHistory.length === 0 || isProcedureAnimating}
               >
-                Undo Last Placement
+                Undo
               </button>
               <button
                 type="button"
@@ -264,7 +485,7 @@ export default function RJ45ProcedurePanel({
                   isProcedureAnimating
                 }
               >
-                Reset Arrangement
+                Reset
               </button>
               <button
                 type="button"
@@ -308,8 +529,67 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
+      {(canPositionConnector || canAttemptCrimp) && (
+        <div className="training-actions procedure-primary-actions">
+          {canPositionConnector && (
+            <button
+              type="button"
+              onClick={onPositionConnector}
+              disabled={isProcedureAnimating}
+            >
+              Position Connector
+            </button>
+          )}
+          {canAttemptCrimp && (
+            <button
+              type="button"
+              onClick={onCrimpConnector}
+              disabled={isProcedureAnimating}
+            >
+              Crimp Connector
+            </button>
+          )}
+        </div>
+      )}
+
+      {(canConnectCable || canRunCableTest) && (
+        <div className="training-actions procedure-primary-actions">
+          {canConnectCable && (
+            <button
+              type="button"
+              onClick={onConnectCable}
+              disabled={isProcedureAnimating}
+            >
+              Connect Cable
+            </button>
+          )}
+          {canRunCableTest && (
+            <button
+              type="button"
+              onClick={onTestCable}
+              disabled={isProcedureAnimating}
+            >
+              Test Cable
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="training-actions procedure-secondary-actions">
-        {(isTrimmingActive || isConnectorInsertionActive) && (
+        {activeToolId && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={onReturnTool}
+            disabled={isProcedureAnimating}
+          >
+            Return Tool
+          </button>
+        )}
+        {(isTrimmingActive ||
+          isConnectorInsertionActive ||
+          isCrimpingActive ||
+          isCableTestingActive) && (
           <button
             type="button"
             className="secondary"

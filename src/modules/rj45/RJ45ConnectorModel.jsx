@@ -1,6 +1,7 @@
 import { Html } from '@react-three/drei'
 import { BoxGeometry, MeshStandardMaterial } from 'three'
 import {
+  CABLE_EXIT_Z,
   CONNECTOR_CHANNEL_SPACING,
   CONNECTOR_WIRE_CENTER_X,
   TRIMMED_TIP_Z,
@@ -15,12 +16,12 @@ const CONNECTOR_FRONT_WIDTH = 11 * RJ45_SCENE_UNITS_PER_MILLIMETER
 const CONNECTOR_ALIGNED_POSITION = Object.freeze([
   CONNECTOR_WIRE_CENTER_X,
   0.07,
-  -0.31,
+  -1.29,
 ])
 const CONNECTOR_INITIAL_POSITION = Object.freeze([
   CONNECTOR_WIRE_CENTER_X + 0.16,
   0.16,
-  -0.16,
+  -1.52,
 ])
 const CONNECTOR_ALIGNED_ROTATION = Object.freeze([0, 0, 0])
 const CONNECTOR_INITIAL_ROTATION = Object.freeze([-0.1, 0.16, -0.06])
@@ -31,10 +32,13 @@ const CONNECTOR_FRONT_CONTACT_Z =
 const CONDUCTOR_INSERTION_DISTANCE =
   CONNECTOR_FRONT_CONTACT_Z - TRIMMED_TIP_Z
 const CONNECTOR_JACKET_LENGTH = 0.72
-const CONNECTOR_JACKET_FRONT_START_Z = 0.18
+const CONNECTOR_JACKET_FRONT_START_Z = CABLE_EXIT_Z
 const CONNECTOR_JACKET_INITIAL_Z =
   CONNECTOR_JACKET_FRONT_START_Z + CONNECTOR_JACKET_LENGTH / 2
-const JACKET_INSERTION_DISTANCE = -0.32
+const JACKET_INSERTION_DISTANCE =
+  CONNECTOR_REAR_ENTRY_Z - CONNECTOR_JACKET_FRONT_START_Z
+const CONTACT_PRESS_DISTANCE = 0.018
+const STRAIN_RELIEF_PRESS_DISTANCE = 0.026
 
 const unitBoxGeometry = new BoxGeometry(1, 1, 1)
 const housingMaterial = new MeshStandardMaterial({
@@ -78,9 +82,17 @@ function getChannelX(index) {
   return (index - (WIRE_COUNT - 1) / 2) * CONNECTOR_CHANNEL_SPACING
 }
 
-function BoxPart({ position, scale, material, castShadow, receiveShadow }) {
+function BoxPart({
+  meshRef,
+  position,
+  scale,
+  material,
+  castShadow,
+  receiveShadow,
+}) {
   return (
     <mesh
+      ref={meshRef}
       geometry={unitBoxGeometry}
       material={material}
       position={position}
@@ -96,6 +108,8 @@ export default function RJ45ConnectorModel({
   rotation = [0, 0, 0],
   scale = 1,
   isEntryHighlighted = false,
+  contactBladeRefs,
+  strainReliefRef,
   onEntryPointerEnter,
   onEntryPointerLeave,
   onEntryClick,
@@ -164,7 +178,14 @@ export default function RJ45ConnectorModel({
         const channelX = getChannelX(index)
 
         return (
-          <group key={index}>
+          <group
+            key={index}
+            ref={(group) => {
+              if (contactBladeRefs) {
+                contactBladeRefs.current[index] = group
+              }
+            }}
+          >
             <BoxPart
               position={[channelX, -0.035, -0.045]}
               scale={[0.018, 0.006, 0.34]}
@@ -223,6 +244,15 @@ export default function RJ45ConnectorModel({
         />
       </group>
 
+      <group ref={strainReliefRef}>
+        <BoxPart
+          position={[0, 0.054, 0.12]}
+          scale={[0.16, 0.018, 0.06]}
+          material={housingEdgeMaterial}
+          castShadow
+        />
+      </group>
+
       <group position={[0, -CONNECTOR_HEIGHT / 2 - 0.012, 0.04]}>
         <mesh
           geometry={unitBoxGeometry}
@@ -263,6 +293,7 @@ export default function RJ45ConnectorModel({
 }
 
 export {
+  CONTACT_PRESS_DISTANCE,
   CONDUCTOR_INSERTION_DISTANCE,
   CONNECTOR_ALIGNED_POSITION,
   CONNECTOR_ALIGNED_ROTATION,
@@ -277,4 +308,5 @@ export {
   CONNECTOR_WIDTH,
   JACKET_INSERTION_DISTANCE,
   RJ45_SCENE_UNITS_PER_MILLIMETER,
+  STRAIN_RELIEF_PRESS_DISTANCE,
 }

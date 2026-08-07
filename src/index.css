@@ -149,31 +149,40 @@ canvas {
   position: absolute;
   inset: 0;
   z-index: 4;
-  padding: 24px;
+  padding: 20px;
   pointer-events: none;
   background: linear-gradient(
     90deg,
-    rgb(7 11 14 / 42%) 0,
-    rgb(7 11 14 / 16%) 48%,
-    transparent 72%
+    rgb(7 11 14 / 26%) 0,
+    rgb(7 11 14 / 7%) 27%,
+    transparent 38%
   );
 }
 
 .training-panel {
-  width: min(360px, calc(100% - 48px));
-  padding: 22px;
+  width: min(300px, calc(100% - 40px));
+  padding: 18px;
   color: #f5f7f8;
   font-family: system-ui, sans-serif;
   pointer-events: auto;
   background: rgb(23 30 35 / 94%);
   border: 1px solid rgb(255 255 255 / 16%);
-  border-radius: 12px;
-  box-shadow: 0 18px 60px rgb(0 0 0 / 38%);
+  border-radius: 10px;
+  box-shadow: 0 14px 42px rgb(0 0 0 / 32%);
 }
 
 .training-panel h1 {
-  margin: 0 0 14px;
-  font-size: 22px;
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.procedure-panel {
+  width: min(280px, calc(100% - 40px));
+  max-height: calc(100vh - 40px);
+  padding: 14px;
+  overflow-y: auto;
+  scrollbar-color: #66737a transparent;
+  scrollbar-width: thin;
 }
 
 .procedure-panel .procedure-step-number {
@@ -187,24 +196,25 @@ canvas {
 }
 
 .procedure-panel h1 {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-size: 18px;
 }
 
 .procedure-panel h2 {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   color: #cdd7dc;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .procedure-instruction,
 .procedure-feedback,
 .procedure-next {
-  margin: 0 0 16px;
-  padding: 12px;
-  font-size: 14px;
-  line-height: 1.45;
-  border-radius: 8px;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
 }
 
 .procedure-instruction {
@@ -238,12 +248,36 @@ canvas {
 }
 
 .procedure-panel.is-arranging {
-  width: min(310px, calc(100% - 48px));
-  max-height: calc(100vh - 48px);
-  padding: 16px;
-  overflow-y: auto;
-  scrollbar-color: #66737a transparent;
-  scrollbar-width: thin;
+  width: min(286px, calc(100% - 40px));
+}
+
+.procedure-panel.is-technician-overview {
+  width: min(280px, calc(100% - 40px));
+}
+
+.procedure-panel.is-technician-overview h1 {
+  font-size: 19px;
+}
+
+.procedure-panel.is-technician-overview .procedure-instruction {
+  margin-bottom: 10px;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.procedure-panel.is-arranging h1 {
+  font-size: 19px;
+}
+
+.procedure-panel.is-arranging h2 {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.procedure-panel.is-arranging .procedure-instruction {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  font-size: 12px;
 }
 
 .procedure-progress,
@@ -254,33 +288,31 @@ canvas {
   font-size: 13px;
 }
 
+.selected-tool-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  background: rgb(7 12 15 / 42%);
+  border: 1px solid rgb(143 201 247 / 18%);
+  border-radius: 6px;
+}
+
 .procedure-panel.is-trimming {
-  width: min(300px, calc(100% - 48px));
-  max-height: calc(100vh - 48px);
-  padding: 16px;
-  overflow-y: auto;
+  width: min(280px, calc(100% - 40px));
 }
 
 .procedure-panel.is-inserting {
-  width: min(292px, calc(100% - 48px));
-  max-height: calc(100vh - 48px);
-  padding: 16px;
-  overflow-y: auto;
-  scrollbar-color: #66737a transparent;
-  scrollbar-width: thin;
+  width: min(280px, calc(100% - 40px));
 }
 
-.trim-guide-label {
-  padding: 5px 9px;
-  color: #ffe5a8;
-  font: 700 11px/1 system-ui, sans-serif;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-  background: rgb(18 22 25 / 88%);
-  border: 1px solid rgb(243 184 76 / 55%);
-  border-radius: 5px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
-  pointer-events: none;
+.procedure-panel.is-crimping {
+  width: min(280px, calc(100% - 40px));
+}
+
+.procedure-panel.is-testing {
+  width: min(300px, calc(100% - 40px));
 }
 
 .connector-orientation-instruction {
@@ -345,30 +377,240 @@ canvas {
   border-color: rgb(226 98 83 / 48%);
 }
 
+.crimp-position-status {
+  margin: 0 0 14px;
+  padding: 9px 11px;
+  color: #c9f2d4;
+  font-size: 12px;
+  background: rgb(54 151 88 / 16%);
+  border: 1px solid rgb(93 203 132 / 32%);
+  border-radius: 7px;
+}
+
+.crimp-verification {
+  margin: 0 0 14px;
+  padding: 10px;
+  color: #dce7eb;
+  font-size: 12px;
+  background: rgb(8 13 16 / 34%);
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 7px;
+}
+
+.crimp-verification > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.crimp-verification ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crimp-verification li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 7px;
+  color: #c9f2d4;
+  border: 1px solid rgb(93 203 132 / 28%);
+  border-radius: 4px;
+}
+
+.cable-test-status {
+  margin: 0 0 14px;
+  padding: 11px;
+  color: #dce7eb;
+  font-size: 12px;
+  background: rgb(8 13 16 / 42%);
+  border: 1px solid rgb(121 191 255 / 18%);
+  border-radius: 8px;
+}
+
+.cable-test-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.cable-test-progress-heading span {
+  color: #91d9ec;
+  font-weight: 700;
+}
+
+.cable-test-progress-track {
+  height: 7px;
+  overflow: hidden;
+  background: #202a2f;
+  border-radius: 999px;
+}
+
+.cable-test-progress-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #e1a83e, #62cf80);
+  border-radius: inherit;
+  transition: width 80ms linear;
+}
+
+.cable-test-progress-text {
+  margin: 8px 0;
+  color: #bfcdd3;
+  line-height: 1.35;
+}
+
+.cable-test-pin-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cable-test-pin-results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 6px;
+  color: #93a2a9;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 5px;
+}
+
+.cable-test-pin-results li.is-testing {
+  color: #ffe2a0;
+  border-color: rgb(240 184 77 / 48%);
+}
+
+.cable-test-pin-results li.is-pass {
+  color: #c9f2d4;
+  border-color: rgb(93 203 132 / 42%);
+}
+
+.cable-test-pin-results li.is-fail {
+  color: #ffd1ca;
+  border-color: rgb(226 98 83 / 48%);
+}
+
+.cable-test-pin-results b {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.cable-test-result {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  line-height: 1.4;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+}
+
+.cable-test-result.is-pass {
+  color: #c9f2d4;
+  background: rgb(54 151 88 / 13%);
+  border-color: rgb(93 203 132 / 38%);
+}
+
+.cable-test-result.is-fail {
+  color: #ffd1ca;
+  background: rgb(180 66 54 / 14%);
+  border-color: rgb(226 98 83 / 38%);
+}
+
+.cable-test-result b {
+  color: #8fc9f7;
+}
+
 .selected-wire-label strong,
 .selected-tool-label strong {
   color: #8fc9f7;
 }
 
+.arrangement-status {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.arrangement-status-chip {
+  display: grid;
+  min-width: 68px;
+  padding: 7px 9px;
+  color: #eef5f7;
+  background: rgb(7 12 15 / 42%);
+  border: 1px solid rgb(143 201 247 / 18%);
+  border-radius: 6px;
+}
+
+.arrangement-status-chip.is-selected-wire {
+  grid-template-columns: 14px minmax(0, 1fr);
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+}
+
+.arrangement-status-chip small {
+  display: block;
+  margin-bottom: 2px;
+  color: #9eacb3;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.arrangement-status-chip strong {
+  display: block;
+  overflow: hidden;
+  color: #9ed9ff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-wire-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgb(255 255 255 / 34%);
+  border-radius: 50%;
+}
+
+.arrangement-hint {
+  margin: 0 0 9px;
+  color: #bdc9ce;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .guide-toggle-button {
   width: 100%;
-  margin-top: 3px;
-  padding: 7px 10px;
-  color: #dfeaf0;
-  font: 700 11px/1 system-ui, sans-serif;
-  cursor: pointer;
-  background: #39464d;
-  border: 1px solid rgb(143 201 247 / 24%);
+  margin: 0 0 7px;
+  padding: 6px 8px;
+  color: #cfe6f3;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgb(32 53 64 / 72%);
+  border: 1px solid rgb(125 190 224 / 28%);
   border-radius: 6px;
 }
 
 .guide-toggle-button:hover {
-  background: #46555d;
+  background: rgb(42 70 84 / 82%);
 }
 
 .t568b-guide {
-  margin: 12px 0 14px;
-  padding: 11px;
+  margin: 7px 0 9px;
+  padding: 7px;
   background: rgb(7 11 14 / 32%);
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 8px;
@@ -376,15 +618,15 @@ canvas {
 
 .t568b-guide > strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: #dce5e9;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .t568b-guide ol {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -392,11 +634,11 @@ canvas {
 
 .t568b-guide li {
   display: grid;
-  grid-template-columns: 20px 14px 1fr;
+  grid-template-columns: 14px 13px minmax(0, 1fr);
   align-items: center;
   gap: 5px;
   min-width: 0;
-  padding: 4px;
+  padding: 3px;
   color: #d5dfe3;
   font-size: 10px;
   border: 1px solid transparent;
@@ -413,50 +655,43 @@ canvas {
 
 .guide-slot-number {
   display: grid;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   place-items: center;
   color: #f2f6f8;
   font-weight: 700;
   background: #414d54;
-  border-radius: 4px;
+  font-size: 9px;
+  border-radius: 3px;
 }
 
 .guide-wire-swatch {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 5px;
   border: 1px solid rgb(255 255 255 / 28%);
-  border-radius: 50%;
+  border-radius: 999px;
 }
 
 .guide-wire-name {
-  min-width: 0;
   overflow: hidden;
+  font-size: 9px;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.guide-wire-name small {
-  display: block;
-  margin-top: 2px;
-  overflow: hidden;
-  color: #aebbc1;
-  font-size: 9px;
-  text-overflow: ellipsis;
-}
-
 .wire-slot-number {
   display: inline-grid;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
   place-items: center;
   color: #f5f8fa;
-  font: 700 10px/1 system-ui, sans-serif;
+  font: 700 8px/1 system-ui, sans-serif;
   pointer-events: none;
   background: rgb(28 35 40 / 92%);
   border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .wire-slot-number.is-correct {
@@ -467,33 +702,14 @@ canvas {
   background: rgb(151 57 49 / 96%);
 }
 
-.wire-workspace-help {
-  display: grid;
-  gap: 4px;
-  min-width: 250px;
-  padding: 8px 12px;
-  color: #dfe8ec;
-  font: 600 11px/1.3 system-ui, sans-serif;
-  text-align: center;
-  pointer-events: none;
-  background: rgb(18 24 28 / 88%);
-  border: 1px solid rgb(121 191 255 / 34%);
-  border-radius: 7px;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 24%);
-}
-
-.wire-workspace-help strong {
-  color: #8ed7f2;
-}
-
 .procedure-primary-actions {
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 9px;
 }
 
 .procedure-secondary-actions {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 9px;
+  padding-top: 9px;
   border-top: 1px solid rgb(255 255 255 / 10%);
 }
 
@@ -509,6 +725,15 @@ canvas {
 .training-actions {
   display: flex;
   gap: 10px;
+}
+
+.procedure-panel .training-actions {
+  gap: 6px;
+}
+
+.procedure-panel .training-actions button {
+  padding: 8px 10px;
+  font-size: 12px;
 }
 
 .training-actions button {
@@ -553,18 +778,17 @@ canvas {
 
 .tool-inspection-panel {
   position: absolute;
-  top: 50%;
-  right: 24px;
+  top: 20px;
+  left: 20px;
   z-index: 6;
-  width: min(320px, calc(100% - 48px));
-  padding: 22px;
+  width: min(280px, calc(100% - 40px));
+  padding: 16px;
   color: #eef3f5;
   font-family: system-ui, sans-serif;
   background: rgb(23 30 35 / 96%);
   border: 1px solid rgb(121 191 255 / 28%);
-  border-radius: 12px;
-  box-shadow: 0 18px 60px rgb(0 0 0 / 36%);
-  transform: translateY(-50%);
+  border-radius: 10px;
+  box-shadow: 0 14px 42px rgb(0 0 0 / 32%);
 }
 
 .tool-panel-eyebrow {
@@ -652,6 +876,12 @@ canvas {
   }
 
   .procedure-panel.is-arranging {
+    width: min(276px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
+  }
+
+  .procedure-panel.is-technician-overview {
     width: min(290px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;
@@ -669,17 +899,23 @@ canvas {
     padding: 14px;
   }
 
-  .t568b-guide ol {
-    grid-template-columns: 1fr;
+  .procedure-panel.is-crimping {
+    width: min(290px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
+  }
+
+  .procedure-panel.is-testing {
+    width: min(300px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
   }
 
   .tool-inspection-panel {
-    top: auto;
-    right: 14px;
-    bottom: 14px;
-    width: min(320px, calc(100% - 28px));
-    padding: 18px;
-    transform: none;
+    top: 14px;
+    left: 14px;
+    width: min(280px, calc(100% - 28px));
+    padding: 14px;
   }
 
   .active-tool-hud {

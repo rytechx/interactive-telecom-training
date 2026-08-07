@@ -24,6 +24,14 @@ function isTrimmingWorkspaceStep(currentStep) {
   ].includes(currentStep)
 }
 
+function isTrimGuideVisible(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+    RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+    RJ45_PROCEDURE_STEPS.TRIMMING,
+  ].includes(currentStep)
+}
+
 export default function RJ45WireTrimming({
   trimProgressRef,
   hoveredObjectId,
@@ -50,7 +58,7 @@ export default function RJ45WireTrimming({
     (state) => state.completeWireTrimming,
   )
   const isHovered = hoveredObjectId === TRIM_HOVER_ID
-  const showTrimGuide = isTrimmingWorkspaceStep(currentStep)
+  const showTrimGuide = isTrimGuideVisible(currentStep)
   const canTrim =
     workstationPhase === WORKSTATION_PHASES.FOCUSED &&
     isTrainingMode &&

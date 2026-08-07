@@ -24,6 +24,35 @@ function isConnectorInsertionStep(currentStep) {
   ].includes(currentStep)
 }
 
+function isCrimpingStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+    RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+    RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+    RJ45_PROCEDURE_STEPS.CRIMPING,
+    RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+  ].includes(currentStep)
+}
+
+function isCrimpingCompleteStep(currentStep) {
+  return (
+    currentStep === RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE ||
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5
+  )
+}
+
+function isCableTestingStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+    RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+    RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+    RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+    RJ45_PROCEDURE_STEPS.TEST_RESULT,
+    RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+  ].includes(currentStep)
+}
+
 export default function InteractionSystem() {
   const nearbyInteractable = useInteractionStore(
     (state) => state.nearbyInteractable,
@@ -68,7 +97,24 @@ export default function InteractionSystem() {
   const restartConnectorInsertion = useTrainingStore(
     (state) => state.restartConnectorInsertion,
   )
+  const startConnectorPositioning = useTrainingStore(
+    (state) => state.startConnectorPositioning,
+  )
+  const startConnectorCrimping = useTrainingStore(
+    (state) => state.startConnectorCrimping,
+  )
+  const restartConnectorCrimping = useTrainingStore(
+    (state) => state.restartConnectorCrimping,
+  )
+  const startCableTesterConnection = useTrainingStore(
+    (state) => state.startCableTesterConnection,
+  )
+  const startCableTest = useTrainingStore((state) => state.startCableTest)
+  const restartCableTesting = useTrainingStore(
+    (state) => state.restartCableTesting,
+  )
   const resetTraining = useTrainingStore((state) => state.resetTraining)
+
   const handleToolActivated = useTrainingStore(
     (state) => state.handleToolActivated,
   )
@@ -130,6 +176,13 @@ export default function InteractionSystem() {
           trainingState.restartWireTrimming()
         } else if (isConnectorInsertionStep(trainingState.currentStep)) {
           trainingState.restartConnectorInsertion()
+        } else if (isCableTestingStep(trainingState.currentStep)) {
+          trainingState.restartCableTesting()
+        } else if (
+          isCrimpingStep(trainingState.currentStep) &&
+          !isCrimpingCompleteStep(trainingState.currentStep)
+        ) {
+          trainingState.restartConnectorCrimping()
         }
         toolState.returnActiveTool()
         return
@@ -201,6 +254,16 @@ export default function InteractionSystem() {
 
     resetToolState()
 
+    if (isCableTestingStep(currentStep)) {
+      restartCableTesting()
+      return
+    }
+
+    if (isCrimpingStep(currentStep)) {
+      restartConnectorCrimping()
+      return
+    }
+
     if (
       currentStep === RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR ||
       isConnectorInsertionStep(currentStep) ||
@@ -226,6 +289,13 @@ export default function InteractionSystem() {
       trainingState.restartWireTrimming()
     } else if (isConnectorInsertionStep(trainingState.currentStep)) {
       trainingState.restartConnectorInsertion()
+    } else if (isCableTestingStep(trainingState.currentStep)) {
+      trainingState.restartCableTesting()
+    } else if (
+      isCrimpingStep(trainingState.currentStep) &&
+      !isCrimpingCompleteStep(trainingState.currentStep)
+    ) {
+      trainingState.restartConnectorCrimping()
     }
 
     returnActiveTool()
@@ -236,6 +306,22 @@ export default function InteractionSystem() {
 
     activateSelectedTool()
     handleToolActivated(toolId)
+  }
+
+  const handlePositionConnector = () => {
+    startConnectorPositioning(useToolStore.getState().activeToolId)
+  }
+
+  const handleCrimpConnector = () => {
+    startConnectorCrimping(useToolStore.getState().activeToolId)
+  }
+
+  const handleConnectCable = () => {
+    startCableTesterConnection(useToolStore.getState().activeToolId)
+  }
+
+  const handleTestCable = () => {
+    startCableTest(useToolStore.getState().activeToolId)
   }
 
   return (
@@ -272,17 +358,22 @@ export default function InteractionSystem() {
 
       {workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode && (
         <div className="training-overlay">
-          {trainingStarted ? (
+          {trainingStarted && toolViewState !== TOOL_VIEW_STATES.INSPECTING ? (
             <RJ45ProcedurePanel
               onContinue={handleContinueProcedure}
               onAlignConnector={startConnectorAlignment}
               onInsertConductors={startConductorInsertion}
               onRetryInsertion={retryConductorInsertion}
+              onPositionConnector={handlePositionConnector}
+              onCrimpConnector={handleCrimpConnector}
+              onConnectCable={handleConnectCable}
+              onTestCable={handleTestCable}
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
+              onReturnTool={handleReturnActiveTool}
               onExit={handleWorkstationExit}
             />
-          ) : (
+          ) : !trainingStarted ? (
             <section
               className="training-panel"
               role="dialog"
@@ -306,7 +397,7 @@ export default function InteractionSystem() {
                 </button>
               </div>
             </section>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -330,7 +421,7 @@ export default function InteractionSystem() {
         </aside>
       )}
 
-      {activeTool && (
+      {activeTool && !trainingStarted && (
         <div className="active-tool-hud" role="status">
           <span>Active Tool: {activeTool.name}</span>
           <button

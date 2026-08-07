@@ -2,12 +2,15 @@ import {
   CONNECTOR_ALIGNED_POSITION,
   CONNECTOR_REAR_ENTRY_Z,
 } from './RJ45ConnectorModel.jsx'
-import { CONNECTOR_WIRE_CENTER_X } from './wireDefinitions.js'
+import {
+  CONNECTOR_WIRE_CENTER_X,
+  TRIMMED_TIP_Z,
+} from './wireDefinitions.js'
 
 const GUIDE_SEGMENTS = 4
 
 export default function ConnectorAlignmentGuide({ isAligned }) {
-  const pathStartZ = 0.035
+  const pathStartZ = TRIMMED_TIP_Z - 0.015
   const pathEndZ = CONNECTOR_REAR_ENTRY_Z + 0.035
   const pathColor = isAligned ? '#75d792' : '#70c8e8'
 

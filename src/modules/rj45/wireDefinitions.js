@@ -1,38 +1,36 @@
-const CABLE_LENGTH = 1.55
-const WIRE_LENGTH = 0.62
-const WIRE_RADIUS = 0.012
-const CABLE_EXIT_X = CABLE_LENGTH / 2 - WIRE_LENGTH
-const GUIDE_FIRST_SLOT_X = 0.12
-const GUIDE_SLOT_SPACING = 0.115
+const CABLE_LENGTH = 2.08
+const WIRE_LENGTH = 1.08
+const WIRE_RADIUS = 0.0125
+const CABLE_EXIT_Z = WIRE_LENGTH - CABLE_LENGTH / 2
+const GUIDE_FIRST_SLOT_X = -0.315
+const GUIDE_SLOT_SPACING = 0.09
 const GUIDE_CENTER_X = GUIDE_FIRST_SLOT_X + (GUIDE_SLOT_SPACING * 7) / 2
-const GUIDE_CENTER_Z = 0.095
-const GUIDE_WIDTH = GUIDE_SLOT_SPACING * 8 + 0.08
-const GUIDE_DEPTH = 0.56
-const PRE_TRIM_TIP_Z = GUIDE_CENTER_Z - 0.225
-const TRIMMED_TIP_Z = GUIDE_CENTER_Z - 0.135
+const GUIDE_CENTER_Z = -1.02
+const GUIDE_WIDTH = GUIDE_SLOT_SPACING * 7 + 0.06
+const GUIDE_DEPTH = 0.1
+const PRE_TRIM_TIP_Z = -1.03
+const TRIMMED_TIP_Z = -0.965
 const CONNECTOR_CHANNEL_SPACING = 0.026
 const CONNECTOR_WIRE_CENTER_X = GUIDE_CENTER_X
+const ROOT_X_SPACING = 0.014
+const FAN_SHOULDER_X_SPACING = 0.032
+const FAN_MID_X_SPACING = 0.062
+const FAN_END_X_SPACING = 0.0875
 
-const bundledOffsets = [
-  [-0.02, -0.028],
-  [-0.007, -0.028],
-  [0.007, -0.028],
-  [0.02, -0.028],
-  [-0.02, 0.028],
-  [-0.007, 0.028],
-  [0.007, 0.028],
-  [0.02, 0.028],
-]
+const bundledOffsets = Array.from({ length: 8 }, (_, index) => [
+  (index - 3.5) * ROOT_X_SPACING,
+  0.012,
+])
 
 const wireColors = [
-  ['#f7f2e8', '#f28c28'],
-  ['#f28c28', null],
-  ['#f7f2e8', '#3f9b57'],
-  ['#3578c6', null],
-  ['#f7f2e8', '#3578c6'],
-  ['#3f9b57', null],
-  ['#f7f2e8', '#855438'],
-  ['#855438', null],
+  ['#f7f4ec', '#ff932e'],
+  ['#f18422', null],
+  ['#f7f4ec', '#49b96d'],
+  ['#3f83de', null],
+  ['#f7f4ec', '#4a91e8'],
+  ['#3ca661', null],
+  ['#f7f4ec', '#a66c48'],
+  ['#925b3e', null],
 ]
 
 const wireNames = [
@@ -53,39 +51,40 @@ function freezePoints(points) {
 const wireDefinitions = Object.freeze(
   wireNames.map(([id, name, displayName], index) => {
     const correctSlot = index + 1
-    const [bundleY, bundleZ] = bundledOffsets[index]
-    const fanZ = (index - 3.5) * 0.078
-    const fanEndX = 0.46 + index * 0.03
+    const [bundleX, bundleY] = bundledOffsets[index]
+    const fanShoulderX = (index - 3.5) * FAN_SHOULDER_X_SPACING
+    const fanMidX = (index - 3.5) * FAN_MID_X_SPACING
+    const fanEndX = (index - 3.5) * FAN_END_X_SPACING
     const slotX = GUIDE_FIRST_SLOT_X + index * GUIDE_SLOT_SPACING
     const initialPoints = freezePoints(
       Array.from({ length: 4 }, (_, pointIndex) => [
-        CABLE_EXIT_X + (WIRE_LENGTH * pointIndex) / 3,
+        bundleX,
         bundleY,
-        bundleZ,
+        CABLE_EXIT_Z - (WIRE_LENGTH * pointIndex) / 3,
       ]),
     )
     const separatedPoints = freezePoints([
-      [CABLE_EXIT_X, bundleY, bundleZ],
-      [CABLE_EXIT_X + 0.14, 0.012, bundleZ + fanZ * 0.12],
-      [CABLE_EXIT_X + 0.3, 0.026, fanZ * 0.56],
-      [fanEndX, 0.04, fanZ],
+      [bundleX, bundleY, CABLE_EXIT_Z],
+      [fanShoulderX, 0.022, -0.22],
+      [fanMidX, 0.028, -0.56],
+      [fanEndX, 0.028, -0.89],
     ])
     const slotPoints = freezePoints([
-      [slotX, 0.05, GUIDE_CENTER_Z + 0.225],
-      [slotX, 0.05, GUIDE_CENTER_Z + 0.075],
-      [slotX, 0.05, GUIDE_CENTER_Z - 0.075],
-      [slotX, 0.05, GUIDE_CENTER_Z - 0.225],
+      [bundleX, bundleY, CABLE_EXIT_Z],
+      [(index - 3.5) * 0.022, 0.022, -0.25],
+      [slotX, 0.027, -0.64],
+      [slotX, 0.028, PRE_TRIM_TIP_Z],
     ])
     const connectorChannelX =
       CONNECTOR_WIRE_CENTER_X + (index - 3.5) * CONNECTOR_CHANNEL_SPACING
     const connectorBundleX =
       CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.006
     const connectorFanX =
-      CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.014
+      CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.02
     const connectorPoints = freezePoints([
-      [connectorBundleX, 0.05, 0.18],
-      [connectorFanX, 0.05, 0.11],
-      [connectorChannelX, 0.05, 0.02],
+      [connectorBundleX, 0.05, CABLE_EXIT_Z],
+      [connectorFanX, 0.05, -0.35],
+      [connectorChannelX, 0.05, -0.72],
       [connectorChannelX, 0.05, TRIMMED_TIP_Z],
     ])
 
@@ -130,7 +129,7 @@ function getConnectorWirePoints(slotNumber) {
 }
 
 export {
-  CABLE_EXIT_X,
+  CABLE_EXIT_Z,
   CABLE_LENGTH,
   CONNECTOR_CHANNEL_SPACING,
   CONNECTOR_WIRE_CENTER_X,

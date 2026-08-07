@@ -2,9 +2,16 @@ import { TOOL_IDS } from '../../tools/toolConfigs.js'
 
 const RJ45_MODULE_ID = 'rj45-cable-termination'
 const ETHERNET_CABLE_ID = 'ethernet-cable'
+const JACKET_STRIPPING_DURATION = 1.25
+const JACKET_STRIPPING_WORK_END = 0.72
 const TRIMMING_DURATION = 0.9
 const CONNECTOR_ALIGNMENT_DURATION = 0.85
 const CONNECTOR_INSERTION_DURATION = 1.15
+const CONNECTOR_POSITIONING_DURATION = 0.9
+const CRIMPING_DURATION = 1.25
+const TESTER_CONNECTION_DURATION = 0.95
+const CABLE_TEST_DURATION = 2
+const RJ45_TOTAL_STEPS = 19
 
 const RJ45_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'not-started',
@@ -32,6 +39,18 @@ const RJ45_PROCEDURE_STEPS = Object.freeze({
   VERIFY_INSERTION: 'verify-insertion',
   CONDUCTORS_INSERTED: 'conductors-inserted',
   COMPLETE_FOR_TASK_4: 'complete-for-task-4',
+  SELECT_CRIMPING_TOOL: 'select-crimping-tool',
+  POSITION_CONNECTOR_IN_CRIMPER: 'position-connector-in-crimper',
+  READY_TO_CRIMP: 'ready-to-crimp',
+  CRIMPING: 'crimping',
+  CRIMP_COMPLETE: 'crimp-complete',
+  COMPLETE_FOR_TASK_5: 'complete-for-task-5',
+  SELECT_CABLE_TESTER: 'select-cable-tester',
+  CONNECT_CABLE_TO_TESTER: 'connect-cable-to-tester',
+  READY_TO_TEST: 'ready-to-test',
+  TESTING_CABLE: 'testing-cable',
+  TEST_RESULT: 'test-result',
+  RJ45_MODULE_COMPLETE: 'rj45-module-complete',
 })
 
 const rj45Procedure = Object.freeze({
@@ -213,7 +232,7 @@ const rj45Procedure = Object.freeze({
     stepNumber: 11,
     title: 'Connector Insertion Complete',
     instruction: 'Step 11: Connector insertion complete.',
-    acceptedAction: null,
+    acceptedAction: 'continue',
   }),
   [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4]: Object.freeze({
     id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
@@ -221,6 +240,97 @@ const rj45Procedure = Object.freeze({
     title: 'Connector Insertion Complete',
     instruction: 'Step 11: Connector insertion complete.',
     nextInstruction: 'Next procedure: Crimp the RJ45 connector.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+    stepNumber: 12,
+    title: 'Select the Crimping Tool',
+    instruction: 'Step 12: Select the crimping tool.',
+    acceptedAction: 'select-tool',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+    stepNumber: 13,
+    title: 'Position the Connector',
+    instruction:
+      'Step 13: Position the RJ45 connector inside the crimping slot.',
+    acceptedAction: 'position-connector',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.READY_TO_CRIMP]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+    stepNumber: 14,
+    title: 'Crimp the Connector',
+    instruction: 'Step 14: Squeeze the crimping tool handles.',
+    acceptedAction: 'crimp-connector',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.CRIMPING]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.CRIMPING,
+    stepNumber: 14,
+    title: 'Crimping the Connector',
+    instruction: 'Pressing the contacts and securing the strain relief...',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+    stepNumber: 15,
+    title: 'Crimp Complete',
+    instruction: 'Crimp completed successfully.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+    stepNumber: 15,
+    title: 'Crimp Complete',
+    instruction: 'Crimp completed successfully.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+    stepNumber: 16,
+    title: 'Select the Cable Tester',
+    instruction: 'Step 16: Select the cable tester.',
+    acceptedAction: 'select-tool',
+    acceptedToolId: TOOL_IDS.CABLE_TESTER,
+  }),
+  [RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+    stepNumber: 17,
+    title: 'Connect the Cable',
+    instruction: 'Step 17: Connect the terminated cable to the tester.',
+    acceptedAction: 'connect-cable',
+    acceptedToolId: TOOL_IDS.CABLE_TESTER,
+  }),
+  [RJ45_PROCEDURE_STEPS.READY_TO_TEST]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+    stepNumber: 18,
+    title: 'Run the Cable Test',
+    instruction: 'Step 18: Run the cable test.',
+    acceptedAction: 'test-cable',
+    acceptedToolId: TOOL_IDS.CABLE_TESTER,
+  }),
+  [RJ45_PROCEDURE_STEPS.TESTING_CABLE]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+    stepNumber: 18,
+    title: 'Testing Cable',
+    instruction: 'Checking continuity from Pin 1 through Pin 8...',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.TEST_RESULT]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.TEST_RESULT,
+    stepNumber: 19,
+    title: 'Cable Test Complete',
+    instruction: 'Test Result: PASS',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+    stepNumber: 19,
+    title: 'Module Complete',
+    instruction: 'RJ45 cable termination completed successfully.',
     acceptedAction: null,
   }),
 })
@@ -230,12 +340,19 @@ function getRJ45ProcedureStep(stepId) {
 }
 
 export {
+  CABLE_TEST_DURATION,
   CONNECTOR_ALIGNMENT_DURATION,
   CONNECTOR_INSERTION_DURATION,
+  CONNECTOR_POSITIONING_DURATION,
+  CRIMPING_DURATION,
   ETHERNET_CABLE_ID,
   getRJ45ProcedureStep,
+  JACKET_STRIPPING_DURATION,
+  JACKET_STRIPPING_WORK_END,
   RJ45_MODULE_ID,
   RJ45_PROCEDURE_STEPS,
+  RJ45_TOTAL_STEPS,
+  TESTER_CONNECTION_DURATION,
   TRIMMING_DURATION,
   rj45Procedure,
 }

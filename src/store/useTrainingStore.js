@@ -10,10 +10,24 @@ import {
   WIRE_COUNT,
   WIRE_IDS,
 } from '../modules/rj45/wireDefinitions.js'
+import {
+  createPendingCableTestResults,
+  getCableTestOutcome,
+  TEST_PIN_COUNT,
+  TEST_PIN_STATUSES,
+} from '../modules/rj45/testSequenceConfig.js'
+import { TOOL_IDS } from '../tools/toolConfigs.js'
 
 const emptyWirePlacements = () => Array(WIRE_COUNT).fill(null)
 const emptyValidationResults = () => Array(WIRE_COUNT).fill(null)
 const emptyInsertionValidationResults = () => Array(WIRE_COUNT).fill(null)
+const emptyCrimpVerification = () => ({
+  connectorInserted: false,
+  connectorPositioned: false,
+  contactsSeated: 0,
+  strainReliefSecured: false,
+  t568bVerified: false,
+})
 
 function createInitialTrainingState() {
   return {
@@ -38,6 +52,20 @@ function createInitialTrainingState() {
     conductorsInserted: false,
     insertionValidationResults: emptyInsertionValidationResults(),
     connectorOrientationConfirmed: false,
+    connectorPositionedForCrimp: false,
+    isConnectorPositioning: false,
+    isCrimping: false,
+    crimpComplete: false,
+    contactsSeated: 0,
+    strainReliefSecured: false,
+    crimpVerification: emptyCrimpVerification(),
+    cableConnectedToTester: false,
+    isCableConnecting: false,
+    isCableTesting: false,
+    cableTestProgress: 0,
+    cableTestResults: createPendingCableTestResults(),
+    finalTestResult: null,
+    moduleCompleted: false,
   }
 }
 
@@ -108,6 +136,41 @@ const useTrainingStore = create((set) => ({
       }
 
       const procedureStep = getRJ45ProcedureStep(state.currentStep)
+
+      if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER) {
+        if (procedureStep.acceptedToolId !== toolId) {
+          return {
+            procedureFeedback: 'Select the cable tester for this step.',
+          }
+        }
+
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+          procedureFeedback: null,
+          completedSteps: addCompletedSteps(
+            state.completedSteps,
+            RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+          ),
+        }
+      }
+
+      if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL) {
+        if (procedureStep.acceptedToolId !== toolId) {
+          return {
+            procedureFeedback:
+              'Use the crimping tool to secure the RJ45 connector.',
+          }
+        }
+
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+          procedureFeedback: null,
+          completedSteps: addCompletedSteps(
+            state.completedSteps,
+            RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+          ),
+        }
+      }
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR) {
         if (procedureStep.acceptedToolId !== toolId) {
@@ -226,6 +289,26 @@ const useTrainingStore = create((set) => ({
       ) {
         return {
           currentStep: RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
+        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
+      ) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE ||
+        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5
+      ) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
           procedureFeedback: null,
         }
       }
@@ -692,6 +775,343 @@ const useTrainingStore = create((set) => ({
         connectorOrientationConfirmed: false,
         completedSteps: state.completedSteps.filter(
           (stepId) => !insertionSteps.includes(stepId),
+        ),
+      }
+    })
+  },
+  startConnectorPositioning: (toolId) => {
+    set((state) => {
+      if (toolId !== TOOL_IDS.CRIMPING_TOOL) {
+        return { procedureFeedback: 'Use the crimping tool for this step.' }
+      }
+
+      if (
+        state.currentStep !==
+          RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER ||
+        !state.conductorsInserted ||
+        state.connectorPositionedForCrimp ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        isProcedureAnimating: true,
+        isConnectorPositioning: true,
+        procedureFeedback: null,
+      }
+    })
+  },
+  completeConnectorPositioning: () => {
+    set((state) =>
+      state.currentStep ===
+        RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER &&
+      state.isProcedureAnimating &&
+      state.isConnectorPositioning
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+            connectorPositionedForCrimp: true,
+            isConnectorPositioning: false,
+            isProcedureAnimating: false,
+            procedureFeedback: null,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+            ),
+          }
+        : {},
+    )
+  },
+  startConnectorCrimping: (toolId) => {
+    set((state) => {
+      if (toolId !== TOOL_IDS.CRIMPING_TOOL) {
+        return { procedureFeedback: 'Use the crimping tool for this step.' }
+      }
+
+      if (!state.connectorPositionedForCrimp) {
+        return {
+          procedureFeedback:
+            'Position the connector inside the crimping slot first.',
+        }
+      }
+
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.READY_TO_CRIMP ||
+        state.isProcedureAnimating ||
+        state.isCrimping ||
+        state.crimpComplete
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.CRIMPING,
+        isProcedureAnimating: true,
+        isCrimping: true,
+        procedureFeedback: null,
+      }
+    })
+  },
+  completeConnectorCrimping: () => {
+    set((state) => {
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.CRIMPING ||
+        !state.isProcedureAnimating ||
+        !state.isCrimping
+      ) {
+        return {}
+      }
+
+      const t568bVerified = state.wirePlacements.every(
+        (wireId, index) => wireId === T568B_SEQUENCE[index],
+      )
+      const conductorsReachedContacts =
+        state.insertionValidationResults.length === WIRE_COUNT &&
+        state.insertionValidationResults.every(
+          (result) => result === 'correct',
+        )
+      const verificationPassed =
+        state.conductorsInserted &&
+        state.connectorPositionedForCrimp &&
+        conductorsReachedContacts &&
+        t568bVerified
+
+      if (!verificationPassed) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+          isProcedureAnimating: false,
+          isCrimping: false,
+          procedureFeedback:
+            'Verify the connector insertion before attempting the crimp.',
+        }
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+        isProcedureAnimating: false,
+        isCrimping: false,
+        crimpComplete: true,
+        contactsSeated: WIRE_COUNT,
+        strainReliefSecured: true,
+        crimpVerification: {
+          connectorInserted: true,
+          connectorPositioned: true,
+          contactsSeated: WIRE_COUNT,
+          strainReliefSecured: true,
+          t568bVerified: true,
+        },
+        procedureFeedback: 'Crimp completed successfully.',
+        completedSteps: addCompletedSteps(
+          state.completedSteps,
+          RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+          RJ45_PROCEDURE_STEPS.CRIMPING,
+          RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+          RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+        ),
+      }
+    })
+  },
+  restartConnectorCrimping: () => {
+    set((state) => {
+      const crimpingSteps = [
+        RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+        RJ45_PROCEDURE_STEPS.POSITION_CONNECTOR_IN_CRIMPER,
+        RJ45_PROCEDURE_STEPS.READY_TO_CRIMP,
+        RJ45_PROCEDURE_STEPS.CRIMPING,
+        RJ45_PROCEDURE_STEPS.CRIMP_COMPLETE,
+        RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_5,
+      ]
+
+      if (!crimpingSteps.includes(state.currentStep)) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
+        procedureFeedback: null,
+        isProcedureAnimating: false,
+        connectorPositionedForCrimp: false,
+        isConnectorPositioning: false,
+        isCrimping: false,
+        crimpComplete: false,
+        contactsSeated: 0,
+        strainReliefSecured: false,
+        crimpVerification: emptyCrimpVerification(),
+        completedSteps: state.completedSteps.filter(
+          (stepId) => !crimpingSteps.includes(stepId),
+        ),
+      }
+    })
+  },
+  startCableTesterConnection: (toolId) => {
+    set((state) => {
+      if (toolId !== TOOL_IDS.CABLE_TESTER) {
+        return { procedureFeedback: 'Select the cable tester for this step.' }
+      }
+
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER ||
+        !state.crimpComplete ||
+        state.cableConnectedToTester ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        isProcedureAnimating: true,
+        isCableConnecting: true,
+        procedureFeedback: null,
+      }
+    })
+  },
+  completeCableTesterConnection: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER &&
+      state.isProcedureAnimating &&
+      state.isCableConnecting
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+            cableConnectedToTester: true,
+            isCableConnecting: false,
+            isProcedureAnimating: false,
+            procedureFeedback: null,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+            ),
+          }
+        : {},
+    )
+  },
+  startCableTest: (toolId) => {
+    set((state) => {
+      if (toolId !== TOOL_IDS.CABLE_TESTER) {
+        return { procedureFeedback: 'Use the cable tester for this step.' }
+      }
+
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.READY_TO_TEST ||
+        !state.cableConnectedToTester ||
+        state.isProcedureAnimating ||
+        state.isCableTesting
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+        isProcedureAnimating: true,
+        isCableTesting: true,
+        cableTestProgress: 0,
+        cableTestResults: createPendingCableTestResults(),
+        finalTestResult: null,
+        moduleCompleted: false,
+        procedureFeedback: null,
+      }
+    })
+  },
+  updateCableTestProgress: (progress) => {
+    set((state) => {
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.TESTING_CABLE ||
+        !state.isCableTesting
+      ) {
+        return {}
+      }
+
+      const cableTestProgress = Math.min(Math.max(progress, 0), 1)
+      const completedPinCount = Math.min(
+        Math.floor(cableTestProgress * TEST_PIN_COUNT),
+        TEST_PIN_COUNT,
+      )
+      const outcome = getCableTestOutcome(state)
+      const cableTestResults = outcome.pinResults.map((result, index) => {
+        if (index < completedPinCount) {
+          return result
+        }
+
+        if (index === completedPinCount && cableTestProgress < 1) {
+          return TEST_PIN_STATUSES.TESTING
+        }
+
+        return TEST_PIN_STATUSES.PENDING
+      })
+
+      return { cableTestProgress, cableTestResults }
+    })
+  },
+  completeCableTest: () => {
+    set((state) => {
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.TESTING_CABLE ||
+        !state.isCableTesting
+      ) {
+        return {}
+      }
+
+      const outcome = getCableTestOutcome(state)
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.TEST_RESULT,
+        isProcedureAnimating: false,
+        isCableTesting: false,
+        cableTestProgress: 1,
+        cableTestResults: outcome.pinResults,
+        finalTestResult: outcome.finalResult,
+        procedureFeedback: null,
+        completedSteps: addCompletedSteps(
+          state.completedSteps,
+          RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+          RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+          RJ45_PROCEDURE_STEPS.TEST_RESULT,
+        ),
+      }
+    })
+  },
+  completeRJ45Module: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.TEST_RESULT &&
+      state.finalTestResult
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+            moduleCompleted: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+            ),
+          }
+        : {},
+    )
+  },
+  restartCableTesting: () => {
+    set((state) => {
+      const testingSteps = [
+        RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+        RJ45_PROCEDURE_STEPS.CONNECT_CABLE_TO_TESTER,
+        RJ45_PROCEDURE_STEPS.READY_TO_TEST,
+        RJ45_PROCEDURE_STEPS.TESTING_CABLE,
+        RJ45_PROCEDURE_STEPS.TEST_RESULT,
+        RJ45_PROCEDURE_STEPS.RJ45_MODULE_COMPLETE,
+      ]
+
+      if (!testingSteps.includes(state.currentStep)) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.SELECT_CABLE_TESTER,
+        procedureFeedback: null,
+        isProcedureAnimating: false,
+        cableConnectedToTester: false,
+        isCableConnecting: false,
+        isCableTesting: false,
+        cableTestProgress: 0,
+        cableTestResults: createPendingCableTestResults(),
+        finalTestResult: null,
+        moduleCompleted: false,
+        completedSteps: state.completedSteps.filter(
+          (stepId) => !testingSteps.includes(stepId),
         ),
       }
     })

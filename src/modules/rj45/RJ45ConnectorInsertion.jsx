@@ -7,7 +7,6 @@ import useInteractionStore, {
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
-import ConnectorAlignmentGuide from './ConnectorAlignmentGuide.jsx'
 import {
   CONNECTOR_ALIGNMENT_DURATION,
   CONNECTOR_INSERTION_DURATION,
@@ -46,6 +45,7 @@ function isConnectorWorkspaceStep(currentStep) {
     RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
     RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+    RJ45_PROCEDURE_STEPS.SELECT_CRIMPING_TOOL,
   ].includes(currentStep)
 }
 
@@ -236,10 +236,6 @@ export default function RJ45ConnectorInsertion({
     return null
   }
 
-  const showAlignmentGuide =
-    currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR ||
-    currentStep === RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS
-
   const handleEntryPointerEnter = (event) => {
     if (!canInsert) {
       return
@@ -269,9 +265,6 @@ export default function RJ45ConnectorInsertion({
 
   return (
     <>
-      {showAlignmentGuide && (
-        <ConnectorAlignmentGuide isAligned={connectorAligned} />
-      )}
       <group
         ref={connectorJacket}
         position={[
@@ -284,14 +277,22 @@ export default function RJ45ConnectorInsertion({
           <cylinderGeometry
             args={[0.055, 0.055, CONNECTOR_JACKET_LENGTH, 12]}
           />
-          <meshStandardMaterial color="#304e68" roughness={0.72} />
+          <meshStandardMaterial
+            color="#1f5f8a"
+            metalness={0.02}
+            roughness={0.66}
+          />
         </mesh>
         <mesh
           position={[0, 0, -CONNECTOR_JACKET_LENGTH / 2]}
           rotation={[Math.PI / 2, 0, 0]}
         >
           <cylinderGeometry args={[0.057, 0.057, 0.018, 12]} />
-          <meshStandardMaterial color="#223b50" roughness={0.68} />
+          <meshStandardMaterial
+            color="#143e5c"
+            metalness={0.02}
+            roughness={0.62}
+          />
         </mesh>
       </group>
       <group

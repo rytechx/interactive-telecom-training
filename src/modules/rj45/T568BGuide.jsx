@@ -30,6 +30,11 @@ export default function T568BGuide({
               className={
                 validationResult ? `is-${validationResult}` : undefined
               }
+              aria-label={`${index + 1}: ${expectedWire.displayName}${
+                statusText && placedWire
+                  ? `. ${statusText}: ${placedWire.displayName}`
+                  : ''
+              }`}
             >
               <span className="guide-slot-number">{index + 1}</span>
               <span
@@ -39,11 +44,6 @@ export default function T568BGuide({
               />
               <span className="guide-wire-name">
                 {expectedWire.displayName}
-                {validationResult && placedWire && (
-                  <small>
-                    {statusText}: {placedWire.displayName}
-                  </small>
-                )}
               </span>
             </li>
           )
