@@ -20,11 +20,27 @@ function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
 }
 
-function isArrangementStep(currentStep) {
-  return (
+function getProcedureView(currentStep) {
+  if (
     currentStep === RJ45_PROCEDURE_STEPS.ARRANGE_T568B ||
     currentStep === RJ45_PROCEDURE_STEPS.VALIDATE_T568B
-  )
+  ) {
+    return 'arrangement'
+  }
+
+  if (
+    [
+      RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+      RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+      RJ45_PROCEDURE_STEPS.TRIMMING,
+      RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+      RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+    ].includes(currentStep)
+  ) {
+    return 'trimming'
+  }
+
+  return null
 }
 
 export default function RJ45ArrangementFocusController() {
@@ -32,17 +48,16 @@ export default function RJ45ArrangementFocusController() {
   const workLight = useRef(null)
   const workLightTarget = useRef(null)
   const transition = useRef(null)
-  const wasInArrangement = useRef(false)
-  const wasUsingArrangementView = useRef(false)
+  const activeProcedureView = useRef(null)
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
   )
   const toolViewState = useToolStore((state) => state.toolViewState)
   const currentStep = useTrainingStore((state) => state.currentStep)
-  const arrangementActive = isArrangementStep(currentStep)
-  const canUseArrangementView =
+  const procedureView = getProcedureView(currentStep)
+  const canUseProcedureView =
     workstationPhase === WORKSTATION_PHASES.FOCUSED &&
-    arrangementActive &&
+    procedureView !== null &&
     toolViewState === TOOL_VIEW_STATES.IDLE
 
   useEffect(() => {
@@ -54,13 +69,12 @@ export default function RJ45ArrangementFocusController() {
   useEffect(() => {
     if (workstationPhase !== WORKSTATION_PHASES.FOCUSED) {
       transition.current = null
-      wasInArrangement.current = false
-      wasUsingArrangementView.current = false
+      activeProcedureView.current = null
       return
     }
 
-    if (!arrangementActive) {
-      if (wasInArrangement.current) {
+    if (!procedureView) {
+      if (activeProcedureView.current) {
         const cameraPosition = new Vector3().fromArray(
           RJ45_WORKSTATION.focusCameraPosition,
         )
@@ -70,7 +84,7 @@ export default function RJ45ArrangementFocusController() {
 
         transition.current = {
           elapsed: 0,
-          duration: RJ45_WORKSTATION.arrangementTransitionDuration,
+          duration: RJ45_WORKSTATION.trimmingTransitionDuration,
           startPosition: camera.position.clone(),
           endPosition: cameraPosition,
           startQuaternion: camera.quaternion.clone(),
@@ -82,33 +96,37 @@ export default function RJ45ArrangementFocusController() {
         }
       }
 
-      wasInArrangement.current = false
-      wasUsingArrangementView.current = false
+      activeProcedureView.current = null
       return
     }
 
-    wasInArrangement.current = true
-
-    if (!canUseArrangementView) {
+    if (!canUseProcedureView) {
       transition.current = null
-      wasUsingArrangementView.current = false
+      activeProcedureView.current = null
       return
     }
 
-    if (wasUsingArrangementView.current) {
+    if (activeProcedureView.current === procedureView) {
       return
     }
 
+    const isTrimmingView = procedureView === 'trimming'
     const cameraPosition = new Vector3().fromArray(
-      RJ45_WORKSTATION.arrangementCameraPosition,
+      isTrimmingView
+        ? RJ45_WORKSTATION.trimmingCameraPosition
+        : RJ45_WORKSTATION.arrangementCameraPosition,
     )
     const cameraTarget = new Vector3().fromArray(
-      RJ45_WORKSTATION.arrangementCameraTarget,
+      isTrimmingView
+        ? RJ45_WORKSTATION.trimmingCameraTarget
+        : RJ45_WORKSTATION.arrangementCameraTarget,
     )
 
     transition.current = {
       elapsed: 0,
-      duration: RJ45_WORKSTATION.arrangementTransitionDuration,
+      duration: isTrimmingView
+        ? RJ45_WORKSTATION.trimmingTransitionDuration
+        : RJ45_WORKSTATION.arrangementTransitionDuration,
       startPosition: camera.position.clone(),
       endPosition: cameraPosition,
       startQuaternion: camera.quaternion.clone(),
@@ -118,18 +136,18 @@ export default function RJ45ArrangementFocusController() {
         camera.up,
       ),
     }
-    wasUsingArrangementView.current = true
+    activeProcedureView.current = procedureView
   }, [
-    arrangementActive,
     camera,
-    canUseArrangementView,
+    canUseProcedureView,
+    procedureView,
     workstationPhase,
   ])
 
   useFrame((_, delta) => {
     if (workLight.current) {
       const targetIntensity =
-        workstationPhase === WORKSTATION_PHASES.FOCUSED && arrangementActive
+        workstationPhase === WORKSTATION_PHASES.FOCUSED && procedureView
           ? 2.4
           : 0
       const lightDamping = 1 - Math.exp(-6 * delta)
@@ -171,7 +189,11 @@ export default function RJ45ArrangementFocusController() {
     <>
       <spotLight
         ref={workLight}
-        position={RJ45_WORKSTATION.arrangementLightPosition}
+        position={
+          procedureView === 'trimming'
+            ? RJ45_WORKSTATION.trimmingLightPosition
+            : RJ45_WORKSTATION.arrangementLightPosition
+        }
         color="#e5f2ff"
         intensity={0}
         distance={4}
@@ -181,7 +203,11 @@ export default function RJ45ArrangementFocusController() {
       />
       <object3D
         ref={workLightTarget}
-        position={RJ45_WORKSTATION.arrangementCameraTarget}
+        position={
+          procedureView === 'trimming'
+            ? RJ45_WORKSTATION.trimmingCameraTarget
+            : RJ45_WORKSTATION.arrangementCameraTarget
+        }
       />
     </>
   )

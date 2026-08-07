@@ -18,6 +18,7 @@ import {
   GUIDE_DEPTH,
   GUIDE_SLOT_SPACING,
   GUIDE_WIDTH,
+  TRIMMED_TIP_Z,
   WIRE_RADIUS,
   wireDefinitions,
 } from './wireDefinitions.js'
@@ -59,10 +60,20 @@ function isArrangementStep(currentStep) {
 }
 
 function isGuideVisible(currentStep, pairsSeparated) {
+  const postArrangementSteps = [
+    RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
+    RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+    RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+    RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+    RJ45_PROCEDURE_STEPS.TRIMMING,
+    RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+  ]
+
   return (
     pairsSeparated &&
-    (isArrangementStep(currentStep) ||
-      currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2)
+    (isArrangementStep(currentStep) || postArrangementSteps.includes(currentStep))
   )
 }
 
@@ -89,6 +100,7 @@ function createVectorPoints(points) {
 
 export default function RJ45WireArrangement({
   jacketProgressRef,
+  trimProgressRef,
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
@@ -118,6 +130,7 @@ export default function RJ45WireArrangement({
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const wiresTrimmed = useTrainingStore((state) => state.wiresTrimmed)
   const startPairSeparation = useTrainingStore(
     (state) => state.startPairSeparation,
   )
@@ -249,9 +262,20 @@ export default function RJ45WireArrangement({
           ? getWireSlotPoints(placedSlot)
           : wire.separatedPoints
         const damping = 1 - Math.exp(-10 * delta)
+        const trimProgress = wiresTrimmed
+          ? 1
+          : currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
+            ? smoothStep(trimProgressRef.current)
+            : 0
 
         targetPoints.forEach((point, pointIndex) => {
           segmentMidpoint.fromArray(point)
+
+          if (placedSlot && pointIndex === targetPoints.length - 1) {
+            segmentMidpoint.z +=
+              (TRIMMED_TIP_Z - point[2]) * trimProgress
+          }
+
           currentPoints[pointIndex].lerp(segmentMidpoint, damping)
         })
       }

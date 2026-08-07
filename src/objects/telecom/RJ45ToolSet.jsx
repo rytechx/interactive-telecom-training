@@ -17,6 +17,10 @@ function CrimpingTool({
         <boxGeometry args={[0.38, 0.12, 0.2]} />
         <meshStandardMaterial color="#333a3f" metalness={0.45} roughness={0.5} />
       </mesh>
+      <mesh position={[0, 0.015, -0.36]} castShadow>
+        <boxGeometry args={[0.28, 0.025, 0.035]} />
+        <meshStandardMaterial color="#adb7bc" metalness={0.82} roughness={0.28} />
+      </mesh>
     </group>
   )
 }

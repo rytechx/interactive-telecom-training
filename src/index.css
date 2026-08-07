@@ -247,13 +247,35 @@ canvas {
 }
 
 .procedure-progress,
-.selected-wire-label {
+.selected-wire-label,
+.selected-tool-label {
   margin: 0 0 9px;
   color: #dce5e9;
   font-size: 13px;
 }
 
-.selected-wire-label strong {
+.procedure-panel.is-trimming {
+  width: min(300px, calc(100% - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.trim-guide-label {
+  padding: 5px 9px;
+  color: #ffe5a8;
+  font: 700 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  background: rgb(18 22 25 / 88%);
+  border: 1px solid rgb(243 184 76 / 55%);
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
+  pointer-events: none;
+}
+
+.selected-wire-label strong,
+.selected-tool-label strong {
   color: #8fc9f7;
 }
 
@@ -559,6 +581,12 @@ canvas {
   }
 
   .procedure-panel.is-arranging {
+    width: min(290px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
+  }
+
+  .procedure-panel.is-trimming {
     width: min(290px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;

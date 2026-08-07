@@ -9,7 +9,8 @@ const toolConfigs = Object.freeze({
   [TOOL_IDS.CRIMPING_TOOL]: Object.freeze({
     id: TOOL_IDS.CRIMPING_TOOL,
     name: 'Crimping Tool',
-    purpose: 'Used to press RJ45 connector contacts into Ethernet conductors.',
+    purpose:
+      'Used to trim Ethernet conductors and press RJ45 connector contacts into place.',
     workbenchPosition: Object.freeze([0.05, 0.9, 0.08]),
     workbenchRotation: Object.freeze([0, 0, 0]),
     inspectionCameraPosition: Object.freeze([-4.95, 1.28, -1.42]),

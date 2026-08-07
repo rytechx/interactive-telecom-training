@@ -29,6 +29,8 @@ function createInitialTrainingState() {
     placementHistory: [],
     wireValidationResults: emptyValidationResults(),
     placedWireCount: 0,
+    wiresTrimmed: false,
+    isTrimming: false,
   }
 }
 
@@ -93,13 +95,34 @@ const useTrainingStore = create((set) => ({
     set((state) => {
       if (
         state.activeModuleId !== RJ45_MODULE_ID ||
-        !state.trainingStarted ||
-        state.currentStep !== RJ45_PROCEDURE_STEPS.SELECT_WIRE_STRIPPER
+        !state.trainingStarted
       ) {
         return {}
       }
 
       const procedureStep = getRJ45ProcedureStep(state.currentStep)
+
+      if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL) {
+        if (procedureStep.acceptedToolId !== toolId) {
+          return {
+            procedureFeedback:
+              'Use the crimping tool\u2019s cutting blade for this step.',
+          }
+        }
+
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+          procedureFeedback: null,
+          completedSteps: addCompletedSteps(
+            state.completedSteps,
+            RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+          ),
+        }
+      }
+
+      if (state.currentStep !== RJ45_PROCEDURE_STEPS.SELECT_WIRE_STRIPPER) {
+        return {}
+      }
 
       if (procedureStep.acceptedToolId !== toolId) {
         return { procedureFeedback: 'Use the wire stripper for this step.' }
@@ -148,16 +171,33 @@ const useTrainingStore = create((set) => ({
     )
   },
   continueRJ45Procedure: () => {
-    set((state) =>
-      (state.currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
-        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1) &&
-      !state.isProcedureAnimating
-        ? {
-            currentStep: RJ45_PROCEDURE_STEPS.SEPARATE_PAIRS,
-            procedureFeedback: null,
-          }
-        : {},
-    )
+    set((state) => {
+      if (state.isProcedureAnimating) {
+        return {}
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
+        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1
+      ) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.SEPARATE_PAIRS,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.WIRES_ARRANGED ||
+        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2
+      ) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+          procedureFeedback: null,
+        }
+      }
+
+      return {}
+    })
   },
   startPairSeparation: () => {
     set((state) =>
@@ -365,16 +405,83 @@ const useTrainingStore = create((set) => ({
       }
 
       return {
-        currentStep: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
+        currentStep: RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
         selectedWireId: null,
         wireValidationResults,
-        procedureFeedback: 'Correct T568B arrangement.',
+        procedureFeedback: null,
         completedSteps: addCompletedSteps(
           state.completedSteps,
           RJ45_PROCEDURE_STEPS.ARRANGE_T568B,
           RJ45_PROCEDURE_STEPS.VALIDATE_T568B,
           RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
           RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
+        ),
+      }
+    })
+  },
+  startWireTrimming: () => {
+    set((state) =>
+      state.activeModuleId === RJ45_MODULE_ID &&
+      state.trainingStarted &&
+      state.currentStep === RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM &&
+      !state.wiresTrimmed &&
+      !state.isProcedureAnimating
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.TRIMMING,
+            procedureFeedback: null,
+            isProcedureAnimating: true,
+            isTrimming: true,
+          }
+        : {},
+    )
+  },
+  completeWireTrimming: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.TRIMMING &&
+      state.isProcedureAnimating &&
+      state.isTrimming
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+            procedureFeedback:
+              'The conductor ends are aligned and ready for connector insertion.',
+            isProcedureAnimating: false,
+            isTrimming: false,
+            wiresTrimmed: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+              RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+              RJ45_PROCEDURE_STEPS.TRIMMING,
+              RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+              RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+            ),
+          }
+        : {},
+    )
+  },
+  restartWireTrimming: () => {
+    set((state) => {
+      const trimmingSteps = [
+        RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+        RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+        RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+        RJ45_PROCEDURE_STEPS.TRIMMING,
+        RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+        RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+      ]
+
+      if (!trimmingSteps.includes(state.currentStep)) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+        procedureFeedback: null,
+        isProcedureAnimating: false,
+        isTrimming: false,
+        wiresTrimmed: false,
+        completedSteps: state.completedSteps.filter(
+          (stepId) => !trimmingSteps.includes(stepId),
         ),
       }
     })

@@ -10,8 +10,16 @@ import {
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useTrainingStore from '../store/useTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
-import { getWorkstationConfig } from '../workstations/workstationConfigs.js'
+import {
+  RJ45_PROCEDURE_STEPS,
+  TRIMMING_DURATION,
+} from '../modules/rj45/rj45Procedure.js'
+import {
+  getWorkstationConfig,
+  RJ45_WORKSTATION,
+} from '../workstations/workstationConfigs.js'
 import { getToolConfig, TOOL_IDS } from './toolConfigs.js'
 
 const TOOL_INSPECTION_DURATION = 0.7
@@ -19,6 +27,9 @@ const lookAtMatrix = new Matrix4()
 const activeToolPosition = new Vector3()
 const activeToolRotation = new Euler()
 const activeToolQuaternion = new Quaternion()
+const trimmingToolPosition = new Vector3()
+const trimmingToolRotation = new Euler()
+const trimmingToolQuaternion = new Quaternion()
 
 function getFocusQuaternion(cameraPosition, cameraTarget, cameraUp) {
   lookAtMatrix.lookAt(cameraPosition, cameraTarget, cameraUp)
@@ -52,6 +63,10 @@ function ToolModel({ toolId }) {
 export default function ToolFocusController() {
   const camera = useThree((state) => state.camera)
   const activeToolGroup = useRef(null)
+  const toolMotionGroup = useRef(null)
+  const trimAnimationProgress = useRef(0)
+  const trimStartPosition = useRef(new Vector3())
+  const trimStartQuaternion = useRef(new Quaternion())
   const transition = useRef(null)
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
@@ -62,6 +77,7 @@ export default function ToolFocusController() {
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
+  const currentStep = useTrainingStore((state) => state.currentStep)
   const completeToolInspection = useToolStore(
     (state) => state.completeToolInspection,
   )
@@ -70,6 +86,23 @@ export default function ToolFocusController() {
   )
   const resetToolState = useToolStore((state) => state.resetToolState)
   const activeTool = getToolConfig(activeToolId)
+  const isTrimming =
+    activeToolId === TOOL_IDS.CRIMPING_TOOL &&
+    currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
+  const isTrimmedToolAtGuide =
+    activeToolId === TOOL_IDS.CRIMPING_TOOL &&
+    (currentStep === RJ45_PROCEDURE_STEPS.WIRES_TRIMMED ||
+      currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3)
+
+  useEffect(() => {
+    if (!isTrimming || !activeToolGroup.current) {
+      return
+    }
+
+    trimAnimationProgress.current = 0
+    trimStartPosition.current.copy(activeToolGroup.current.position)
+    trimStartQuaternion.current.copy(activeToolGroup.current.quaternion)
+  }, [isTrimming])
 
   useEffect(() => {
     if (workstationPhase !== WORKSTATION_PHASES.FOCUSED) {
@@ -184,6 +217,59 @@ export default function ToolFocusController() {
       return
     }
 
+    if (isTrimming || isTrimmedToolAtGuide) {
+      trimmingToolPosition.fromArray(RJ45_WORKSTATION.trimmingToolPosition)
+      trimmingToolRotation.set(...RJ45_WORKSTATION.trimmingToolRotation)
+      trimmingToolQuaternion.setFromEuler(trimmingToolRotation)
+
+      if (isTrimming) {
+        trimAnimationProgress.current = Math.min(
+          trimAnimationProgress.current + delta / TRIMMING_DURATION,
+          1,
+        )
+        const progress = trimAnimationProgress.current
+        const approachProgress = smoothStep(Math.min(progress / 0.72, 1))
+        const cuttingProgress = Math.min(
+          Math.max((progress - 0.48) / 0.44, 0),
+          1,
+        )
+        const jawClosure = Math.sin(Math.PI * cuttingProgress)
+
+        activeToolGroup.current.position.lerpVectors(
+          trimStartPosition.current,
+          trimmingToolPosition,
+          approachProgress,
+        )
+        activeToolGroup.current.quaternion.slerpQuaternions(
+          trimStartQuaternion.current,
+          trimmingToolQuaternion,
+          approachProgress,
+        )
+
+        if (toolMotionGroup.current) {
+          toolMotionGroup.current.scale.set(1 - jawClosure * 0.14, 1, 1)
+          toolMotionGroup.current.position.y = -jawClosure * 0.018
+        }
+
+        return
+      }
+
+      activeToolGroup.current.position.copy(trimmingToolPosition)
+      activeToolGroup.current.quaternion.copy(trimmingToolQuaternion)
+
+      if (toolMotionGroup.current) {
+        toolMotionGroup.current.scale.set(1, 1, 1)
+        toolMotionGroup.current.position.y = 0
+      }
+
+      return
+    }
+
+    if (toolMotionGroup.current) {
+      toolMotionGroup.current.scale.set(1, 1, 1)
+      toolMotionGroup.current.position.y = 0
+    }
+
     activeToolPosition
       .fromArray(activeTool.activeToolPosition)
       .applyQuaternion(camera.quaternion)
@@ -199,7 +285,9 @@ export default function ToolFocusController() {
 
   return activeTool ? (
     <group ref={activeToolGroup} scale={activeTool.activeToolScale ?? 1}>
-      <ToolModel toolId={activeTool.id} />
+      <group ref={toolMotionGroup}>
+        <ToolModel toolId={activeTool.id} />
+      </group>
     </group>
   ) : null
 }

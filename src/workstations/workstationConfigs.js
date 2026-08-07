@@ -8,6 +8,12 @@ const RJ45_WORKSTATION = Object.freeze({
   arrangementCameraTarget: Object.freeze([-4.65, 0.98, -2.88]),
   arrangementLightPosition: Object.freeze([-4.65, 2.35, -2.05]),
   arrangementTransitionDuration: 0.85,
+  trimmingCameraPosition: Object.freeze([-4.05, 1.58, -1.98]),
+  trimmingCameraTarget: Object.freeze([-4.63, 1.03, -2.99]),
+  trimmingLightPosition: Object.freeze([-4.25, 2.15, -2.35]),
+  trimmingToolPosition: Object.freeze([-4.63, 0.95, -2.58]),
+  trimmingToolRotation: Object.freeze([0, 0, 0]),
+  trimmingTransitionDuration: 0.85,
   transitionDuration: 1,
 })
 

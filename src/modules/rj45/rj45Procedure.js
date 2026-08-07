@@ -2,6 +2,7 @@ import { TOOL_IDS } from '../../tools/toolConfigs.js'
 
 const RJ45_MODULE_ID = 'rj45-cable-termination'
 const ETHERNET_CABLE_ID = 'ethernet-cable'
+const TRIMMING_DURATION = 0.9
 
 const RJ45_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'not-started',
@@ -16,6 +17,12 @@ const RJ45_PROCEDURE_STEPS = Object.freeze({
   VALIDATE_T568B: 'validate-t568b',
   WIRES_ARRANGED: 'wires-arranged',
   COMPLETE_FOR_TASK_2: 'complete-for-task-2',
+  SELECT_CUTTING_TOOL: 'select-cutting-tool',
+  POSITION_FOR_TRIM: 'position-for-trim',
+  TRIM_WIRES: 'trim-wires',
+  TRIMMING: 'trimming',
+  WIRES_TRIMMED: 'wires-trimmed',
+  COMPLETE_FOR_TASK_3: 'complete-for-task-3',
 })
 
 const rj45Procedure = Object.freeze({
@@ -99,14 +106,60 @@ const rj45Procedure = Object.freeze({
     stepNumber: 5,
     title: 'Wires Arranged',
     instruction: 'Correct T568B arrangement.',
-    acceptedAction: null,
+    acceptedAction: 'continue',
   }),
   [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2]: Object.freeze({
     id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
     stepNumber: 5,
     title: 'T568B Arrangement Complete',
-    instruction: 'All eight conductors are in the correct order.',
-    nextInstruction: 'Next procedure: Trim the wire ends evenly.',
+    instruction: 'Correct T568B arrangement.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+    stepNumber: 6,
+    title: 'Select the Cutting Tool',
+    instruction:
+      'Step 6: Select the crimping tool to trim the wire ends evenly.',
+    acceptedAction: 'select-tool',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+    stepNumber: 7,
+    title: 'Position the Conductors',
+    instruction: 'Step 7: Position the conductors against the trim guide.',
+    acceptedAction: 'trim-wires',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.TRIM_WIRES]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+    stepNumber: 7,
+    title: 'Trim the Conductors',
+    instruction: 'Step 7: Trim all eight conductors at the cutting line.',
+    acceptedAction: 'trim-wires',
+    acceptedToolId: TOOL_IDS.CRIMPING_TOOL,
+  }),
+  [RJ45_PROCEDURE_STEPS.TRIMMING]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.TRIMMING,
+    stepNumber: 7,
+    title: 'Trimming the Conductors',
+    instruction: 'Trimming the conductor ends evenly...',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.WIRES_TRIMMED]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+    stepNumber: 8,
+    title: 'Conductors Trimmed',
+    instruction: 'Step 8: Conductors trimmed evenly.',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+    stepNumber: 8,
+    title: 'Conductors Trimmed',
+    instruction: 'Step 8: Conductors trimmed evenly.',
+    nextInstruction: 'Next procedure: Insert the wires into the RJ45 connector.',
     acceptedAction: null,
   }),
 })
@@ -120,5 +173,6 @@ export {
   getRJ45ProcedureStep,
   RJ45_MODULE_ID,
   RJ45_PROCEDURE_STEPS,
+  TRIMMING_DURATION,
   rj45Procedure,
 }

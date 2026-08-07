@@ -8,6 +8,7 @@ import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
 import RJ45WireArrangement from './RJ45WireArrangement.jsx'
+import RJ45WireTrimming from './RJ45WireTrimming.jsx'
 import {
   ETHERNET_CABLE_ID,
   RJ45_PROCEDURE_STEPS,
@@ -28,6 +29,7 @@ export default function RJ45Cable({
 }) {
   const jacket = useRef(null)
   const animationProgress = useRef(0)
+  const trimProgress = useRef(0)
   const completionRequested = useRef(false)
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
@@ -205,6 +207,13 @@ export default function RJ45Cable({
 
       <RJ45WireArrangement
         jacketProgressRef={animationProgress}
+        trimProgressRef={trimProgress}
+        hoveredObjectId={hoveredObjectId}
+        onHoveredObjectChange={onHoveredObjectChange}
+      />
+
+      <RJ45WireTrimming
+        trimProgressRef={trimProgress}
         hoveredObjectId={hoveredObjectId}
         onHoveredObjectChange={onHoveredObjectChange}
       />

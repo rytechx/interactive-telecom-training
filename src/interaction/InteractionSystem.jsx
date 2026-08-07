@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import RJ45ProcedurePanel from '../modules/rj45/RJ45ProcedurePanel.jsx'
+import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
@@ -42,6 +43,9 @@ export default function InteractionSystem() {
   )
   const continueRJ45Procedure = useTrainingStore(
     (state) => state.continueRJ45Procedure,
+  )
+  const restartWireTrimming = useTrainingStore(
+    (state) => state.restartWireTrimming,
   )
   const resetTraining = useTrainingStore((state) => state.resetTraining)
   const handleToolActivated = useTrainingStore(
@@ -96,6 +100,14 @@ export default function InteractionSystem() {
       ) {
         event.preventDefault()
         event.stopPropagation()
+        if (
+          trainingState.currentStep ===
+            RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM ||
+          trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIM_WIRES ||
+          trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
+        ) {
+          trainingState.restartWireTrimming()
+        }
         toolState.returnActiveTool()
         return
       }
@@ -161,6 +173,26 @@ export default function InteractionSystem() {
     continueRJ45Procedure()
   }
 
+  const handleRestartStep = () => {
+    resetToolState()
+    restartWireTrimming()
+  }
+
+  const handleReturnActiveTool = () => {
+    const trainingState = useTrainingStore.getState()
+
+    if (
+      trainingState.currentStep ===
+        RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM ||
+      trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIM_WIRES ||
+      trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
+    ) {
+      trainingState.restartWireTrimming()
+    }
+
+    returnActiveTool()
+  }
+
   const handleActivateSelectedTool = () => {
     const toolId = useToolStore.getState().selectedToolId
 
@@ -205,6 +237,7 @@ export default function InteractionSystem() {
           {trainingStarted ? (
             <RJ45ProcedurePanel
               onContinue={handleContinueProcedure}
+              onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
               onExit={handleWorkstationExit}
             />
@@ -261,7 +294,7 @@ export default function InteractionSystem() {
           <span>Active Tool: {activeTool.name}</span>
           <button
             type="button"
-            onClick={returnActiveTool}
+            onClick={handleReturnActiveTool}
             disabled={toolViewState !== TOOL_VIEW_STATES.IDLE}
           >
             Return Tool

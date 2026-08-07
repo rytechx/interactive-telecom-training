@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import useTrainingStore from '../../store/useTrainingStore.js'
+import useToolStore from '../../store/useToolStore.js'
+import { getToolConfig } from '../../tools/toolConfigs.js'
 import T568BGuide from './T568BGuide.jsx'
-import { getRJ45ProcedureStep, RJ45_MODULE_ID, RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
+import {
+  getRJ45ProcedureStep,
+  RJ45_MODULE_ID,
+  RJ45_PROCEDURE_STEPS,
+} from './rj45Procedure.js'
 import { getWireDefinition, WIRE_COUNT } from './wireDefinitions.js'
 
 function isArrangementStep(currentStep) {
@@ -11,8 +17,20 @@ function isArrangementStep(currentStep) {
   )
 }
 
+function isTrimmingStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+    RJ45_PROCEDURE_STEPS.POSITION_FOR_TRIM,
+    RJ45_PROCEDURE_STEPS.TRIM_WIRES,
+    RJ45_PROCEDURE_STEPS.TRIMMING,
+    RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+  ].includes(currentStep)
+}
+
 export default function RJ45ProcedurePanel({
   onContinue,
+  onRestartStep,
   onRestartModule,
   onExit,
 }) {
@@ -32,6 +50,8 @@ export default function RJ45ProcedurePanel({
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const selectedToolId = useToolStore((state) => state.selectedToolId)
+  const activeToolId = useToolStore((state) => state.activeToolId)
   const undoLastPlacement = useTrainingStore(
     (state) => state.undoLastPlacement,
   )
@@ -43,17 +63,26 @@ export default function RJ45ProcedurePanel({
   )
   const procedureStep = getRJ45ProcedureStep(currentStep)
   const selectedWire = getWireDefinition(selectedWireId)
+  const selectedTool = getToolConfig(activeToolId ?? selectedToolId)
   const isArrangementActive = isArrangementStep(currentStep)
+  const isTrimmingActive = isTrimmingStep(currentStep)
   const canContinue =
     currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
-    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1
-  const isComplete =
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1 ||
+    currentStep === RJ45_PROCEDURE_STEPS.WIRES_ARRANGED ||
     currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2
+  const isComplete = [
+    RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
+    RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+  ].includes(currentStep)
   const hasIncorrectValidation = wireValidationResults.includes('incorrect')
+  const hasToolError = procedureFeedback?.startsWith('Use the ')
   const feedbackClassName = `procedure-feedback${
     isComplete
       ? ' is-success'
-      : hasIncorrectValidation
+      : hasIncorrectValidation || hasToolError
         ? ' is-error'
         : ''
   }`
@@ -66,7 +95,7 @@ export default function RJ45ProcedurePanel({
     <section
       className={`training-panel procedure-panel${
         isArrangementActive ? ' is-arranging' : ''
-      }`}
+      }${isTrimmingActive ? ' is-trimming' : ''}`}
       role="dialog"
       aria-modal="false"
       aria-labelledby="procedure-title"
@@ -102,6 +131,12 @@ export default function RJ45ProcedurePanel({
             />
           )}
         </>
+      )}
+
+      {isTrimmingActive && (
+        <p className="selected-tool-label" role="status">
+          Selected tool: <strong>{selectedTool?.name ?? 'None'}</strong>
+        </p>
       )}
 
       {procedureFeedback && (
@@ -162,6 +197,15 @@ export default function RJ45ProcedurePanel({
       )}
 
       <div className="training-actions procedure-secondary-actions">
+        {isTrimmingActive && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={onRestartStep}
+          >
+            Restart Step
+          </button>
+        )}
         <button
           type="button"
           className="secondary"
