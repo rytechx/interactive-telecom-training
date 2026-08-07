@@ -3,6 +3,8 @@ import { TOOL_IDS } from '../../tools/toolConfigs.js'
 const RJ45_MODULE_ID = 'rj45-cable-termination'
 const ETHERNET_CABLE_ID = 'ethernet-cable'
 const TRIMMING_DURATION = 0.9
+const CONNECTOR_ALIGNMENT_DURATION = 0.85
+const CONNECTOR_INSERTION_DURATION = 1.15
 
 const RJ45_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'not-started',
@@ -23,6 +25,13 @@ const RJ45_PROCEDURE_STEPS = Object.freeze({
   TRIMMING: 'trimming',
   WIRES_TRIMMED: 'wires-trimmed',
   COMPLETE_FOR_TASK_3: 'complete-for-task-3',
+  SELECT_RJ45_CONNECTOR: 'select-rj45-connector',
+  ALIGN_CONNECTOR: 'align-connector',
+  INSERT_CONDUCTORS: 'insert-conductors',
+  INSERTING_CONDUCTORS: 'inserting-conductors',
+  VERIFY_INSERTION: 'verify-insertion',
+  CONDUCTORS_INSERTED: 'conductors-inserted',
+  COMPLETE_FOR_TASK_4: 'complete-for-task-4',
 })
 
 const rj45Procedure = Object.freeze({
@@ -152,14 +161,66 @@ const rj45Procedure = Object.freeze({
     stepNumber: 8,
     title: 'Conductors Trimmed',
     instruction: 'Step 8: Conductors trimmed evenly.',
-    acceptedAction: null,
+    acceptedAction: 'continue',
   }),
   [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3]: Object.freeze({
     id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
     stepNumber: 8,
     title: 'Conductors Trimmed',
     instruction: 'Step 8: Conductors trimmed evenly.',
-    nextInstruction: 'Next procedure: Insert the wires into the RJ45 connector.',
+    acceptedAction: 'continue',
+  }),
+  [RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+    stepNumber: 9,
+    title: 'Select the Connector',
+    instruction: 'Step 9: Select the RJ45 connector.',
+    acceptedAction: 'select-tool',
+    acceptedToolId: TOOL_IDS.RJ45_CONNECTOR,
+  }),
+  [RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    stepNumber: 10,
+    title: 'Align the Connector',
+    instruction: 'Step 10: Align the connector with the conductors.',
+    acceptedAction: 'align-connector',
+    acceptedToolId: TOOL_IDS.RJ45_CONNECTOR,
+  }),
+  [RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    stepNumber: 10,
+    title: 'Insert the Conductors',
+    instruction: 'Step 10: Insert the conductors into the connector channels.',
+    acceptedAction: 'insert-conductors',
+    acceptedToolId: TOOL_IDS.RJ45_CONNECTOR,
+  }),
+  [RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    stepNumber: 10,
+    title: 'Inserting the Conductors',
+    instruction: 'Inserting all eight conductors into their channels...',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.VERIFY_INSERTION]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    stepNumber: 10,
+    title: 'Verify the Insertion',
+    instruction: 'Verifying conductor depth and cable jacket position.',
+    acceptedAction: 'verify-insertion',
+  }),
+  [RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    stepNumber: 11,
+    title: 'Connector Insertion Complete',
+    instruction: 'Step 11: Connector insertion complete.',
+    acceptedAction: null,
+  }),
+  [RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4]: Object.freeze({
+    id: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+    stepNumber: 11,
+    title: 'Connector Insertion Complete',
+    instruction: 'Step 11: Connector insertion complete.',
+    nextInstruction: 'Next procedure: Crimp the RJ45 connector.',
     acceptedAction: null,
   }),
 })
@@ -169,6 +230,8 @@ function getRJ45ProcedureStep(stepId) {
 }
 
 export {
+  CONNECTOR_ALIGNMENT_DURATION,
+  CONNECTOR_INSERTION_DURATION,
   ETHERNET_CABLE_ID,
   getRJ45ProcedureStep,
   RJ45_MODULE_ID,

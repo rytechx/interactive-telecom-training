@@ -40,6 +40,19 @@ function getProcedureView(currentStep) {
     return 'trimming'
   }
 
+  if (
+    [
+      RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+      RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+      RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+      RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+      RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+      RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+    ].includes(currentStep)
+  ) {
+    return 'connector-insertion'
+  }
+
   return null
 }
 
@@ -110,23 +123,32 @@ export default function RJ45ArrangementFocusController() {
       return
     }
 
-    const isTrimmingView = procedureView === 'trimming'
+    const cameraPositionConfig =
+      procedureView === 'connector-insertion'
+        ? RJ45_WORKSTATION.connectorInsertionCameraPosition
+        : procedureView === 'trimming'
+          ? RJ45_WORKSTATION.trimmingCameraPosition
+          : RJ45_WORKSTATION.arrangementCameraPosition
+    const cameraTargetConfig =
+      procedureView === 'connector-insertion'
+        ? RJ45_WORKSTATION.connectorInsertionCameraTarget
+        : procedureView === 'trimming'
+          ? RJ45_WORKSTATION.trimmingCameraTarget
+          : RJ45_WORKSTATION.arrangementCameraTarget
+    const transitionDuration =
+      procedureView === 'connector-insertion'
+        ? RJ45_WORKSTATION.connectorInsertionTransitionDuration
+        : procedureView === 'trimming'
+          ? RJ45_WORKSTATION.trimmingTransitionDuration
+          : RJ45_WORKSTATION.arrangementTransitionDuration
     const cameraPosition = new Vector3().fromArray(
-      isTrimmingView
-        ? RJ45_WORKSTATION.trimmingCameraPosition
-        : RJ45_WORKSTATION.arrangementCameraPosition,
+      cameraPositionConfig,
     )
-    const cameraTarget = new Vector3().fromArray(
-      isTrimmingView
-        ? RJ45_WORKSTATION.trimmingCameraTarget
-        : RJ45_WORKSTATION.arrangementCameraTarget,
-    )
+    const cameraTarget = new Vector3().fromArray(cameraTargetConfig)
 
     transition.current = {
       elapsed: 0,
-      duration: isTrimmingView
-        ? RJ45_WORKSTATION.trimmingTransitionDuration
-        : RJ45_WORKSTATION.arrangementTransitionDuration,
+      duration: transitionDuration,
       startPosition: camera.position.clone(),
       endPosition: cameraPosition,
       startQuaternion: camera.quaternion.clone(),
@@ -190,9 +212,11 @@ export default function RJ45ArrangementFocusController() {
       <spotLight
         ref={workLight}
         position={
-          procedureView === 'trimming'
-            ? RJ45_WORKSTATION.trimmingLightPosition
-            : RJ45_WORKSTATION.arrangementLightPosition
+          procedureView === 'connector-insertion'
+            ? RJ45_WORKSTATION.connectorInsertionLightPosition
+            : procedureView === 'trimming'
+              ? RJ45_WORKSTATION.trimmingLightPosition
+              : RJ45_WORKSTATION.arrangementLightPosition
         }
         color="#e5f2ff"
         intensity={0}
@@ -204,9 +228,11 @@ export default function RJ45ArrangementFocusController() {
       <object3D
         ref={workLightTarget}
         position={
-          procedureView === 'trimming'
-            ? RJ45_WORKSTATION.trimmingCameraTarget
-            : RJ45_WORKSTATION.arrangementCameraTarget
+          procedureView === 'connector-insertion'
+            ? RJ45_WORKSTATION.connectorInsertionCameraTarget
+            : procedureView === 'trimming'
+              ? RJ45_WORKSTATION.trimmingCameraTarget
+              : RJ45_WORKSTATION.arrangementCameraTarget
         }
       />
     </>

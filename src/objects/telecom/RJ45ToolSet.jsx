@@ -1,3 +1,5 @@
+import RJ45ConnectorModel from '../../modules/rj45/RJ45ConnectorModel.jsx'
+
 function CrimpingTool({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
@@ -55,10 +57,10 @@ function RJ45Connector({
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[0.16, 0.1, 0.22]} />
-        <meshStandardMaterial color="#c7d4d8" metalness={0.08} roughness={0.28} />
-      </mesh>
+      <RJ45ConnectorModel
+        scale={[0.2, 0.4, 0.5]}
+        showPinNumbers={false}
+      />
     </group>
   )
 }

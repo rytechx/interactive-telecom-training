@@ -15,6 +15,15 @@ function releasePointerLock() {
   }
 }
 
+function isConnectorInsertionStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+  ].includes(currentStep)
+}
+
 export default function InteractionSystem() {
   const nearbyInteractable = useInteractionStore(
     (state) => state.nearbyInteractable,
@@ -46,6 +55,18 @@ export default function InteractionSystem() {
   )
   const restartWireTrimming = useTrainingStore(
     (state) => state.restartWireTrimming,
+  )
+  const startConnectorAlignment = useTrainingStore(
+    (state) => state.startConnectorAlignment,
+  )
+  const startConductorInsertion = useTrainingStore(
+    (state) => state.startConductorInsertion,
+  )
+  const retryConductorInsertion = useTrainingStore(
+    (state) => state.retryConductorInsertion,
+  )
+  const restartConnectorInsertion = useTrainingStore(
+    (state) => state.restartConnectorInsertion,
   )
   const resetTraining = useTrainingStore((state) => state.resetTraining)
   const handleToolActivated = useTrainingStore(
@@ -107,6 +128,8 @@ export default function InteractionSystem() {
           trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
         ) {
           trainingState.restartWireTrimming()
+        } else if (isConnectorInsertionStep(trainingState.currentStep)) {
+          trainingState.restartConnectorInsertion()
         }
         toolState.returnActiveTool()
         return
@@ -174,7 +197,20 @@ export default function InteractionSystem() {
   }
 
   const handleRestartStep = () => {
+    const currentStep = useTrainingStore.getState().currentStep
+
     resetToolState()
+
+    if (
+      currentStep === RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR ||
+      isConnectorInsertionStep(currentStep) ||
+      currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
+      currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
+    ) {
+      restartConnectorInsertion()
+      return
+    }
+
     restartWireTrimming()
   }
 
@@ -188,6 +224,8 @@ export default function InteractionSystem() {
       trainingState.currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
     ) {
       trainingState.restartWireTrimming()
+    } else if (isConnectorInsertionStep(trainingState.currentStep)) {
+      trainingState.restartConnectorInsertion()
     }
 
     returnActiveTool()
@@ -237,6 +275,9 @@ export default function InteractionSystem() {
           {trainingStarted ? (
             <RJ45ProcedurePanel
               onContinue={handleContinueProcedure}
+              onAlignConnector={startConnectorAlignment}
+              onInsertConductors={startConductorInsertion}
+              onRetryInsertion={retryConductorInsertion}
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
               onExit={handleWorkstationExit}

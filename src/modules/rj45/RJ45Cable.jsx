@@ -7,6 +7,8 @@ import useInteractionStore, {
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
+import RJ45ConnectorInsertion from './RJ45ConnectorInsertion.jsx'
+import { JACKET_INSERTION_DISTANCE } from './RJ45ConnectorModel.jsx'
 import RJ45WireArrangement from './RJ45WireArrangement.jsx'
 import RJ45WireTrimming from './RJ45WireTrimming.jsx'
 import {
@@ -30,6 +32,7 @@ export default function RJ45Cable({
   const jacket = useRef(null)
   const animationProgress = useRef(0)
   const trimProgress = useRef(0)
+  const insertionProgress = useRef(0)
   const completionRequested = useRef(false)
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
@@ -47,6 +50,12 @@ export default function RJ45Cable({
   const completedSteps = useTrainingStore((state) => state.completedSteps)
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
+  )
+  const isConnectorInserting = useTrainingStore(
+    (state) => state.isConnectorInserting,
+  )
+  const conductorsInserted = useTrainingStore(
+    (state) => state.conductorsInserted,
   )
   const selectWorkpiece = useTrainingStore((state) => state.selectWorkpiece)
   const startJacketStripping = useTrainingStore(
@@ -125,6 +134,22 @@ export default function RJ45Cable({
   }, [canInteract, isHovered, onHoveredObjectChange])
 
   useFrame((_, delta) => {
+    const keepInsertionPosition =
+      currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION ||
+      currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
+      currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
+    const jacketInsertionProgress =
+      conductorsInserted || keepInsertionPosition
+        ? 1
+        : isConnectorInserting
+          ? smoothStep(insertionProgress.current)
+          : 0
+
+    if (jacket.current) {
+      jacket.current.position.z =
+        JACKET_INSERTION_DISTANCE * jacketInsertionProgress
+    }
+
     if (
       currentStep !== RJ45_PROCEDURE_STEPS.STRIP_JACKET ||
       !isProcedureAnimating ||
@@ -208,12 +233,19 @@ export default function RJ45Cable({
       <RJ45WireArrangement
         jacketProgressRef={animationProgress}
         trimProgressRef={trimProgress}
+        insertionProgressRef={insertionProgress}
         hoveredObjectId={hoveredObjectId}
         onHoveredObjectChange={onHoveredObjectChange}
       />
 
       <RJ45WireTrimming
         trimProgressRef={trimProgress}
+        hoveredObjectId={hoveredObjectId}
+        onHoveredObjectChange={onHoveredObjectChange}
+      />
+
+      <RJ45ConnectorInsertion
+        insertionProgressRef={insertionProgress}
         hoveredObjectId={hoveredObjectId}
         onHoveredObjectChange={onHoveredObjectChange}
       />

@@ -40,6 +40,17 @@ function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
 }
 
+function isConnectorWorkspaceStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+  ].includes(currentStep)
+}
+
 function ToolModel({ toolId }) {
   if (toolId === TOOL_IDS.CRIMPING_TOOL) {
     return <CrimpingTool />
@@ -93,6 +104,9 @@ export default function ToolFocusController() {
     activeToolId === TOOL_IDS.CRIMPING_TOOL &&
     (currentStep === RJ45_PROCEDURE_STEPS.WIRES_TRIMMED ||
       currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3)
+  const usesDedicatedConnectorModel =
+    activeToolId === TOOL_IDS.RJ45_CONNECTOR &&
+    isConnectorWorkspaceStep(currentStep)
 
   useEffect(() => {
     if (!isTrimming || !activeToolGroup.current) {
@@ -283,7 +297,7 @@ export default function ToolFocusController() {
       .multiply(activeToolQuaternion)
   })
 
-  return activeTool ? (
+  return activeTool && !usesDedicatedConnectorModel ? (
     <group ref={activeToolGroup} scale={activeTool.activeToolScale ?? 1}>
       <group ref={toolMotionGroup}>
         <ToolModel toolId={activeTool.id} />

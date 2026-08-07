@@ -7,6 +7,7 @@ import useInteractionStore, {
 } from '../../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
+import { CONDUCTOR_INSERTION_DISTANCE } from './RJ45ConnectorModel.jsx'
 import { RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
 import {
   CABLE_EXIT_X,
@@ -38,6 +39,7 @@ const wireHitGeometry = new CylinderGeometry(0.048, 0.048, 1, 7)
 const segmentDirection = new Vector3()
 const segmentMidpoint = new Vector3()
 const upAxis = new Vector3(0, 1, 0)
+const insertionPointWeights = [0.25, 0.48, 0.78, 1]
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
@@ -101,6 +103,7 @@ function createVectorPoints(points) {
 export default function RJ45WireArrangement({
   jacketProgressRef,
   trimProgressRef,
+  insertionProgressRef,
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
@@ -131,6 +134,12 @@ export default function RJ45WireArrangement({
     (state) => state.isProcedureAnimating,
   )
   const wiresTrimmed = useTrainingStore((state) => state.wiresTrimmed)
+  const isConnectorInserting = useTrainingStore(
+    (state) => state.isConnectorInserting,
+  )
+  const conductorsInserted = useTrainingStore(
+    (state) => state.conductorsInserted,
+  )
   const startPairSeparation = useTrainingStore(
     (state) => state.startPairSeparation,
   )
@@ -267,6 +276,16 @@ export default function RJ45WireArrangement({
           : currentStep === RJ45_PROCEDURE_STEPS.TRIMMING
             ? smoothStep(trimProgressRef.current)
             : 0
+        const keepInsertionPosition =
+          currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION ||
+          currentStep === RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED ||
+          currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4
+        const insertionProgress =
+          conductorsInserted || keepInsertionPosition
+            ? 1
+            : isConnectorInserting
+              ? smoothStep(insertionProgressRef.current)
+              : 0
 
         targetPoints.forEach((point, pointIndex) => {
           segmentMidpoint.fromArray(point)
@@ -274,6 +293,14 @@ export default function RJ45WireArrangement({
           if (placedSlot && pointIndex === targetPoints.length - 1) {
             segmentMidpoint.z +=
               (TRIMMED_TIP_Z - point[2]) * trimProgress
+          }
+
+
+          if (placedSlot && wiresTrimmed) {
+            segmentMidpoint.z +=
+              CONDUCTOR_INSERTION_DISTANCE *
+              insertionPointWeights[pointIndex] *
+              insertionProgress
           }
 
           currentPoints[pointIndex].lerp(segmentMidpoint, damping)

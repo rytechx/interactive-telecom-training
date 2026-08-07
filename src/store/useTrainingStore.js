@@ -13,6 +13,7 @@ import {
 
 const emptyWirePlacements = () => Array(WIRE_COUNT).fill(null)
 const emptyValidationResults = () => Array(WIRE_COUNT).fill(null)
+const emptyInsertionValidationResults = () => Array(WIRE_COUNT).fill(null)
 
 function createInitialTrainingState() {
   return {
@@ -31,6 +32,12 @@ function createInitialTrainingState() {
     placedWireCount: 0,
     wiresTrimmed: false,
     isTrimming: false,
+    connectorAligned: false,
+    isConnectorAligning: false,
+    isConnectorInserting: false,
+    conductorsInserted: false,
+    insertionValidationResults: emptyInsertionValidationResults(),
+    connectorOrientationConfirmed: false,
   }
 }
 
@@ -101,6 +108,23 @@ const useTrainingStore = create((set) => ({
       }
 
       const procedureStep = getRJ45ProcedureStep(state.currentStep)
+
+      if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR) {
+        if (procedureStep.acceptedToolId !== toolId) {
+          return {
+            procedureFeedback: 'Select the RJ45 connector for this step.',
+          }
+        }
+
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+          procedureFeedback: null,
+          completedSteps: addCompletedSteps(
+            state.completedSteps,
+            RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+          ),
+        }
+      }
 
       if (state.currentStep === RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL) {
         if (procedureStep.acceptedToolId !== toolId) {
@@ -192,6 +216,16 @@ const useTrainingStore = create((set) => ({
       ) {
         return {
           currentStep: RJ45_PROCEDURE_STEPS.SELECT_CUTTING_TOOL,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.WIRES_TRIMMED ||
+        state.currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3
+      ) {
+        return {
+          currentStep: RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
           procedureFeedback: null,
         }
       }
@@ -482,6 +516,182 @@ const useTrainingStore = create((set) => ({
         wiresTrimmed: false,
         completedSteps: state.completedSteps.filter(
           (stepId) => !trimmingSteps.includes(stepId),
+        ),
+      }
+    })
+  },
+  startConnectorAlignment: () => {
+    set((state) =>
+      state.activeModuleId === RJ45_MODULE_ID &&
+      state.trainingStarted &&
+      state.currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
+      !state.connectorAligned &&
+      !state.isProcedureAnimating
+        ? {
+            procedureFeedback: null,
+            isProcedureAnimating: true,
+            isConnectorAligning: true,
+          }
+        : {},
+    )
+  },
+  completeConnectorAlignment: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
+      state.isProcedureAnimating &&
+      state.isConnectorAligning
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+            connectorAligned: true,
+            connectorOrientationConfirmed: true,
+            isProcedureAnimating: false,
+            isConnectorAligning: false,
+            procedureFeedback: null,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+            ),
+          }
+        : {},
+    )
+  },
+  startConductorInsertion: () => {
+    set((state) => {
+      if (
+        state.currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
+        !state.connectorAligned &&
+        !state.isProcedureAnimating
+      ) {
+        return { procedureFeedback: 'Align the connector before insertion.' }
+      }
+
+      if (
+        state.currentStep !== RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS ||
+        !state.connectorAligned ||
+        state.isProcedureAnimating ||
+        state.conductorsInserted
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+        isConnectorInserting: true,
+        insertionValidationResults: emptyInsertionValidationResults(),
+      }
+    })
+  },
+  completeConductorInsertion: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS &&
+      state.isProcedureAnimating &&
+      state.isConnectorInserting
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+            isProcedureAnimating: false,
+            isConnectorInserting: false,
+            procedureFeedback: null,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+              RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+            ),
+          }
+        : {},
+    )
+  },
+  verifyConductorInsertion: () => {
+    set((state) => {
+      if (state.currentStep !== RJ45_PROCEDURE_STEPS.VERIFY_INSERTION) {
+        return {}
+      }
+
+      const insertionValidationResults = state.wirePlacements.map(
+        (wireId, index) =>
+          state.wiresTrimmed &&
+          state.connectorAligned &&
+          state.connectorOrientationConfirmed &&
+          wireId === T568B_SEQUENCE[index]
+            ? 'correct'
+            : 'incorrect',
+      )
+      const failedPins = insertionValidationResults
+        .map((result, index) => (result === 'incorrect' ? index + 1 : null))
+        .filter(Boolean)
+      const isInsertionCorrect =
+        failedPins.length === 0 &&
+        state.connectorOrientationConfirmed &&
+        state.wirePlacements.length === WIRE_COUNT
+
+      if (!isInsertionCorrect) {
+        return {
+          conductorsInserted: false,
+          insertionValidationResults,
+          procedureFeedback: `One or more conductors are not fully inserted. Check pin${
+            failedPins.length === 1 ? '' : 's'
+          }: ${failedPins.join(', ')}.`,
+        }
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+        conductorsInserted: true,
+        insertionValidationResults,
+        procedureFeedback: 'All conductors are fully inserted.',
+        completedSteps: addCompletedSteps(
+          state.completedSteps,
+          RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+          RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+          RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+        ),
+      }
+    })
+  },
+  retryConductorInsertion: () => {
+    set((state) =>
+      state.currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION &&
+      state.insertionValidationResults.includes('incorrect')
+        ? {
+            currentStep: RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+            procedureFeedback: null,
+            isProcedureAnimating: false,
+            isConnectorInserting: false,
+            conductorsInserted: false,
+            insertionValidationResults: emptyInsertionValidationResults(),
+          }
+        : {},
+    )
+  },
+  restartConnectorInsertion: () => {
+    set((state) => {
+      const insertionSteps = [
+        RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+        RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+        RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+        RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+        RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+        RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+        RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+      ]
+
+      if (!insertionSteps.includes(state.currentStep)) {
+        return {}
+      }
+
+      return {
+        currentStep: RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+        procedureFeedback: null,
+        isProcedureAnimating: false,
+        connectorAligned: false,
+        isConnectorAligning: false,
+        isConnectorInserting: false,
+        conductorsInserted: false,
+        insertionValidationResults: emptyInsertionValidationResults(),
+        connectorOrientationConfirmed: false,
+        completedSteps: state.completedSteps.filter(
+          (stepId) => !insertionSteps.includes(stepId),
         ),
       }
     })

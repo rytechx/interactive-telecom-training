@@ -261,6 +261,15 @@ canvas {
   overflow-y: auto;
 }
 
+.procedure-panel.is-inserting {
+  width: min(305px, calc(100% - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 16px;
+  overflow-y: auto;
+  scrollbar-color: #66737a transparent;
+  scrollbar-width: thin;
+}
+
 .trim-guide-label {
   padding: 5px 9px;
   color: #ffe5a8;
@@ -272,6 +281,129 @@ canvas {
   border-radius: 5px;
   box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
   pointer-events: none;
+}
+
+.connector-insertion-label {
+  padding: 5px 9px;
+  color: #c9f4ff;
+  font: 700 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: rgb(18 22 25 / 88%);
+  border: 1px solid rgb(112 200 232 / 52%);
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
+  pointer-events: none;
+}
+
+.connector-orientation-guide {
+  display: grid;
+  gap: 4px;
+  min-width: 210px;
+  padding: 8px 11px;
+  color: #e9f5f8;
+  font: 600 11px/1.25 system-ui, sans-serif;
+  text-align: center;
+  white-space: nowrap;
+  background: rgb(18 24 28 / 88%);
+  border: 1px solid rgb(121 191 255 / 38%);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.connector-orientation-guide span {
+  color: #8fdcf1;
+}
+
+.connector-pin-labels {
+  display: grid;
+  grid-template-columns: repeat(8, 20px);
+  gap: 3px;
+  padding: 4px 6px;
+  color: #172126;
+  font: 800 10px/1 system-ui, sans-serif;
+  background: rgb(237 246 248 / 88%);
+  border: 1px solid rgb(78 111 121 / 42%);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.connector-pin-labels span {
+  display: grid;
+  width: 20px;
+  height: 18px;
+  place-items: center;
+  background: #d6e6ea;
+  border-radius: 3px;
+}
+
+.connector-orientation-instruction {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  color: #dfeef2;
+  font-size: 12px;
+  line-height: 1.3;
+  background: rgb(74 135 157 / 18%);
+  border: 1px solid rgb(112 200 232 / 32%);
+  border-radius: 7px;
+}
+
+.connector-orientation-instruction span {
+  color: #91d9ec;
+  font-weight: 700;
+}
+
+.connector-verification {
+  margin: 0 0 14px;
+  padding: 10px;
+  color: #dce7eb;
+  font-size: 12px;
+  background: rgb(8 13 16 / 34%);
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 7px;
+}
+
+.connector-verification > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.connector-pin-results {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.connector-pin-results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 5px 6px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 4px;
+}
+
+.connector-pin-results li.is-correct {
+  color: #c9f2d4;
+  border-color: rgb(93 203 132 / 44%);
+}
+
+.connector-pin-results li.is-incorrect {
+  color: #ffd1ca;
+  border-color: rgb(226 98 83 / 48%);
+}
+
+.connector-jacket-status {
+  margin: 0 0 14px;
+  color: #c9f2d4;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .selected-wire-label strong,
@@ -587,6 +719,12 @@ canvas {
   }
 
   .procedure-panel.is-trimming {
+    width: min(290px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
+  }
+
+  .procedure-panel.is-inserting {
     width: min(290px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;

@@ -35,7 +35,8 @@ const toolConfigs = Object.freeze({
   [TOOL_IDS.RJ45_CONNECTOR]: Object.freeze({
     id: TOOL_IDS.RJ45_CONNECTOR,
     name: 'RJ45 Connector',
-    purpose: 'The modular plug attached to the prepared Ethernet cable.',
+    purpose:
+      'The modular plug that receives the ordered conductors before crimping.',
     workbenchPosition: Object.freeze([0.93, 0.95, -0.33]),
     workbenchRotation: Object.freeze([0, 0, 0]),
     inspectionCameraPosition: Object.freeze([-4.35, 1.22, -1.7]),

@@ -28,8 +28,23 @@ function isTrimmingStep(currentStep) {
   ].includes(currentStep)
 }
 
+function isConnectorInsertionStep(currentStep) {
+  return [
+    RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR,
+    RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.INSERTING_CONDUCTORS,
+    RJ45_PROCEDURE_STEPS.VERIFY_INSERTION,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
+  ].includes(currentStep)
+}
+
 export default function RJ45ProcedurePanel({
   onContinue,
+  onAlignConnector,
+  onInsertConductors,
+  onRetryInsertion,
   onRestartStep,
   onRestartModule,
   onExit,
@@ -50,6 +65,13 @@ export default function RJ45ProcedurePanel({
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const connectorAligned = useTrainingStore((state) => state.connectorAligned)
+  const conductorsInserted = useTrainingStore(
+    (state) => state.conductorsInserted,
+  )
+  const insertionValidationResults = useTrainingStore(
+    (state) => state.insertionValidationResults,
+  )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const undoLastPlacement = useTrainingStore(
@@ -66,23 +88,45 @@ export default function RJ45ProcedurePanel({
   const selectedTool = getToolConfig(activeToolId ?? selectedToolId)
   const isArrangementActive = isArrangementStep(currentStep)
   const isTrimmingActive = isTrimmingStep(currentStep)
+  const isConnectorInsertionActive = isConnectorInsertionStep(currentStep)
+  const showConnectorOrientation =
+    isConnectorInsertionActive &&
+    currentStep !== RJ45_PROCEDURE_STEPS.SELECT_RJ45_CONNECTOR
   const canContinue =
     currentStep === RJ45_PROCEDURE_STEPS.JACKET_STRIPPED ||
     currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_1 ||
     currentStep === RJ45_PROCEDURE_STEPS.WIRES_ARRANGED ||
-    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2 ||
+    currentStep === RJ45_PROCEDURE_STEPS.WIRES_TRIMMED ||
+    currentStep === RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3
   const isComplete = [
     RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_2,
     RJ45_PROCEDURE_STEPS.WIRES_TRIMMED,
     RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_3,
+    RJ45_PROCEDURE_STEPS.CONDUCTORS_INSERTED,
+    RJ45_PROCEDURE_STEPS.COMPLETE_FOR_TASK_4,
   ].includes(currentStep)
   const hasIncorrectValidation = wireValidationResults.includes('incorrect')
-  const hasToolError = procedureFeedback?.startsWith('Use the ')
+  const hasProcedureError =
+    procedureFeedback?.startsWith('Use the ') ||
+    procedureFeedback?.startsWith('Select the ') ||
+    procedureFeedback?.startsWith('Align the ') ||
+    procedureFeedback?.startsWith('One or more ')
+  const showInsertionResults = insertionValidationResults.some(Boolean)
+  const canAlignConnector =
+    currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
+    !connectorAligned
+  const canInsertConductors =
+    currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR ||
+    currentStep === RJ45_PROCEDURE_STEPS.INSERT_CONDUCTORS
+  const canRetryInsertion =
+    currentStep === RJ45_PROCEDURE_STEPS.VERIFY_INSERTION &&
+    insertionValidationResults.includes('incorrect')
   const feedbackClassName = `procedure-feedback${
     isComplete
       ? ' is-success'
-      : hasIncorrectValidation || hasToolError
+      : hasIncorrectValidation || hasProcedureError
         ? ' is-error'
         : ''
   }`
@@ -95,7 +139,9 @@ export default function RJ45ProcedurePanel({
     <section
       className={`training-panel procedure-panel${
         isArrangementActive ? ' is-arranging' : ''
-      }${isTrimmingActive ? ' is-trimming' : ''}`}
+      }${isTrimmingActive ? ' is-trimming' : ''}${
+        isConnectorInsertionActive ? ' is-inserting' : ''
+      }`}
       role="dialog"
       aria-modal="false"
       aria-labelledby="procedure-title"
@@ -133,10 +179,17 @@ export default function RJ45ProcedurePanel({
         </>
       )}
 
-      {isTrimmingActive && (
+      {(isTrimmingActive || isConnectorInsertionActive) && (
         <p className="selected-tool-label" role="status">
           Selected tool: <strong>{selectedTool?.name ?? 'None'}</strong>
         </p>
+      )}
+
+      {showConnectorOrientation && (
+        <div className="connector-orientation-instruction" role="note">
+          <strong>Contacts up, locking tab down.</strong>
+          <span>Pin 1 &rarr; Pin 8</span>
+        </div>
       )}
 
       {procedureFeedback && (
@@ -147,6 +200,29 @@ export default function RJ45ProcedurePanel({
 
       {procedureStep.nextInstruction && (
         <p className="procedure-next">{procedureStep.nextInstruction}</p>
+      )}
+
+      {showInsertionResults && (
+        <div className="connector-verification" aria-label="Connector pin verification">
+          <strong>Insertion verification</strong>
+          <ol className="connector-pin-results">
+            {insertionValidationResults.map((result, index) => (
+              <li
+                key={index}
+                className={result ? `is-${result}` : undefined}
+              >
+                <span>Pin {index + 1}</span>
+                <b>{result === 'correct' ? '\u2713' : '!'}</b>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {conductorsInserted && (
+        <p className="connector-jacket-status" role="status">
+          The cable jacket is positioned inside the connector.
+        </p>
       )}
 
       {(canContinue || isArrangementActive) && (
@@ -196,8 +272,36 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
+      {(canAlignConnector || canInsertConductors || canRetryInsertion) && (
+        <div className="training-actions procedure-primary-actions">
+          {canAlignConnector && (
+            <button
+              type="button"
+              onClick={onAlignConnector}
+              disabled={isProcedureAnimating}
+            >
+              Align Connector
+            </button>
+          )}
+          {canInsertConductors && (
+            <button
+              type="button"
+              onClick={onInsertConductors}
+              disabled={isProcedureAnimating}
+            >
+              Insert Conductors
+            </button>
+          )}
+          {canRetryInsertion && (
+            <button type="button" onClick={onRetryInsertion}>
+              Retry Insertion
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="training-actions procedure-secondary-actions">
-        {isTrimmingActive && (
+        {(isTrimmingActive || isConnectorInsertionActive) && (
           <button
             type="button"
             className="secondary"
