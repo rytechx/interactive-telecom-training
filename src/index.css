@@ -348,6 +348,92 @@ canvas {
   border-radius: 6px;
 }
 
+.fiber-pair-status {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin: 0 0 10px;
+}
+
+.fiber-pair-status span {
+  display: grid;
+  gap: 3px;
+  padding: 7px 8px;
+  color: #a9bbc3;
+  font-size: 10px;
+  background: rgb(16 27 33 / 76%);
+  border: 1px solid rgb(114 204 222 / 22%);
+  border-radius: 5px;
+}
+
+.fiber-pair-status strong {
+  color: #dff8fc;
+  font-size: 11px;
+}
+
+.fiber-splice-result {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+  color: #d9f4e2;
+  font-size: 11px;
+  background: rgb(43 139 83 / 20%);
+  border: 1px solid rgb(91 201 133 / 34%);
+  border-radius: 6px;
+}
+
+.fiber-splicer-display {
+  display: grid;
+  width: 170px;
+  gap: 3px;
+  padding: 9px 11px;
+  color: #8ff5df;
+  font: 700 10px/1.25 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-align: center;
+  pointer-events: none;
+  background: rgb(4 16 18 / 96%);
+  border: 2px solid #31444a;
+  border-radius: 5px;
+  box-shadow: 0 0 18px rgb(78 210 191 / 12%);
+}
+
+.fiber-splicer-display span {
+  color: #d1fff5;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.fiber-splicer-display strong {
+  color: #70d9ed;
+  font-size: 10px;
+}
+
+.fiber-splicer-display small {
+  color: #91aeb4;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+.fiber-end-label {
+  display: grid;
+  min-width: 66px;
+  gap: 2px;
+  padding: 5px 7px;
+  color: #a9c0c8;
+  font: 600 9px/1.15 system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  background: rgb(12 24 29 / 90%);
+  border: 1px solid rgb(111 209 226 / 34%);
+  border-radius: 4px;
+}
+
+.fiber-end-label strong {
+  color: #e5f9fc;
+  font-size: 10px;
+}
+
 .connector-orientation-instruction {
   display: grid;
   gap: 5px;

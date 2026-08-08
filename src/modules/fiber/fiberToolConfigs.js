@@ -53,10 +53,10 @@ const fiberToolConfigs = Object.freeze({
   [FIBER_TOOL_IDS.FUSION_SPLICER]: Object.freeze({
     id: FIBER_TOOL_IDS.FUSION_SPLICER,
     name: 'Fusion Splicer',
-    purpose: 'Aligns and fuses prepared optical fibers in a later task.',
+    purpose: 'Loads, aligns, and arc-fuses two prepared optical fibers.',
     restPosition: Object.freeze([0, 0.95, -0.43]),
     restRotation: Object.freeze([0, 0, 0]),
-    scale: 0.68,
+    scale: 0.82,
     inspectionCameraPosition: Object.freeze([5, 2.3, -1.7]),
     inspectionCameraTarget: Object.freeze([5, 0.98, -2.95]),
   }),

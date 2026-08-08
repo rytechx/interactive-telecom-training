@@ -7,7 +7,10 @@ import useInteractionStore, {
 } from '../../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../../workstations/workstationConfigs.js'
-import { FIBER_PROCEDURE_STEPS } from './fiberProcedure.js'
+import {
+  FIBER_PROCEDURE_STEPS,
+  isFiberSplicingStep,
+} from './fiberProcedure.js'
 import { FiberToolModel } from './FiberTools.jsx'
 import { FIBER_TOOL_IDS, getFiberToolConfig } from './fiberToolConfigs.js'
 
@@ -34,10 +37,22 @@ function smoothStep(progress) {
 }
 
 function getProcedureView(currentStep) {
+  if (isFiberSplicingStep(currentStep)) {
+    return 'splicing'
+  }
+
   return cleavingViewSteps.includes(currentStep) ? 'cleaving' : 'technician'
 }
 
 function getProcedureCamera(view) {
+  if (view === 'splicing') {
+    return {
+      position: FIBER_WORKSTATION.splicingCameraPosition,
+      target: FIBER_WORKSTATION.splicingCameraTarget,
+      duration: FIBER_WORKSTATION.splicingTransitionDuration,
+    }
+  }
+
   if (view === 'cleaving') {
     return {
       position: FIBER_WORKSTATION.cleavingCameraPosition,
@@ -88,6 +103,7 @@ export default function FiberToolFocusController() {
   const usesDedicatedCleaver =
     activeToolId === FIBER_TOOL_IDS.CLEAVER &&
     cleavingViewSteps.includes(currentStep)
+  const usesDedicatedSplicer = isFiberSplicingStep(currentStep)
 
   useEffect(() => {
     if (!isFiberFocused) {
@@ -203,7 +219,8 @@ export default function FiberToolFocusController() {
     trainingStarted &&
     activeTool &&
     !isProcedureAnimating &&
-    !usesDedicatedCleaver ? (
+    !usesDedicatedCleaver &&
+    !usesDedicatedSplicer ? (
     <group position={FIBER_WORKSTATION.interactionPosition}>
       <FiberToolModel
         toolId={activeTool.id}

@@ -45,6 +45,20 @@ const screenMaterial = new MeshStandardMaterial({
   emissiveIntensity: 0.34,
   roughness: 0.32,
 })
+const indicatorMaterial = new MeshStandardMaterial({
+  color: '#52c7ad',
+  emissive: '#278b7b',
+  emissiveIntensity: 0.42,
+  roughness: 0.4,
+})
+const chamberWindowMaterial = new MeshStandardMaterial({
+  color: '#8da8af',
+  transparent: true,
+  opacity: 0.42,
+  depthWrite: false,
+  metalness: 0.08,
+  roughness: 0.2,
+})
 const sleeveMaterial = new MeshStandardMaterial({
   color: '#dce6df',
   transparent: true,
@@ -370,38 +384,124 @@ function FusionSplicer({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = 1,
+  lidRef,
+  leftClampRef,
+  rightClampRef,
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
       <BoxPart
         position={[0, 0.13, 0]}
-        scale={[0.78, 0.26, 0.5]}
+        scale={[1.45, 0.26, 0.78]}
         material={splicerMaterial}
         receiveShadow
       />
       <BoxPart
-        position={[0, 0.29, -0.07]}
-        rotation={[-0.22, 0, 0]}
-        scale={[0.52, 0.045, 0.25]}
+        position={[0, 0.285, -0.07]}
+        scale={[1.28, 0.08, 0.6]}
         material={darkMetalMaterial}
       />
       <BoxPart
-        position={[0, 0.32, -0.095]}
-        rotation={[-0.22, 0, 0]}
-        scale={[0.39, 0.012, 0.15]}
+        position={[0, 0.34, -0.08]}
+        scale={[0.48, 0.08, 0.3]}
+        material={metalMaterial}
+      />
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <BoxPart
+            position={[side * 0.46, 0.35, -0.04]}
+            scale={[0.42, 0.07, 0.14]}
+            material={metalMaterial}
+          />
+          <BoxPart
+            position={[side * 0.46, 0.39, -0.04]}
+            scale={[0.34, 0.018, 0.045]}
+            material={softWhiteMaterial}
+            castShadow={false}
+          />
+        </group>
+      ))}
+      <group ref={leftClampRef} position={[-0.47, 0.46, -0.035]}>
+        <BoxPart
+          position={[0, 0, 0]}
+          scale={[0.28, 0.08, 0.17]}
+          material={darkMetalMaterial}
+        />
+        <BoxPart
+          position={[0, -0.045, 0]}
+          scale={[0.18, 0.018, 0.1]}
+          material={softWhiteMaterial}
+        />
+      </group>
+      <group ref={rightClampRef} position={[0.47, 0.46, -0.035]}>
+        <BoxPart
+          position={[0, 0, 0]}
+          scale={[0.28, 0.08, 0.17]}
+          material={darkMetalMaterial}
+        />
+        <BoxPart
+          position={[0, -0.045, 0]}
+          scale={[0.18, 0.018, 0.1]}
+          material={softWhiteMaterial}
+        />
+      </group>
+      {[-1, 1].map((side) => (
+        <CylinderPart
+          key={side}
+          position={[side * 0.105, 0.42, -0.075]}
+          rotation={[0, 0, side * 0.58]}
+          scale={[0.013, 0.15, 0.013]}
+          material={bladeMaterial}
+        />
+      ))}
+      <group ref={lidRef} position={[0, 0.41, -0.34]} rotation={[-1.02, 0, 0]}>
+        {[-1, 1].map((side) => (
+          <BoxPart
+            key={side}
+            position={[side * 0.43, 0.035, 0.27]}
+            scale={[0.22, 0.07, 0.52]}
+            material={metalMaterial}
+          />
+        ))}
+        {[0.07, 0.47].map((zPosition) => (
+          <BoxPart
+            key={zPosition}
+            position={[0, 0.035, zPosition]}
+            scale={[0.64, 0.07, 0.12]}
+            material={metalMaterial}
+          />
+        ))}
+        <BoxPart
+          position={[0, 0.074, 0.27]}
+          scale={[0.62, 0.012, 0.28]}
+          material={chamberWindowMaterial}
+          castShadow={false}
+        />
+      </group>
+      <BoxPart
+        position={[0, 0.29, 0.41]}
+        rotation={[-0.38, 0, 0]}
+        scale={[0.68, 0.16, 0.19]}
+        material={darkMetalMaterial}
+      />
+      <BoxPart
+        position={[-0.08, 0.355, 0.465]}
+        rotation={[-0.38, 0, 0]}
+        scale={[0.43, 0.018, 0.13]}
         material={screenMaterial}
         castShadow={false}
       />
-      <BoxPart
-        position={[0, 0.29, 0.16]}
-        scale={[0.46, 0.14, 0.17]}
-        material={darkMetalMaterial}
+      <CylinderPart
+        position={[0.5, 0.36, 0.46]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[0.055, 0.018, 0.055]}
+        material={indicatorMaterial}
       />
-      {[-1, 1].map((side) => (
+      {[-0.2, 0, 0.2].map((xPosition) => (
         <BoxPart
-          key={side}
-          position={[side * 0.19, 0.37, 0.16]}
-          scale={[0.1, 0.04, 0.09]}
+          key={xPosition}
+          position={[xPosition, 0.16, -0.425]}
+          scale={[0.16, 0.035, 0.12]}
           material={bladeMaterial}
         />
       ))}

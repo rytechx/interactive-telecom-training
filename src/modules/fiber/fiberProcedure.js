@@ -7,7 +7,14 @@ const FIBER_COATING_STRIPPING_DURATION = 1.45
 const FIBER_CLEANING_DURATION = 1.2
 const FIBER_POSITIONING_DURATION = 0.85
 const FIBER_CLEAVING_DURATION = 1.35
-const FIBER_TOTAL_STEPS = 8
+const FIBER_LOADING_DURATION = 0.9
+const FIBER_CLAMP_DURATION = 0.8
+const FIBER_LID_DURATION = 0.85
+const FIBER_ALIGNMENT_DURATION = 2
+const FIBER_FUSION_DURATION = 1.85
+const FIBER_REMOVAL_DURATION = 1.1
+const FIBER_SPLICE_LOSS_DB = 0.03
+const FIBER_TOTAL_STEPS = 15
 
 const FIBER_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'fiber-not-started',
@@ -33,9 +40,32 @@ const FIBER_PROCEDURE_STEPS = Object.freeze({
   CLEAVING_FIBER: 'cleaving-fiber',
   FIBER_CLEAVED: 'fiber-cleaved',
   TASK_2_COMPLETE: 'fiber-task-2-complete',
-  LOAD_SPLICER: 'load-fusion-splicer',
-  ALIGN_FIBERS: 'align-fibers',
-  FUSION_SPLICE: 'fusion-splice',
+  LOAD_FIBER_A: 'load-fiber-a',
+  LOADING_FIBER_A: 'loading-fiber-a',
+  FIBER_A_LOADED: 'fiber-a-loaded',
+  LOAD_FIBER_B: 'load-fiber-b',
+  LOADING_FIBER_B: 'loading-fiber-b',
+  FIBER_B_LOADED: 'fiber-b-loaded',
+  CLOSE_CLAMPS: 'close-splicer-clamps',
+  CLOSING_CLAMPS: 'closing-splicer-clamps',
+  FIBERS_SECURED: 'fibers-secured',
+  CLOSE_SPLICER_LID: 'close-splicer-lid',
+  CLOSING_SPLICER_LID: 'closing-splicer-lid',
+  LID_CLOSED: 'splicer-lid-closed',
+  AUTO_ALIGNMENT: 'start-fiber-auto-alignment',
+  ALIGNING: 'aligning-fibers',
+  ALIGNMENT_COMPLETE: 'fiber-alignment-complete',
+  READY_TO_FUSE: 'fibers-ready-to-fuse',
+  FUSING: 'fusing-fibers',
+  FUSION_COMPLETE: 'fiber-fusion-complete',
+  SPLICE_RESULT: 'fiber-splice-result',
+  OPEN_SPLICER_LID: 'open-splicer-lid',
+  OPENING_SPLICER_LID: 'opening-splicer-lid',
+  RELEASE_CLAMPS: 'release-splicer-clamps',
+  RELEASING_CLAMPS: 'releasing-splicer-clamps',
+  REMOVE_FUSED_FIBER: 'remove-fused-fiber',
+  REMOVING_FUSED_FIBER: 'removing-fused-fiber',
+  TASK_3_COMPLETE: 'fiber-task-3-complete',
   PROTECTION_SLEEVE: 'apply-protection-sleeve',
   HEAT_SHRINK: 'heat-shrink-sleeve',
   TEST_SPLICE: 'test-fiber-splice',
@@ -219,8 +249,191 @@ const fiberProcedure = Object.freeze({
     id: FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE,
     stepNumber: 8,
     title: 'Fiber Preparation Complete',
-    instruction: 'Fiber cleaved successfully.',
-    nextInstruction: 'The fiber is prepared for fusion splicing. Next procedure: Load the fibers into the fusion splicer.',
+    instruction: 'Fiber prepared successfully.',
+    nextInstruction: 'Next procedure: Load Fiber A and Fiber B into the fusion splicer.',
+    acceptedAction: 'continue',
+  }),
+  [FIBER_PROCEDURE_STEPS.LOAD_FIBER_A]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.LOAD_FIBER_A,
+    stepNumber: 9,
+    title: 'Load Fiber A',
+    instruction: 'Place Fiber A into the left fiber holder.',
+    acceptedAction: 'load-fiber-a',
+  }),
+  [FIBER_PROCEDURE_STEPS.LOADING_FIBER_A]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.LOADING_FIBER_A,
+    stepNumber: 9,
+    title: 'Loading Fiber A',
+    instruction: 'Guiding Fiber A into the left holder...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.FIBER_A_LOADED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FIBER_A_LOADED,
+    stepNumber: 9,
+    title: 'Fiber A Loaded',
+    instruction: 'Fiber A loaded.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.LOAD_FIBER_B]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.LOAD_FIBER_B,
+    stepNumber: 10,
+    title: 'Load Fiber B',
+    instruction: 'Place Fiber B into the right fiber holder.',
+    acceptedAction: 'load-fiber-b',
+  }),
+  [FIBER_PROCEDURE_STEPS.LOADING_FIBER_B]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.LOADING_FIBER_B,
+    stepNumber: 10,
+    title: 'Loading Fiber B',
+    instruction: 'Guiding Fiber B into the right holder...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.FIBER_B_LOADED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FIBER_B_LOADED,
+    stepNumber: 10,
+    title: 'Fiber B Loaded',
+    instruction: 'Fiber B loaded.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS,
+    stepNumber: 11,
+    title: 'Secure Both Fibers',
+    instruction: 'Secure both fibers with the splicer clamps.',
+    acceptedAction: 'secure-fibers',
+  }),
+  [FIBER_PROCEDURE_STEPS.CLOSING_CLAMPS]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.CLOSING_CLAMPS,
+    stepNumber: 11,
+    title: 'Securing the Fibers',
+    instruction: 'Lowering both clamps onto the buffered fiber sections...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.FIBERS_SECURED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FIBERS_SECURED,
+    stepNumber: 11,
+    title: 'Fibers Secured',
+    instruction: 'Fibers secured.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.CLOSE_SPLICER_LID]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.CLOSE_SPLICER_LID,
+    stepNumber: 12,
+    title: 'Close the Splicer Lid',
+    instruction: 'Close the fusion chamber lid before alignment.',
+    acceptedAction: 'close-splicer-lid',
+  }),
+  [FIBER_PROCEDURE_STEPS.CLOSING_SPLICER_LID]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.CLOSING_SPLICER_LID,
+    stepNumber: 12,
+    title: 'Closing the Splicer Lid',
+    instruction: 'Enclosing the fibers inside the fusion chamber...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.LID_CLOSED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.LID_CLOSED,
+    stepNumber: 12,
+    title: 'Splicer Lid Closed',
+    instruction: 'Splicer lid closed.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.AUTO_ALIGNMENT]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.AUTO_ALIGNMENT,
+    stepNumber: 13,
+    title: 'Automatic Fiber Alignment',
+    instruction: 'Start automatic core alignment.',
+    acceptedAction: 'start-alignment',
+  }),
+  [FIBER_PROCEDURE_STEPS.ALIGNING]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.ALIGNING,
+    stepNumber: 13,
+    title: 'Aligning Fiber Cores',
+    instruction: 'Analyzing fiber cores and aligning the centerlines...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.ALIGNMENT_COMPLETE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.ALIGNMENT_COMPLETE,
+    stepNumber: 13,
+    title: 'Alignment Complete',
+    instruction: 'Alignment complete.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.READY_TO_FUSE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.READY_TO_FUSE,
+    stepNumber: 14,
+    title: 'Ready for Fusion',
+    instruction: 'Alignment complete. Start the controlled fusion arc.',
+    acceptedAction: 'start-fusion',
+  }),
+  [FIBER_PROCEDURE_STEPS.FUSING]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FUSING,
+    stepNumber: 14,
+    title: 'Arc Fusion in Progress',
+    instruction: 'Fusing the aligned glass fiber ends...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.FUSION_COMPLETE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FUSION_COMPLETE,
+    stepNumber: 14,
+    title: 'Fusion Complete',
+    instruction: 'The fiber ends have fused into one continuous strand.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.SPLICE_RESULT]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.SPLICE_RESULT,
+    stepNumber: 14,
+    title: 'Splice Result',
+    instruction: 'Splice result: PASS. Estimated loss: 0.03 dB.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.OPEN_SPLICER_LID]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.OPEN_SPLICER_LID,
+    stepNumber: 15,
+    title: 'Open the Splicer Lid',
+    instruction: 'Open the splicer lid to retrieve the fused fiber.',
+    acceptedAction: 'open-splicer-lid',
+  }),
+  [FIBER_PROCEDURE_STEPS.OPENING_SPLICER_LID]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.OPENING_SPLICER_LID,
+    stepNumber: 15,
+    title: 'Opening the Splicer Lid',
+    instruction: 'Opening the fusion chamber...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.RELEASE_CLAMPS]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.RELEASE_CLAMPS,
+    stepNumber: 15,
+    title: 'Release the Clamps',
+    instruction: 'Release both clamps while keeping the fused fiber stable.',
+    acceptedAction: 'release-clamps',
+  }),
+  [FIBER_PROCEDURE_STEPS.RELEASING_CLAMPS]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.RELEASING_CLAMPS,
+    stepNumber: 15,
+    title: 'Releasing the Clamps',
+    instruction: 'Lifting both clamps from the fused fiber...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.REMOVE_FUSED_FIBER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.REMOVE_FUSED_FIBER,
+    stepNumber: 15,
+    title: 'Remove the Fused Fiber',
+    instruction: 'Remove the fused fiber from the splicer holders.',
+    acceptedAction: 'remove-fused-fiber',
+  }),
+  [FIBER_PROCEDURE_STEPS.REMOVING_FUSED_FIBER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.REMOVING_FUSED_FIBER,
+    stepNumber: 15,
+    title: 'Removing the Fused Fiber',
+    instruction: 'Lifting the continuous fused fiber from the holders...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE,
+    stepNumber: 15,
+    title: 'Fusion Splice Complete',
+    instruction: 'Fusion splice completed successfully.',
+    nextInstruction: 'Next procedure: Install the splice protection sleeve.',
     acceptedAction: null,
   }),
 })
@@ -229,6 +442,36 @@ const continuationSteps = Object.freeze([
   FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE,
   FIBER_PROCEDURE_STEPS.COATING_REMOVED,
   FIBER_PROCEDURE_STEPS.FIBER_CLEANED,
+  FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE,
+])
+
+const splicingSteps = Object.freeze([
+  FIBER_PROCEDURE_STEPS.LOAD_FIBER_A,
+  FIBER_PROCEDURE_STEPS.LOADING_FIBER_A,
+  FIBER_PROCEDURE_STEPS.FIBER_A_LOADED,
+  FIBER_PROCEDURE_STEPS.LOAD_FIBER_B,
+  FIBER_PROCEDURE_STEPS.LOADING_FIBER_B,
+  FIBER_PROCEDURE_STEPS.FIBER_B_LOADED,
+  FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS,
+  FIBER_PROCEDURE_STEPS.CLOSING_CLAMPS,
+  FIBER_PROCEDURE_STEPS.FIBERS_SECURED,
+  FIBER_PROCEDURE_STEPS.CLOSE_SPLICER_LID,
+  FIBER_PROCEDURE_STEPS.CLOSING_SPLICER_LID,
+  FIBER_PROCEDURE_STEPS.LID_CLOSED,
+  FIBER_PROCEDURE_STEPS.AUTO_ALIGNMENT,
+  FIBER_PROCEDURE_STEPS.ALIGNING,
+  FIBER_PROCEDURE_STEPS.ALIGNMENT_COMPLETE,
+  FIBER_PROCEDURE_STEPS.READY_TO_FUSE,
+  FIBER_PROCEDURE_STEPS.FUSING,
+  FIBER_PROCEDURE_STEPS.FUSION_COMPLETE,
+  FIBER_PROCEDURE_STEPS.SPLICE_RESULT,
+  FIBER_PROCEDURE_STEPS.OPEN_SPLICER_LID,
+  FIBER_PROCEDURE_STEPS.OPENING_SPLICER_LID,
+  FIBER_PROCEDURE_STEPS.RELEASE_CLAMPS,
+  FIBER_PROCEDURE_STEPS.RELEASING_CLAMPS,
+  FIBER_PROCEDURE_STEPS.REMOVE_FUSED_FIBER,
+  FIBER_PROCEDURE_STEPS.REMOVING_FUSED_FIBER,
+  FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE,
 ])
 
 const restartableSteps = Object.freeze([
@@ -249,6 +492,7 @@ const restartableSteps = Object.freeze([
   FIBER_PROCEDURE_STEPS.CLEAVING_FIBER,
   FIBER_PROCEDURE_STEPS.FIBER_CLEAVED,
   FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE,
+  ...splicingSteps,
 ])
 
 function getFiberProcedureStep(stepId) {
@@ -266,18 +510,30 @@ function isFiberRestartableStep(stepId) {
   return restartableSteps.includes(stepId)
 }
 
+function isFiberSplicingStep(stepId) {
+  return splicingSteps.includes(stepId)
+}
+
 export {
   FIBER_CABLE_ID,
   FIBER_CLEANING_DURATION,
+  FIBER_ALIGNMENT_DURATION,
+  FIBER_CLAMP_DURATION,
   FIBER_CLEAVING_DURATION,
   FIBER_COATING_STRIPPING_DURATION,
+  FIBER_FUSION_DURATION,
   FIBER_JACKET_STRIPPING_DURATION,
+  FIBER_LID_DURATION,
+  FIBER_LOADING_DURATION,
   FIBER_MODULE_ID,
   FIBER_POSITIONING_DURATION,
   FIBER_PROCEDURE_STEPS,
+  FIBER_REMOVAL_DURATION,
+  FIBER_SPLICE_LOSS_DB,
   FIBER_TOTAL_STEPS,
   fiberProcedure,
   getFiberProcedureStep,
   isFiberContinuationStep,
   isFiberRestartableStep,
+  isFiberSplicingStep,
 }
