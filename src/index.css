@@ -383,6 +383,55 @@ canvas {
   border-radius: 6px;
 }
 
+.fiber-protection-status {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 10px;
+}
+
+.fiber-protection-status span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  color: #91e4d4;
+  font: 700 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: rgb(9 24 27 / 72%);
+  border: 1px solid rgb(100 207 197 / 22%);
+  border-radius: 5px;
+}
+
+.fiber-protection-status strong {
+  color: #d7e6e8;
+  font: 600 10px/1.2 system-ui, sans-serif;
+}
+
+.fiber-final-inspection,
+.fiber-module-complete {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 10px;
+  padding: 10px;
+  color: #d8f4e1;
+  font-size: 11px;
+  line-height: 1.35;
+  background: rgb(37 130 78 / 22%);
+  border: 1px solid rgb(90 207 133 / 38%);
+  border-radius: 6px;
+}
+
+.fiber-final-inspection strong,
+.fiber-module-complete strong {
+  color: #effff4;
+  letter-spacing: 0.04em;
+}
+
+.fiber-final-inspection b,
+.fiber-module-complete b {
+  color: #89efac;
+}
+
 .fiber-splicer-display {
   display: grid;
   width: 170px;

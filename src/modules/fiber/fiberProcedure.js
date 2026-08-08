@@ -13,8 +13,14 @@ const FIBER_LID_DURATION = 0.85
 const FIBER_ALIGNMENT_DURATION = 2
 const FIBER_FUSION_DURATION = 1.85
 const FIBER_REMOVAL_DURATION = 1.1
+const FIBER_SLEEVE_POSITIONING_DURATION = 1.05
+const FIBER_HEATER_POSITIONING_DURATION = 1
+const FIBER_HEATER_COVER_DURATION = 0.68
+const FIBER_HEATING_DURATION = 2.4
+const FIBER_COOLING_DURATION = 1
+const FIBER_PROTECTED_SPLICE_REMOVAL_DURATION = 1
 const FIBER_SPLICE_LOSS_DB = 0.03
-const FIBER_TOTAL_STEPS = 15
+const FIBER_TOTAL_STEPS = 22
 
 const FIBER_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'fiber-not-started',
@@ -66,9 +72,26 @@ const FIBER_PROCEDURE_STEPS = Object.freeze({
   REMOVE_FUSED_FIBER: 'remove-fused-fiber',
   REMOVING_FUSED_FIBER: 'removing-fused-fiber',
   TASK_3_COMPLETE: 'fiber-task-3-complete',
-  PROTECTION_SLEEVE: 'apply-protection-sleeve',
-  HEAT_SHRINK: 'heat-shrink-sleeve',
-  TEST_SPLICE: 'test-fiber-splice',
+  SELECT_PROTECTION_SLEEVE: 'select-protection-sleeve',
+  POSITION_PROTECTION_SLEEVE: 'position-protection-sleeve',
+  POSITIONING_PROTECTION_SLEEVE: 'positioning-protection-sleeve',
+  PROTECTION_SLEEVE_POSITIONED: 'protection-sleeve-positioned',
+  PLACE_IN_HEATER: 'place-protected-splice-in-heater',
+  POSITIONING_IN_HEATER: 'positioning-protected-splice-in-heater',
+  SPLICE_IN_HEATER: 'protected-splice-in-heater',
+  CLOSE_HEATER: 'close-heater-cover',
+  HEATER_CLOSED: 'heater-cover-closed',
+  READY_TO_HEAT: 'ready-to-heat-protection-sleeve',
+  HEATING_PROTECTION_SLEEVE: 'heating-protection-sleeve',
+  COOLING_PROTECTION_SLEEVE: 'cooling-protection-sleeve',
+  HEATING_COMPLETE: 'protection-sleeve-heating-complete',
+  OPEN_HEATER: 'open-heater-cover',
+  HEATER_OPEN: 'heater-cover-open',
+  REMOVE_FROM_HEATER: 'remove-protected-splice-from-heater',
+  REMOVING_FROM_HEATER: 'removing-protected-splice-from-heater',
+  PROTECTED_SPLICE_REMOVED: 'protected-splice-removed',
+  FINAL_INSPECTION: 'final-protected-splice-inspection',
+  FIBER_MODULE_COMPLETE: 'fiber-module-complete',
 })
 
 const fiberProcedure = Object.freeze({
@@ -434,6 +457,147 @@ const fiberProcedure = Object.freeze({
     title: 'Fusion Splice Complete',
     instruction: 'Fusion splice completed successfully.',
     nextInstruction: 'Next procedure: Install the splice protection sleeve.',
+    acceptedAction: 'continue',
+  }),
+  [FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+    stepNumber: 16,
+    title: 'Select the Protection Sleeve',
+    instruction: 'Select the splice protection sleeve.',
+    acceptedAction: 'select-protection-sleeve',
+    acceptedToolId: FIBER_TOOL_IDS.PROTECTION_SLEEVE,
+  }),
+  [FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE,
+    stepNumber: 16,
+    title: 'Position the Protection Sleeve',
+    instruction: 'Slide the protection sleeve over the fused joint.',
+    acceptedAction: 'position-protection-sleeve',
+  }),
+  [FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
+    stepNumber: 16,
+    title: 'Positioning the Protection Sleeve',
+    instruction: 'Sliding the pre-threaded sleeve along Fiber A...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED,
+    stepNumber: 16,
+    title: 'Protection Sleeve Positioned',
+    instruction: 'Protection sleeve centered over splice.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+    stepNumber: 17,
+    title: 'Place the Splice in the Heater',
+    instruction: 'Place the protected splice into the heater tray.',
+    acceptedAction: 'place-in-heater',
+  }),
+  [FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER,
+    stepNumber: 17,
+    title: 'Positioning in the Heater',
+    instruction: 'Guiding the protected splice into the heater channel...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.SPLICE_IN_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.SPLICE_IN_HEATER,
+    stepNumber: 17,
+    title: 'Splice Positioned',
+    instruction: 'Protected splice positioned in heater.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.CLOSE_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+    stepNumber: 18,
+    title: 'Close the Heater Cover',
+    instruction: 'Close the heater cover around the protected splice.',
+    acceptedAction: 'close-heater-cover',
+  }),
+  [FIBER_PROCEDURE_STEPS.HEATER_CLOSED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.HEATER_CLOSED,
+    stepNumber: 18,
+    title: 'Heater Cover Closed',
+    instruction: 'The protected splice is enclosed in the heater channel.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.READY_TO_HEAT]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+    stepNumber: 19,
+    title: 'Heat the Protection Sleeve',
+    instruction: 'Start the heater to shrink the sleeve around the splice.',
+    acceptedAction: 'start-heater',
+  }),
+  [FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE,
+    stepNumber: 19,
+    title: 'Heating the Protection Sleeve',
+    instruction: 'The heater is shrinking the sleeve uniformly...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
+    stepNumber: 19,
+    title: 'Cooling the Protected Splice',
+    instruction: 'Allowing the protection sleeve to set safely...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.HEATING_COMPLETE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.HEATING_COMPLETE,
+    stepNumber: 19,
+    title: 'Heater Complete',
+    instruction: 'The protection sleeve is fully shrunk and cooled.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.OPEN_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+    stepNumber: 20,
+    title: 'Open the Heater Cover',
+    instruction: 'Open the heater cover to reveal the protected splice.',
+    acceptedAction: 'open-heater-cover',
+  }),
+  [FIBER_PROCEDURE_STEPS.HEATER_OPEN]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.HEATER_OPEN,
+    stepNumber: 20,
+    title: 'Heater Cover Open',
+    instruction: 'The completed protected splice is ready to remove.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+    stepNumber: 21,
+    title: 'Remove the Protected Splice',
+    instruction: 'Remove the protected splice from the heater.',
+    acceptedAction: 'remove-from-heater',
+  }),
+  [FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER,
+    stepNumber: 21,
+    title: 'Removing the Protected Splice',
+    instruction: 'Returning the protected splice to the inspection area...',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.PROTECTED_SPLICE_REMOVED]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.PROTECTED_SPLICE_REMOVED,
+    stepNumber: 21,
+    title: 'Protected Splice Removed',
+    instruction: 'The protected splice is ready for final inspection.',
+    acceptedAction: null,
+  }),
+  [FIBER_PROCEDURE_STEPS.FINAL_INSPECTION]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+    stepNumber: 22,
+    title: 'Final Splice Inspection',
+    instruction: 'Inspect the protected splice.',
+    acceptedAction: 'inspect-protected-splice',
+  }),
+  [FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE]: Object.freeze({
+    id: FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE,
+    stepNumber: 22,
+    title: 'Fiber Training Complete',
+    instruction: 'Fiber optic fusion splice completed successfully.',
     acceptedAction: null,
   }),
 })
@@ -443,6 +607,38 @@ const continuationSteps = Object.freeze([
   FIBER_PROCEDURE_STEPS.COATING_REMOVED,
   FIBER_PROCEDURE_STEPS.FIBER_CLEANED,
   FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE,
+  FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE,
+])
+
+const heatingSteps = Object.freeze([
+  FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+  FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER,
+  FIBER_PROCEDURE_STEPS.SPLICE_IN_HEATER,
+  FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+  FIBER_PROCEDURE_STEPS.HEATER_CLOSED,
+  FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+  FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.HEATING_COMPLETE,
+  FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+  FIBER_PROCEDURE_STEPS.HEATER_OPEN,
+  FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+  FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER,
+])
+
+const inspectionSteps = Object.freeze([
+  FIBER_PROCEDURE_STEPS.PROTECTED_SPLICE_REMOVED,
+  FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+  FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE,
+])
+
+const protectionSteps = Object.freeze([
+  FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED,
+  ...heatingSteps,
+  ...inspectionSteps,
 ])
 
 const splicingSteps = Object.freeze([
@@ -472,6 +668,7 @@ const splicingSteps = Object.freeze([
   FIBER_PROCEDURE_STEPS.REMOVE_FUSED_FIBER,
   FIBER_PROCEDURE_STEPS.REMOVING_FUSED_FIBER,
   FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE,
+  ...protectionSteps,
 ])
 
 const restartableSteps = Object.freeze([
@@ -514,26 +711,47 @@ function isFiberSplicingStep(stepId) {
   return splicingSteps.includes(stepId)
 }
 
+function isFiberHeatingStep(stepId) {
+  return heatingSteps.includes(stepId)
+}
+
+function isFiberInspectionStep(stepId) {
+  return inspectionSteps.includes(stepId)
+}
+
+function isFiberProtectionStep(stepId) {
+  return protectionSteps.includes(stepId)
+}
+
 export {
   FIBER_CABLE_ID,
   FIBER_CLEANING_DURATION,
   FIBER_ALIGNMENT_DURATION,
   FIBER_CLAMP_DURATION,
   FIBER_CLEAVING_DURATION,
+  FIBER_COOLING_DURATION,
   FIBER_COATING_STRIPPING_DURATION,
   FIBER_FUSION_DURATION,
+  FIBER_HEATER_COVER_DURATION,
+  FIBER_HEATER_POSITIONING_DURATION,
+  FIBER_HEATING_DURATION,
   FIBER_JACKET_STRIPPING_DURATION,
   FIBER_LID_DURATION,
   FIBER_LOADING_DURATION,
   FIBER_MODULE_ID,
   FIBER_POSITIONING_DURATION,
+  FIBER_PROTECTED_SPLICE_REMOVAL_DURATION,
   FIBER_PROCEDURE_STEPS,
   FIBER_REMOVAL_DURATION,
+  FIBER_SLEEVE_POSITIONING_DURATION,
   FIBER_SPLICE_LOSS_DB,
   FIBER_TOTAL_STEPS,
   fiberProcedure,
   getFiberProcedureStep,
   isFiberContinuationStep,
+  isFiberHeatingStep,
+  isFiberInspectionStep,
+  isFiberProtectionStep,
   isFiberRestartableStep,
   isFiberSplicingStep,
 }

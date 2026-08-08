@@ -8,6 +8,7 @@ import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import { getFiberProcedureStep } from './fiberProcedure.js'
+import { FIBER_TOOL_IDS } from './fiberToolConfigs.js'
 
 const highlightGeometry = new RingGeometry(0.13, 0.16, 28)
 const expectedMaterial = new MeshBasicMaterial({
@@ -26,15 +27,15 @@ const hoverMaterial = new MeshBasicMaterial({
 })
 
 function getHighlightScale(toolId) {
-  if (toolId === 'fusion-splicer') {
+  if (toolId === FIBER_TOOL_IDS.FUSION_SPLICER) {
     return [2.7, 2.05, 1]
   }
 
-  if (toolId === 'fiber-cleaver') {
+  if (toolId === FIBER_TOOL_IDS.CLEAVER) {
     return [1.8, 1.45, 1]
   }
 
-  if (toolId === 'fiber-cleaning-pad') {
+  if (toolId === FIBER_TOOL_IDS.CLEANING_PAD) {
     return [1.65, 1.3, 1]
   }
 
@@ -42,19 +43,19 @@ function getHighlightScale(toolId) {
 }
 
 function getToolHitboxSize(toolId) {
-  if (toolId === 'fusion-splicer') {
+  if (toolId === FIBER_TOOL_IDS.FUSION_SPLICER) {
     return [0.9, 0.48, 0.64]
   }
 
-  if (toolId === 'fiber-cleaver') {
+  if (toolId === FIBER_TOOL_IDS.CLEAVER) {
     return [0.58, 0.34, 0.48]
   }
 
-  if (toolId === 'fiber-cleaning-pad') {
-    return [0.48, 0.2, 0.38]
+  if (toolId === FIBER_TOOL_IDS.CLEANING_PAD) {
+    return [0.68, 0.24, 0.46]
   }
 
-  if (toolId === 'fiber-protection-sleeve') {
+  if (toolId === FIBER_TOOL_IDS.PROTECTION_SLEEVE) {
     return [0.65, 0.2, 0.26]
   }
 
@@ -144,16 +145,18 @@ export default function FiberInteractiveTool({ tool, children }) {
       onPointerLeave={handlePointerLeave}
       onClick={handleClick}
     >
-      <mesh
-        position={[
-          tool.restPosition[0],
-          tool.restPosition[1] + 0.08,
-          tool.restPosition[2],
-        ]}
-      >
-        <boxGeometry args={getToolHitboxSize(tool.id)} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
+      {isExpected && (
+        <mesh
+          position={[
+            tool.restPosition[0],
+            tool.restPosition[1] + 0.08,
+            tool.restPosition[2],
+          ]}
+        >
+          <boxGeometry args={getToolHitboxSize(tool.id)} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
       {(isExpected || isHovered) && (
         <mesh
           geometry={highlightGeometry}

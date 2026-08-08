@@ -9,6 +9,9 @@ import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import {
   FIBER_PROCEDURE_STEPS,
+  isFiberHeatingStep,
+  isFiberInspectionStep,
+  isFiberProtectionStep,
   isFiberSplicingStep,
 } from './fiberProcedure.js'
 import { FiberToolModel } from './FiberTools.jsx'
@@ -37,6 +40,18 @@ function smoothStep(progress) {
 }
 
 function getProcedureView(currentStep) {
+  if (isFiberInspectionStep(currentStep)) {
+    return 'final-inspection'
+  }
+
+  if (isFiberHeatingStep(currentStep)) {
+    return 'heater'
+  }
+
+  if (isFiberProtectionStep(currentStep)) {
+    return 'protection'
+  }
+
   if (isFiberSplicingStep(currentStep)) {
     return 'splicing'
   }
@@ -45,6 +60,30 @@ function getProcedureView(currentStep) {
 }
 
 function getProcedureCamera(view) {
+  if (view === 'final-inspection') {
+    return {
+      position: FIBER_WORKSTATION.inspectionCameraPosition,
+      target: FIBER_WORKSTATION.inspectionCameraTarget,
+      duration: FIBER_WORKSTATION.inspectionTransitionDuration,
+    }
+  }
+
+  if (view === 'heater') {
+    return {
+      position: FIBER_WORKSTATION.heaterCameraPosition,
+      target: FIBER_WORKSTATION.heaterCameraTarget,
+      duration: FIBER_WORKSTATION.heaterTransitionDuration,
+    }
+  }
+
+  if (view === 'protection') {
+    return {
+      position: FIBER_WORKSTATION.protectionCameraPosition,
+      target: FIBER_WORKSTATION.protectionCameraTarget,
+      duration: FIBER_WORKSTATION.protectionTransitionDuration,
+    }
+  }
+
   if (view === 'splicing') {
     return {
       position: FIBER_WORKSTATION.splicingCameraPosition,

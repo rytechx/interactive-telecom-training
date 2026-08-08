@@ -40,6 +40,9 @@ export default function FiberInteractionSystem() {
   const resetFiberTraining = useFiberTrainingStore(
     (state) => state.resetFiberTraining,
   )
+  const completeFiberModule = useFiberTrainingStore(
+    (state) => state.completeFiberModule,
+  )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
   const activateSelectedTool = useToolStore(
@@ -133,6 +136,10 @@ export default function FiberInteractionSystem() {
     restartFiberTraining()
   }
 
+  const handleCompleteTraining = () => {
+    completeFiberModule()
+  }
+
   const handleReturnTool = () => {
     const fiberState = useFiberTrainingStore.getState()
 
@@ -177,6 +184,7 @@ export default function FiberInteractionSystem() {
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
               onReturnTool={handleReturnTool}
+              onCompleteTraining={handleCompleteTraining}
               onExit={handleExit}
             />
           ) : !trainingStarted ? (

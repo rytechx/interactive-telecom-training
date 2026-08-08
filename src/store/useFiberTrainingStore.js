@@ -89,6 +89,57 @@ const fusedFiberRemovalSteps = [
   FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE,
 ]
 
+const sleevePositioningSteps = [
+  FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED,
+]
+
+const heaterPositioningSteps = [
+  FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+  FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER,
+  FIBER_PROCEDURE_STEPS.SPLICE_IN_HEATER,
+]
+
+const heaterClosingSteps = [
+  FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+  FIBER_PROCEDURE_STEPS.HEATER_CLOSED,
+]
+
+const heatingSteps = [
+  FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+  FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
+  FIBER_PROCEDURE_STEPS.HEATING_COMPLETE,
+]
+
+const heaterOpeningSteps = [
+  FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+  FIBER_PROCEDURE_STEPS.HEATER_OPEN,
+]
+
+const protectedSpliceRemovalSteps = [
+  FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+  FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER,
+  FIBER_PROCEDURE_STEPS.PROTECTED_SPLICE_REMOVED,
+]
+
+const finalInspectionSteps = [
+  FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+  FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE,
+]
+
+const protectionSteps = [
+  ...sleevePositioningSteps,
+  ...heaterPositioningSteps,
+  ...heaterClosingSteps,
+  ...heatingSteps,
+  ...heaterOpeningSteps,
+  ...protectedSpliceRemovalSteps,
+  ...finalInspectionSteps,
+]
+
 const splicingSteps = [
   ...fiberALoadingSteps,
   ...fiberBLoadingSteps,
@@ -99,6 +150,7 @@ const splicingSteps = [
   ...lidOpeningSteps,
   ...clampReleaseSteps,
   ...fusedFiberRemovalSteps,
+  ...protectionSteps,
 ]
 
 const toolSelectionRules = Object.freeze({
@@ -115,7 +167,8 @@ const toolSelectionRules = Object.freeze({
   [FIBER_PROCEDURE_STEPS.SELECT_CLEANING_TOOL]: Object.freeze({
     toolId: FIBER_TOOL_IDS.CLEANING_PAD,
     nextStep: FIBER_PROCEDURE_STEPS.CLEAN_BARE_FIBER,
-    feedback: 'Use a lint-free cleaning wipe to remove residue from the bare fiber.',
+    feedback: 'Use the lint-free fiber cleaning wipe to clean the bare fiber.',
+    successFeedback: 'Cleaning wipe selected.',
   }),
   [FIBER_PROCEDURE_STEPS.SELECT_FIBER_CLEAVER]: Object.freeze({
     toolId: FIBER_TOOL_IDS.CLEAVER,
@@ -137,6 +190,16 @@ function createInitialSplicerState() {
     spliceLossDb: null,
     spliceResult: null,
     fusedFiberRemoved: false,
+    protectionSleeveSelected: false,
+    protectionSleevePositioned: false,
+    spliceInHeater: false,
+    heaterClosed: false,
+    heaterActive: false,
+    heatingComplete: false,
+    coolingComplete: false,
+    protectedSpliceRemoved: false,
+    finalInspectionPassed: false,
+    fiberModuleCompleted: false,
   }
 }
 
@@ -176,6 +239,21 @@ function addCompletedSteps(completedSteps, ...stepIds) {
 
 function removeCompletedSteps(completedSteps, stepIds) {
   return completedSteps.filter((stepId) => !stepIds.includes(stepId))
+}
+
+function createCompletedFusionState(state) {
+  return {
+    ...createInitialSplicerState(),
+    fiberBPrepared: true,
+    fiberALoaded: true,
+    fiberBLoaded: true,
+    alignmentStarted: true,
+    alignmentComplete: true,
+    fusionComplete: true,
+    spliceLossDb: state.spliceLossDb ?? FIBER_SPLICE_LOSS_DB,
+    spliceResult: state.spliceResult ?? 'PASS',
+    fusedFiberRemoved: true,
+  }
 }
 
 const useFiberTrainingStore = create((set) => ({
@@ -230,7 +308,7 @@ const useFiberTrainingStore = create((set) => ({
 
       return {
         currentStep: rule.nextStep,
-        procedureFeedback: null,
+        procedureFeedback: rule.successFeedback ?? null,
         completedSteps: addCompletedSteps(
           state.completedSteps,
           state.currentStep,
@@ -270,6 +348,13 @@ const useFiberTrainingStore = create((set) => ({
           currentStep: FIBER_PROCEDURE_STEPS.LOAD_FIBER_A,
           procedureFeedback: null,
           fiberBPrepared: true,
+        }
+      }
+
+      if (state.currentStep === FIBER_PROCEDURE_STEPS.TASK_3_COMPLETE) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+          procedureFeedback: null,
         }
       }
 
@@ -844,6 +929,338 @@ const useFiberTrainingStore = create((set) => ({
         : {},
     )
   },
+  selectProtectionSleeve: (objectId) => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      if (objectId !== FIBER_TOOL_IDS.PROTECTION_SLEEVE) {
+        return {
+          procedureFeedback:
+            'Use the splice protection sleeve to protect the fused fiber joint.',
+          wrongToolCount: state.wrongToolCount + 1,
+        }
+      }
+
+      if (!state.fusionComplete || !state.fusedFiberRemoved) {
+        return {
+          procedureFeedback: 'Complete and remove the fused fiber first.',
+        }
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE,
+        procedureFeedback: 'Splice protection sleeve selected.',
+        protectionSleeveSelected: true,
+        completedSteps: addCompletedSteps(
+          state.completedSteps,
+          FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+        ),
+      }
+    })
+  },
+  startProtectionSleevePositioning: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE ||
+        !state.protectionSleeveSelected ||
+        !state.fusionComplete ||
+        state.protectionSleevePositioned ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+      }
+    })
+  },
+  completeProtectionSleevePositioning: () => {
+    set((state) =>
+      state.currentStep ===
+        FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+            procedureFeedback: 'Protection sleeve centered over splice.',
+            isProcedureAnimating: false,
+            protectionSleevePositioned: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE,
+              FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
+              FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED,
+            ),
+          }
+        : {},
+    )
+  },
+  startHeaterPositioning: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER ||
+        !state.protectionSleevePositioned ||
+        state.spliceInHeater ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+      }
+    })
+  },
+  completeHeaterPositioning: () => {
+    set((state) =>
+      state.currentStep === FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+            procedureFeedback: 'Protected splice positioned in heater.',
+            isProcedureAnimating: false,
+            spliceInHeater: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+              FIBER_PROCEDURE_STEPS.POSITIONING_IN_HEATER,
+              FIBER_PROCEDURE_STEPS.SPLICE_IN_HEATER,
+            ),
+          }
+        : {},
+    )
+  },
+  startHeaterClosing: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.CLOSE_HEATER ||
+        !state.spliceInHeater ||
+        state.heaterClosed ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.HEATER_CLOSED,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+      }
+    })
+  },
+  completeHeaterClosing: () => {
+    set((state) =>
+      state.currentStep === FIBER_PROCEDURE_STEPS.HEATER_CLOSED &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+            procedureFeedback: 'Heater cover closed. Ready to heat.',
+            isProcedureAnimating: false,
+            heaterClosed: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+              FIBER_PROCEDURE_STEPS.HEATER_CLOSED,
+            ),
+          }
+        : {},
+    )
+  },
+  startProtectionSleeveHeating: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.READY_TO_HEAT ||
+        !state.spliceInHeater ||
+        !state.heaterClosed ||
+        state.heatingComplete ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE,
+        procedureFeedback: 'Heater status: HEATING',
+        isProcedureAnimating: true,
+        heaterActive: true,
+      }
+    })
+  },
+  completeProtectionSleeveHeating: () => {
+    set((state) =>
+      state.currentStep ===
+        FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
+            procedureFeedback: 'Heater status: COOLING',
+            heaterActive: false,
+            heatingComplete: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+              FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE,
+            ),
+          }
+        : {},
+    )
+  },
+  completeProtectionSleeveCooling: () => {
+    set((state) =>
+      state.currentStep ===
+        FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE &&
+      state.isProcedureAnimating &&
+      state.heatingComplete
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+            procedureFeedback: 'Heater status: COMPLETE',
+            isProcedureAnimating: false,
+            coolingComplete: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
+              FIBER_PROCEDURE_STEPS.HEATING_COMPLETE,
+            ),
+          }
+        : {},
+    )
+  },
+  startHeaterOpening: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.OPEN_HEATER ||
+        !state.heaterClosed ||
+        !state.heatingComplete ||
+        !state.coolingComplete ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.HEATER_OPEN,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+      }
+    })
+  },
+  completeHeaterOpening: () => {
+    set((state) =>
+      state.currentStep === FIBER_PROCEDURE_STEPS.HEATER_OPEN &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+            procedureFeedback: 'Heater cover opened.',
+            isProcedureAnimating: false,
+            heaterClosed: false,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+              FIBER_PROCEDURE_STEPS.HEATER_OPEN,
+            ),
+          }
+        : {},
+    )
+  },
+  startProtectedSpliceRemoval: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER ||
+        state.heaterClosed ||
+        !state.spliceInHeater ||
+        !state.coolingComplete ||
+        state.protectedSpliceRemoved ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      return {
+        currentStep: FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER,
+        procedureFeedback: null,
+        isProcedureAnimating: true,
+      }
+    })
+  },
+  completeProtectedSpliceRemoval: () => {
+    set((state) =>
+      state.currentStep === FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER &&
+      state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+            procedureFeedback: 'Protected splice ready for final inspection.',
+            isProcedureAnimating: false,
+            spliceInHeater: false,
+            protectedSpliceRemoved: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+              FIBER_PROCEDURE_STEPS.REMOVING_FROM_HEATER,
+              FIBER_PROCEDURE_STEPS.PROTECTED_SPLICE_REMOVED,
+            ),
+          }
+        : {},
+    )
+  },
+  inspectProtectedSplice: () => {
+    set((state) => {
+      if (
+        state.currentStep !== FIBER_PROCEDURE_STEPS.FINAL_INSPECTION ||
+        state.isProcedureAnimating
+      ) {
+        return {}
+      }
+
+      const inspectionPassed =
+        state.fusionComplete &&
+        state.spliceResult === 'PASS' &&
+        state.spliceLossDb === FIBER_SPLICE_LOSS_DB &&
+        state.protectionSleevePositioned &&
+        state.heatingComplete &&
+        state.coolingComplete &&
+        state.protectedSpliceRemoved
+
+      return inspectionPassed
+        ? {
+            procedureFeedback: 'Final protected splice inspection: PASS.',
+            finalInspectionPassed: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+            ),
+          }
+        : {
+            procedureFeedback:
+              'Complete sleeve installation, heating, and removal before inspection.',
+          }
+    })
+  },
+  completeFiberModule: () => {
+    set((state) =>
+      state.currentStep === FIBER_PROCEDURE_STEPS.FINAL_INSPECTION &&
+      state.finalInspectionPassed &&
+      !state.isProcedureAnimating
+        ? {
+            currentStep: FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE,
+            procedureFeedback: 'Fiber optic fusion splice completed successfully.',
+            fiberModuleCompleted: true,
+            completedSteps: addCompletedSteps(
+              state.completedSteps,
+              FIBER_PROCEDURE_STEPS.FIBER_MODULE_COMPLETE,
+            ),
+          }
+        : {},
+    )
+  },
   restartFiberStep: () => {
     set((state) => {
       if (taskOneSteps.includes(state.currentStep)) {
@@ -1123,6 +1540,144 @@ const useFiberTrainingStore = create((set) => ({
           completedSteps: removeCompletedSteps(
             state.completedSteps,
             fusedFiberRemovalSteps,
+          ),
+        }
+      }
+
+      if (sleevePositioningSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.SELECT_PROTECTION_SLEEVE,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            protectionSteps,
+          ),
+        }
+      }
+
+      if (heaterPositioningSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            [
+              ...heaterPositioningSteps,
+              ...heaterClosingSteps,
+              ...heatingSteps,
+              ...heaterOpeningSteps,
+              ...protectedSpliceRemovalSteps,
+              ...finalInspectionSteps,
+            ],
+          ),
+        }
+      }
+
+      if (heaterClosingSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.CLOSE_HEATER,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          spliceInHeater: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            [
+              ...heaterClosingSteps,
+              ...heatingSteps,
+              ...heaterOpeningSteps,
+              ...protectedSpliceRemovalSteps,
+              ...finalInspectionSteps,
+            ],
+          ),
+        }
+      }
+
+      if (heatingSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.READY_TO_HEAT,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          spliceInHeater: true,
+          heaterClosed: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            [
+              ...heatingSteps,
+              ...heaterOpeningSteps,
+              ...protectedSpliceRemovalSteps,
+              ...finalInspectionSteps,
+            ],
+          ),
+        }
+      }
+
+      if (heaterOpeningSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.OPEN_HEATER,
+          procedureFeedback: 'Heater status: COMPLETE',
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          spliceInHeater: true,
+          heaterClosed: true,
+          heatingComplete: true,
+          coolingComplete: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            [
+              ...heaterOpeningSteps,
+              ...protectedSpliceRemovalSteps,
+              ...finalInspectionSteps,
+            ],
+          ),
+        }
+      }
+
+      if (protectedSpliceRemovalSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          spliceInHeater: true,
+          heatingComplete: true,
+          coolingComplete: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            [...protectedSpliceRemovalSteps, ...finalInspectionSteps],
+          ),
+        }
+      }
+
+      if (finalInspectionSteps.includes(state.currentStep)) {
+        return {
+          currentStep: FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+          procedureFeedback: null,
+          isProcedureAnimating: false,
+          ...createCompletedFusionState(state),
+          protectionSleeveSelected: true,
+          protectionSleevePositioned: true,
+          heatingComplete: true,
+          coolingComplete: true,
+          protectedSpliceRemoved: true,
+          completedSteps: removeCompletedSteps(
+            state.completedSteps,
+            finalInspectionSteps,
           ),
         }
       }

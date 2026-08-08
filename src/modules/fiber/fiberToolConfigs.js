@@ -62,11 +62,12 @@ const fiberToolConfigs = Object.freeze({
   }),
   [FIBER_TOOL_IDS.PROTECTION_SLEEVE]: Object.freeze({
     id: FIBER_TOOL_IDS.PROTECTION_SLEEVE,
-    name: 'Fiber Protection Sleeve',
-    purpose: 'Protects the completed splice during a later finishing step.',
-    restPosition: Object.freeze([1.08, 0.95, -0.05]),
-    restRotation: Object.freeze([0, 0.24, Math.PI / 2]),
-    scale: 0.9,
+    name: 'Splice Protection Sleeve',
+    purpose:
+      'A heat-shrink tube with an internal reinforcement rod that protects a completed fusion joint.',
+    restPosition: Object.freeze([1.06, 0.97, -0.08]),
+    restRotation: Object.freeze([0, -0.22, 0]),
+    scale: 0.88,
     inspectionCameraPosition: Object.freeze([6.05, 2.14, -1.45]),
     inspectionCameraTarget: Object.freeze([6.08, 0.95, -2.55]),
   }),

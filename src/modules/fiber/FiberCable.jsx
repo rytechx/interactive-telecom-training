@@ -36,6 +36,13 @@ const BUFFER_TOP_Z = -0.28
 const INNER_FIBER_TIP_Z = -0.266
 const STRIPPED_COATING_TOP_Z = 0.015
 const CLEAVED_FIBER_TIP_Z = -0.145
+const BARE_FIBER_CLEANING_CENTER_Z =
+  (INNER_FIBER_TIP_Z + STRIPPED_COATING_TOP_Z) / 2
+const BARE_FIBER_CLEANING_HITBOX_SIZE = [
+  GLASS_RADIUS * 10,
+  0.12,
+  Math.abs(STRIPPED_COATING_TOP_Z - INNER_FIBER_TIP_Z) + 0.06,
+]
 const CLEAVER_CABLE_POSITION = [-0.9, 0, -0.1]
 const jacketStripper = getFiberToolConfig(FIBER_TOOL_IDS.JACKET_STRIPPER)
 const precisionStripper = getFiberToolConfig(FIBER_TOOL_IDS.PRECISION_STRIPPER)
@@ -773,14 +780,16 @@ export default function FiberCable({
       : canStripCoating
         ? 'Strip Fiber Coating'
         : canCleanFiber
-          ? 'Clean Fiber'
+          ? 'Clean Bare Fiber'
           : canPositionFiber
             ? 'Position Fiber'
             : 'Cleave Fiber'
 
   const tooltipPosition = canPositionFiber || canCleaveFiber
     ? [fiberCleaver.restPosition[0], 1.34, fiberCleaver.restPosition[2]]
-    : [0, CABLE_Y + 0.22, 0.05]
+    : canCleanFiber
+      ? [0, CABLE_Y + 0.22, BARE_FIBER_CLEANING_CENTER_Z]
+      : [0, CABLE_Y + 0.22, 0.05]
 
   return (
     <group>
@@ -860,9 +869,7 @@ export default function FiberCable({
 
         <mesh
           position={[0, CABLE_Y, 0.1]}
-          visible={
-            canSelectCable || canStripJacket || canStripCoating || canCleanFiber
-          }
+          visible={canSelectCable || canStripJacket || canStripCoating}
           onPointerEnter={handlePointerEnter}
           onPointerLeave={handlePointerLeave}
           onClick={handleCableClick}
@@ -870,6 +877,39 @@ export default function FiberCable({
           <boxGeometry args={[0.24, 0.16, 1.08]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+
+        {canCleanFiber && (
+          <mesh
+            position={[0, CABLE_Y, BARE_FIBER_CLEANING_CENTER_Z]}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
+            onClick={handleCableClick}
+          >
+            <boxGeometry args={BARE_FIBER_CLEANING_HITBOX_SIZE} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        )}
+
+        {canCleanFiber && isHovered && (
+          <mesh
+            position={[0, CABLE_Y + 0.009, BARE_FIBER_CLEANING_CENTER_Z]}
+            rotation={[Math.PI / 2, 0, 0]}
+            scale={[
+              GLASS_RADIUS * 1.8,
+              Math.abs(STRIPPED_COATING_TOP_Z - INNER_FIBER_TIP_Z),
+              GLASS_RADIUS * 1.8,
+            ]}
+          >
+            <cylinderGeometry args={[1, 1, 1, 12]} />
+            <meshBasicMaterial
+              color="#b8f7ff"
+              transparent
+              opacity={0.58}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        )}
 
         {canStripJacket && (
           <mesh position={[0, CABLE_Y, STRIPPED_JACKET_TOP_Z]}>

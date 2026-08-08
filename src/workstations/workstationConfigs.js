@@ -62,6 +62,15 @@ const FIBER_WORKSTATION = Object.freeze({
   splicingCameraTarget: Object.freeze([5, 1.23, -2.93]),
   splicingLightPosition: Object.freeze([5.15, 2.85, -2.45]),
   splicingTransitionDuration: 0.85,
+  protectionCameraPosition: Object.freeze([4.65, 2.42, -1.48]),
+  protectionCameraTarget: Object.freeze([4.66, 1.4, -2.56]),
+  protectionTransitionDuration: 0.72,
+  heaterCameraPosition: Object.freeze([5.08, 2.62, -2.05]),
+  heaterCameraTarget: Object.freeze([5, 1.14, -3.26]),
+  heaterTransitionDuration: 0.68,
+  inspectionCameraPosition: Object.freeze([5.04, 2.35, -1.26]),
+  inspectionCameraTarget: Object.freeze([5, 1.43, -2.46]),
+  inspectionTransitionDuration: 0.7,
   transitionDuration: 1,
 })
 

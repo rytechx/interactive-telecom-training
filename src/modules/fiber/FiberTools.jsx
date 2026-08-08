@@ -59,11 +59,51 @@ const chamberWindowMaterial = new MeshStandardMaterial({
   metalness: 0.08,
   roughness: 0.2,
 })
-const sleeveMaterial = new MeshStandardMaterial({
-  color: '#dce6df',
+const heaterChannelMaterial = new MeshStandardMaterial({
+  color: '#11181c',
+  metalness: 0.42,
+  roughness: 0.46,
+})
+const heaterTrayMaterial = new MeshStandardMaterial({
+  color: '#59676d',
+  metalness: 0.5,
+  roughness: 0.4,
+})
+const heaterIndicatorMaterial = new MeshStandardMaterial({
+  color: '#68806f',
+  emissive: '#2b563d',
+  emissiveIntensity: 0.24,
+  roughness: 0.4,
+  toneMapped: false,
+})
+const sleeveOuterMaterial = new MeshStandardMaterial({
+  color: '#e7f1ed',
   transparent: true,
-  opacity: 0.74,
-  roughness: 0.36,
+  opacity: 0.52,
+  depthWrite: false,
+  roughness: 0.3,
+})
+const sleeveInnerMaterial = new MeshStandardMaterial({
+  color: '#b8d0c8',
+  transparent: true,
+  opacity: 0.58,
+  depthWrite: false,
+  roughness: 0.4,
+})
+const sleeveHighlightMaterial = new MeshStandardMaterial({
+  color: '#83e0ec',
+  emissive: '#3b9caf',
+  emissiveIntensity: 0.62,
+  transparent: true,
+  opacity: 0.28,
+  depthWrite: false,
+  wireframe: true,
+  toneMapped: false,
+})
+const sleeveHitMaterial = new MeshStandardMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
 })
 
 function BoxPart({
@@ -73,6 +113,9 @@ function BoxPart({
   material,
   castShadow = true,
   receiveShadow = false,
+  onPointerEnter,
+  onPointerLeave,
+  onClick,
 }) {
   return (
     <mesh
@@ -83,25 +126,32 @@ function BoxPart({
       scale={scale}
       castShadow={castShadow}
       receiveShadow={receiveShadow}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onClick}
     />
   )
 }
 
 function CylinderPart({
+  partRef,
   position,
   rotation = [0, 0, 0],
   scale,
   material,
   castShadow = true,
+  receiveShadow = false,
 }) {
   return (
     <mesh
+      ref={partRef}
       geometry={cylinderGeometry}
       material={material}
       position={position}
       rotation={rotation}
       scale={scale}
       castShadow={castShadow}
+      receiveShadow={receiveShadow}
     />
   )
 }
@@ -387,6 +437,8 @@ function FusionSplicer({
   lidRef,
   leftClampRef,
   rightClampRef,
+  heaterCoverRef,
+  heaterIndicatorRef,
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -497,14 +549,57 @@ function FusionSplicer({
         scale={[0.055, 0.018, 0.055]}
         material={indicatorMaterial}
       />
-      {[-0.2, 0, 0.2].map((xPosition) => (
+      <BoxPart
+        position={[0, 0.292, -0.425]}
+        scale={[1.02, 0.055, 0.27]}
+        material={heaterTrayMaterial}
+        receiveShadow
+      />
+      <BoxPart
+        position={[0, 0.325, -0.425]}
+        scale={[0.7, 0.018, 0.07]}
+        material={heaterChannelMaterial}
+        castShadow={false}
+      />
+      {[-0.44, 0.44].map((xPosition) => (
         <BoxPart
           key={xPosition}
-          position={[xPosition, 0.16, -0.425]}
-          scale={[0.16, 0.035, 0.12]}
+          position={[xPosition, 0.335, -0.425]}
+          scale={[0.16, 0.06, 0.13]}
           material={bladeMaterial}
         />
       ))}
+      <group
+        ref={heaterCoverRef}
+        position={[0, 0.345, -0.545]}
+        rotation={[-1.02, 0, 0]}
+      >
+        <BoxPart
+          position={[0, 0.04, 0.12]}
+          scale={[1.04, 0.075, 0.26]}
+          material={metalMaterial}
+        />
+        <BoxPart
+          position={[0, 0.082, 0.12]}
+          scale={[0.64, 0.012, 0.13]}
+          material={chamberWindowMaterial}
+          castShadow={false}
+        />
+      </group>
+      <CylinderPart
+        partRef={heaterIndicatorRef}
+        position={[0.5, 0.352, -0.53]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[0.032, 0.012, 0.032]}
+        material={heaterIndicatorMaterial}
+        castShadow={false}
+      />
+      <BoxPart
+        position={[0.59, 0.348, -0.42]}
+        scale={[0.13, 0.025, 0.11]}
+        material={orangeGripMaterial}
+        castShadow={false}
+      />
     </group>
   )
 }
@@ -513,22 +608,67 @@ function FiberProtectionSleeve({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = 1,
+  outerTubeRef,
+  innerTubeRef,
+  reinforcementRodRef,
+  highlighted = false,
+  onPointerEnter,
+  onPointerLeave,
+  onClick,
 }) {
   return (
     <group position={position} rotation={rotation} scale={scale}>
       <CylinderPart
-        position={[0, 0.028, 0]}
+        partRef={outerTubeRef}
+        position={[0, 0, 0]}
         rotation={[0, 0, Math.PI / 2]}
-        scale={[0.025, 0.34, 0.025]}
-        material={sleeveMaterial}
+        scale={[0.068, 0.38, 0.068]}
+        material={sleeveOuterMaterial}
+        receiveShadow
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
+        onClick={onClick}
       />
       <CylinderPart
-        position={[0, 0.028, 0]}
+        partRef={innerTubeRef}
+        position={[0, -0.012, 0]}
         rotation={[0, 0, Math.PI / 2]}
-        scale={[0.008, 0.35, 0.008]}
+        scale={[0.055, 0.34, 0.055]}
+        material={sleeveInnerMaterial}
+        castShadow={false}
+      />
+      <CylinderPart
+        partRef={reinforcementRodRef}
+        position={[0, 0.019, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+        scale={[0.009, 0.35, 0.009]}
         material={bladeMaterial}
         castShadow={false}
       />
+      {highlighted && (
+        <CylinderPart
+          position={[0, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+          scale={[0.081, 0.4, 0.081]}
+          material={sleeveHighlightMaterial}
+          castShadow={false}
+          onPointerEnter={onPointerEnter}
+          onPointerLeave={onPointerLeave}
+          onClick={onClick}
+        />
+      )}
+      {onClick && (
+        <CylinderPart
+          position={[0, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+          scale={[0.12, 0.5, 0.12]}
+          material={sleeveHitMaterial}
+          castShadow={false}
+          onPointerEnter={onPointerEnter}
+          onPointerLeave={onPointerLeave}
+          onClick={onClick}
+        />
+      )}
     </group>
   )
 }
