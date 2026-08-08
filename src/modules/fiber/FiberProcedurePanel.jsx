@@ -17,7 +17,7 @@ export default function FiberProcedurePanel({
   onRestartStep,
   onRestartModule,
   onReturnTool,
-  onCompleteTraining,
+  onViewAssessment,
   onExit,
 }) {
   const activeModuleId = useFiberTrainingStore(
@@ -213,6 +213,7 @@ export default function FiberProcedurePanel({
 
       {finalInspectionPassed && (
         <div className="fiber-final-inspection" role="status">
+          <strong>Fiber Optic Fusion Splicing Completed</strong>
           <strong>FINAL SPLICE INSPECTION</strong>
           <span>Fusion Joint: PASS</span>
           <span>Estimated Loss: {(spliceLossDb ?? 0.03).toFixed(2)} dB</span>
@@ -251,10 +252,10 @@ export default function FiberProcedurePanel({
           <div className="training-actions procedure-primary-actions">
             <button
               type="button"
-              onClick={onCompleteTraining}
+              onClick={onViewAssessment}
               disabled={isProcedureAnimating}
             >
-              Complete Training
+              View Assessment
             </button>
           </div>
         )}

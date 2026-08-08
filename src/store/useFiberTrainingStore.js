@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import {
+  calculateFiberAssessmentResult,
+  createInitialFiberAssessmentState,
+  FIBER_ASSESSMENT_MISTAKE_TYPES,
+  FIBER_ASSESSMENT_STAGE_IDS,
+  FIBER_ASSESSMENT_STAGES,
+  FIBER_MISTAKE_GUARD_WINDOW_MS,
+} from '../modules/fiber/fiberAssessment.js'
+import {
   FIBER_CABLE_ID,
   FIBER_MODULE_ID,
   FIBER_PROCEDURE_STEPS,
@@ -220,13 +228,14 @@ function createInitialFiberState() {
     fiberCleaved: false,
     fiberPreparationComplete: false,
     ...createInitialSplicerState(),
-    wrongToolCount: 0,
+    ...createInitialFiberAssessmentState(),
   }
 }
 
 function createStartedFiberState() {
   return {
     ...createInitialFiberState(),
+    ...createInitialFiberAssessmentState(Date.now()),
     activeModuleId: FIBER_MODULE_ID,
     currentStep: FIBER_PROCEDURE_STEPS.SELECT_FIBER_CABLE,
     trainingStarted: true,
@@ -239,6 +248,115 @@ function addCompletedSteps(completedSteps, ...stepIds) {
 
 function removeCompletedSteps(completedSteps, stepIds) {
   return completedSteps.filter((stepId) => !stepIds.includes(stepId))
+}
+
+function addCompletedProcedureStages(completedProcedureStages, ...stageIds) {
+  return [...new Set([...completedProcedureStages, ...stageIds])]
+}
+
+function createFiberMistakeUpdate(
+  state,
+  mistakeType,
+  signature = mistakeType,
+  recordedAt = Date.now(),
+) {
+  if (
+    !state.assessmentStartTime ||
+    (state.assessmentEndTime &&
+      mistakeType !== FIBER_ASSESSMENT_MISTAKE_TYPES.RESTART_STEP) ||
+    state.assessmentVisible ||
+    (state.lastMistakeSignature === signature &&
+      recordedAt - state.lastMistakeRecordedAt <
+        FIBER_MISTAKE_GUARD_WINDOW_MS)
+  ) {
+    return {}
+  }
+
+  const update = {
+    mistakeCount: state.mistakeCount + 1,
+    lastMistakeSignature: signature,
+    lastMistakeRecordedAt: recordedAt,
+  }
+
+  if (mistakeType === FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL) {
+    update.wrongToolCount = state.wrongToolCount + 1
+  } else if (mistakeType === FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE) {
+    update.sequenceErrorCount = state.sequenceErrorCount + 1
+  } else if (mistakeType === FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION) {
+    update.preparationErrorCount = state.preparationErrorCount + 1
+  } else if (
+    mistakeType === FIBER_ASSESSMENT_MISTAKE_TYPES.INCORRECT_ACTION
+  ) {
+    update.incorrectActionCount = state.incorrectActionCount + 1
+  } else if (mistakeType === FIBER_ASSESSMENT_MISTAKE_TYPES.RESTART_STEP) {
+    update.restartStepCount = state.restartStepCount + 1
+  }
+
+  const normalizedSignature = String(signature).toLowerCase()
+
+  if (normalizedSignature.includes('clean')) {
+    update.cleaningMistakeCount = state.cleaningMistakeCount + 1
+  }
+
+  if (
+    normalizedSignature.includes('cleav') ||
+    normalizedSignature.includes('load-fiber')
+  ) {
+    update.cleavingMistakeCount = state.cleavingMistakeCount + 1
+  }
+
+  return update
+}
+
+function createFiberErrorUpdate(
+  state,
+  mistakeType,
+  signature,
+  procedureFeedback,
+) {
+  return {
+    ...createFiberMistakeUpdate(state, mistakeType, signature),
+    procedureFeedback,
+  }
+}
+
+function createFiberAssessmentCompletionUpdate(
+  state,
+  completedProcedureStages,
+  assessmentEndTime = Date.now(),
+) {
+  return {
+    assessmentEndTime,
+    ...calculateFiberAssessmentResult({
+      ...state,
+      finalInspectionPassed: true,
+      completedProcedureStages,
+      assessmentEndTime,
+    }),
+  }
+}
+
+function createReopenedFiberAssessmentState(state) {
+  return {
+    assessmentEndTime: null,
+    elapsedTimeMs: 0,
+    finalScore: null,
+    performanceRating: null,
+    procedureAccuracy: 100,
+    scoreBreakdown: null,
+    assessmentFeedback: [],
+    assessmentVisible: false,
+    assessmentAlignmentResult: 'PENDING',
+    assessmentFusionResult: 'PENDING',
+    assessmentProtectionResult: 'PENDING',
+    assessmentHeaterResult: 'PENDING',
+    assessmentFinalInspectionResult: 'PENDING',
+    assessmentOverallResult: 'PENDING',
+    completedProcedureStages: state.completedProcedureStages.filter(
+      (stageId) =>
+        stageId !== FIBER_ASSESSMENT_STAGE_IDS.FINAL_INSPECTION_PASSED,
+    ),
+  }
 }
 
 function createCompletedFusionState(state) {
@@ -259,9 +377,114 @@ function createCompletedFusionState(state) {
 const useFiberTrainingStore = create((set) => ({
   ...createInitialFiberState(),
 
+  startFiberAssessment: () =>
+    set((state) =>
+      state.trainingStarted && !state.assessmentStartTime
+        ? createInitialFiberAssessmentState(Date.now())
+        : {},
+    ),
+  recordFiberMistake: (mistakeType, signature) => {
+    set((state) => createFiberMistakeUpdate(state, mistakeType, signature))
+  },
+  recordFiberWrongTool: (toolId) => {
+    set((state) =>
+      createFiberMistakeUpdate(
+        state,
+        FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+        `wrong-tool:${state.currentStep}:${toolId}`,
+      ),
+    )
+  },
+  recordFiberSequenceError: (signature = 'manual-sequence-error') => {
+    set((state) =>
+      createFiberMistakeUpdate(
+        state,
+        FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+        signature,
+      ),
+    )
+  },
+  recordFiberPreparationError: (signature = 'manual-preparation-error') => {
+    set((state) =>
+      createFiberMistakeUpdate(
+        state,
+        FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION,
+        signature,
+      ),
+    )
+  },
+  recordFiberIncorrectAction: (signature = 'manual-incorrect-action') => {
+    set((state) =>
+      createFiberMistakeUpdate(
+        state,
+        FIBER_ASSESSMENT_MISTAKE_TYPES.INCORRECT_ACTION,
+        signature,
+      ),
+    )
+  },
+  recordFiberRestartStep: () => {
+    set((state) =>
+      createFiberMistakeUpdate(
+        state,
+        FIBER_ASSESSMENT_MISTAKE_TYPES.RESTART_STEP,
+        `restart-step:${state.currentStep}`,
+      ),
+    )
+  },
+  completeFiberStage: (stageId) => {
+    set((state) =>
+      FIBER_ASSESSMENT_STAGES.some((stage) => stage.id === stageId)
+        ? {
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              stageId,
+            ),
+          }
+        : {},
+    )
+  },
+  completeFiberAssessment: () => {
+    set((state) => {
+      if (
+        !state.assessmentStartTime ||
+        state.assessmentEndTime ||
+        !state.finalInspectionPassed
+      ) {
+        return {}
+      }
+
+      return createFiberAssessmentCompletionUpdate(
+        state,
+        state.completedProcedureStages,
+      )
+    })
+  },
+  resetFiberAssessment: () => set(createInitialFiberAssessmentState()),
+  openFiberAssessment: () => {
+    set((state) =>
+      state.finalInspectionPassed && Number.isFinite(state.finalScore)
+        ? { assessmentVisible: true }
+        : {},
+    )
+  },
   beginFiberTraining: () => set(createStartedFiberState()),
   selectFiberCable: (workpieceId) => {
     set((state) => {
+      if (
+        state.activeModuleId === FIBER_MODULE_ID &&
+        state.trainingStarted &&
+        state.currentStep === FIBER_PROCEDURE_STEPS.SELECT_FIBER_CABLE &&
+        workpieceId !== FIBER_CABLE_ID &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.INCORRECT_ACTION,
+          `select-fiber-cable:${workpieceId}`,
+          'Select the fiber optic cable to begin preparation.',
+        )
+      }
+
       if (
         state.activeModuleId !== FIBER_MODULE_ID ||
         !state.trainingStarted ||
@@ -279,6 +502,10 @@ const useFiberTrainingStore = create((set) => ({
         completedSteps: addCompletedSteps(
           state.completedSteps,
           FIBER_PROCEDURE_STEPS.SELECT_FIBER_CABLE,
+        ),
+        completedProcedureStages: addCompletedProcedureStages(
+          state.completedProcedureStages,
+          FIBER_ASSESSMENT_STAGE_IDS.CABLE_SELECTED,
         ),
       }
     })
@@ -300,10 +527,12 @@ const useFiberTrainingStore = create((set) => ({
       }
 
       if (toolId !== rule.toolId) {
-        return {
-          procedureFeedback: rule.feedback,
-          wrongToolCount: state.wrongToolCount + 1,
-        }
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:${state.currentStep}:${toolId}`,
+          rule.feedback,
+        )
       }
 
       return {
@@ -364,6 +593,19 @@ const useFiberTrainingStore = create((set) => ({
   startOuterJacketStripping: (toolId) => {
     set((state) => {
       if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.STRIP_OUTER_JACKET &&
+        !state.isProcedureAnimating &&
+        toolId !== FIBER_TOOL_IDS.JACKET_STRIPPER
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:strip-outer-jacket:${toolId}`,
+          'Use the fiber jacket stripper to remove the outer cable jacket.',
+        )
+      }
+
+      if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.STRIP_OUTER_JACKET ||
         state.selectedWorkpieceId !== FIBER_CABLE_ID ||
         toolId !== FIBER_TOOL_IDS.JACKET_STRIPPER ||
@@ -396,12 +638,42 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.OUTER_JACKET_REMOVED,
               FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.OUTER_JACKET_REMOVED,
+            ),
           }
         : {},
     )
   },
   startFiberCoatingStripping: (toolId) => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.STRIP_FIBER_COATING &&
+        !state.outerJacketRemoved &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:strip-coating-before-jacket',
+          'Remove the outer jacket before stripping the fiber coating.',
+        )
+      }
+
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.STRIP_FIBER_COATING &&
+        !state.isProcedureAnimating &&
+        toolId !== FIBER_TOOL_IDS.PRECISION_STRIPPER
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:strip-fiber-coating:${toolId}`,
+          'Use the precision fiber stripper to remove the fiber coating.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.STRIP_FIBER_COATING ||
         !state.outerJacketRemoved ||
@@ -435,12 +707,42 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.STRIPPING_FIBER_COATING,
               FIBER_PROCEDURE_STEPS.COATING_REMOVED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.COATING_REMOVED,
+            ),
           }
         : {},
     )
   },
   startFiberCleaning: (toolId) => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.CLEAN_BARE_FIBER &&
+        (!state.coatingRemoved || !state.bareFiberExposed) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:clean-before-coating-removal',
+          'Expose the bare fiber before cleaning it.',
+        )
+      }
+
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.CLEAN_BARE_FIBER &&
+        !state.isProcedureAnimating &&
+        toolId !== FIBER_TOOL_IDS.CLEANING_PAD
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:clean-fiber:${toolId}`,
+          'Use the lint-free fiber cleaning wipe to clean the bare fiber.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.CLEAN_BARE_FIBER ||
         !state.coatingRemoved ||
@@ -474,12 +776,44 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.CLEANING_FIBER,
               FIBER_PROCEDURE_STEPS.FIBER_CLEANED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FIBER_CLEANED,
+            ),
           }
         : {},
     )
   },
   startFiberPositioning: (toolId) => {
     set((state) => {
+      if (
+        state.currentStep ===
+          FIBER_PROCEDURE_STEPS.POSITION_FIBER_IN_CLEAVER &&
+        !state.fiberCleaned &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:position-unclean-fiber-in-cleaver',
+          'Clean the bare fiber before positioning it in the cleaver.',
+        )
+      }
+
+      if (
+        state.currentStep ===
+          FIBER_PROCEDURE_STEPS.POSITION_FIBER_IN_CLEAVER &&
+        !state.isProcedureAnimating &&
+        toolId !== FIBER_TOOL_IDS.CLEAVER
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:position-fiber-in-cleaver:${toolId}`,
+          'Use the fiber cleaver for precise fiber positioning.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.POSITION_FIBER_IN_CLEAVER ||
         !state.fiberCleaned ||
@@ -519,6 +853,34 @@ const useFiberTrainingStore = create((set) => ({
   startFiberCleaving: (toolId) => {
     set((state) => {
       if (
+        state.currentStep ===
+          FIBER_PROCEDURE_STEPS.FIBER_POSITIONED_FOR_CLEAVE &&
+        (!state.fiberCleaned || !state.fiberPositionedInCleaver) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION,
+          'preparation:cleave-fiber-not-ready',
+          'Clean and position the fiber in the cleaver first.',
+        )
+      }
+
+      if (
+        state.currentStep ===
+          FIBER_PROCEDURE_STEPS.FIBER_POSITIONED_FOR_CLEAVE &&
+        !state.isProcedureAnimating &&
+        toolId !== FIBER_TOOL_IDS.CLEAVER
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:cleave-fiber:${toolId}`,
+          'Use the fiber cleaver to make a square end face.',
+        )
+      }
+
+      if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.FIBER_POSITIONED_FOR_CLEAVE ||
         !state.fiberCleaned ||
         !state.fiberPositionedInCleaver ||
@@ -557,12 +919,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.FIBER_CLEAVED,
               FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FIBER_CLEAVED,
+            ),
           }
         : {},
     )
   },
   startFiberALoading: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.LOAD_FIBER_A &&
+        (!state.fiberPreparationComplete || !state.fiberBPrepared) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION,
+          'preparation:load-fiber-a-before-preparation',
+          'Prepare both fibers before loading Fiber A into the splicer.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.LOAD_FIBER_A ||
         !state.fiberPreparationComplete ||
@@ -595,12 +974,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.LOADING_FIBER_A,
               FIBER_PROCEDURE_STEPS.FIBER_A_LOADED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FIBER_A_LOADED,
+            ),
           }
         : {},
     )
   },
   startFiberBLoading: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.LOAD_FIBER_B &&
+        (!state.fiberALoaded || !state.fiberBPrepared) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION,
+          'preparation:load-fiber-b-before-fiber-a',
+          'Load the prepared Fiber A before loading Fiber B.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.LOAD_FIBER_B ||
         !state.fiberALoaded ||
@@ -633,12 +1029,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.LOADING_FIBER_B,
               FIBER_PROCEDURE_STEPS.FIBER_B_LOADED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FIBER_B_LOADED,
+            ),
           }
         : {},
     )
   },
   startSplicerClamping: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS &&
+        (!state.fiberALoaded || !state.fiberBLoaded) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.PREPARATION,
+          'preparation:clamp-before-loading-both-fibers',
+          'Load both fibers before closing the splicer clamps.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS ||
         !state.fiberALoaded ||
@@ -671,12 +1084,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.CLOSING_CLAMPS,
               FIBER_PROCEDURE_STEPS.FIBERS_SECURED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FIBERS_SECURED,
+            ),
           }
         : {},
     )
   },
   startSplicerLidClosing: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.CLOSE_SPLICER_LID &&
+        !state.fiberClampsClosed &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:close-lid-before-clamps',
+          'Close the fiber clamps before closing the splicer lid.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.CLOSE_SPLICER_LID ||
         !state.fiberClampsClosed ||
@@ -708,6 +1138,10 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.CLOSING_SPLICER_LID,
               FIBER_PROCEDURE_STEPS.LID_CLOSED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.SPLICER_LID_CLOSED,
+            ),
           }
         : {},
     )
@@ -723,17 +1157,21 @@ const useFiberTrainingStore = create((set) => ({
         state.fiberCleaved &&
         state.fiberBPrepared
 
-      if (
-        state.currentStep !== FIBER_PROCEDURE_STEPS.AUTO_ALIGNMENT ||
-        !prerequisitesMet ||
-        state.alignmentStarted ||
-        state.isProcedureAnimating
-      ) {
-        return {
-          procedureFeedback: prerequisitesMet
-            ? state.procedureFeedback
-            : 'Load and secure both prepared fibers before alignment.',
-        }
+      if (state.currentStep !== FIBER_PROCEDURE_STEPS.AUTO_ALIGNMENT) {
+        return {}
+      }
+
+      if (!prerequisitesMet) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:alignment-before-fibers-secured',
+          'Load and secure both prepared fibers before alignment.',
+        )
+      }
+
+      if (state.alignmentStarted || state.isProcedureAnimating) {
+        return {}
       }
 
       return {
@@ -759,6 +1197,10 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.ALIGNING,
               FIBER_PROCEDURE_STEPS.ALIGNMENT_COMPLETE,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.ALIGNMENT_COMPLETE,
+            ),
           }
         : {},
     )
@@ -775,17 +1217,21 @@ const useFiberTrainingStore = create((set) => ({
         state.fiberBPrepared &&
         state.alignmentComplete
 
-      if (
-        state.currentStep !== FIBER_PROCEDURE_STEPS.READY_TO_FUSE ||
-        !prerequisitesMet ||
-        state.fusionComplete ||
-        state.isProcedureAnimating
-      ) {
-        return {
-          procedureFeedback: !state.alignmentComplete
-            ? 'Complete fiber alignment before starting fusion.'
-            : state.procedureFeedback,
-        }
+      if (state.currentStep !== FIBER_PROCEDURE_STEPS.READY_TO_FUSE) {
+        return {}
+      }
+
+      if (!prerequisitesMet) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:fusion-before-alignment',
+          'Complete fiber alignment before starting fusion.',
+        )
+      }
+
+      if (state.fusionComplete || state.isProcedureAnimating) {
+        return {}
       }
 
       return {
@@ -812,6 +1258,11 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.FUSING,
               FIBER_PROCEDURE_STEPS.FUSION_COMPLETE,
               FIBER_PROCEDURE_STEPS.SPLICE_RESULT,
+            ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.FUSION_COMPLETE,
+              FIBER_ASSESSMENT_STAGE_IDS.SPLICE_LOSS_PASSED,
             ),
           }
         : {},
@@ -939,17 +1390,21 @@ const useFiberTrainingStore = create((set) => ({
       }
 
       if (objectId !== FIBER_TOOL_IDS.PROTECTION_SLEEVE) {
-        return {
-          procedureFeedback:
-            'Use the splice protection sleeve to protect the fused fiber joint.',
-          wrongToolCount: state.wrongToolCount + 1,
-        }
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.WRONG_TOOL,
+          `wrong-tool:${state.currentStep}:${objectId}`,
+          'Use the splice protection sleeve to protect the fused fiber joint.',
+        )
       }
 
       if (!state.fusionComplete || !state.fusedFiberRemoved) {
-        return {
-          procedureFeedback: 'Complete and remove the fused fiber first.',
-        }
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:sleeve-before-fused-fiber-removal',
+          'Complete and remove the fused fiber first.',
+        )
       }
 
       return {
@@ -965,6 +1420,20 @@ const useFiberTrainingStore = create((set) => ({
   },
   startProtectionSleevePositioning: () => {
     set((state) => {
+      if (
+        state.currentStep ===
+          FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE &&
+        (!state.protectionSleeveSelected || !state.fusionComplete) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:position-protection-sleeve-before-selection',
+          'Select the protection sleeve after completing the fusion splice.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.POSITION_PROTECTION_SLEEVE ||
         !state.protectionSleeveSelected ||
@@ -998,12 +1467,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.POSITIONING_PROTECTION_SLEEVE,
               FIBER_PROCEDURE_STEPS.PROTECTION_SLEEVE_POSITIONED,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.PROTECTION_SLEEVE_INSTALLED,
+            ),
           }
         : {},
     )
   },
   startHeaterPositioning: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER &&
+        !state.protectionSleevePositioned &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:heater-before-sleeve-positioned',
+          'Center the protection sleeve over the splice before heating.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.PLACE_IN_HEATER ||
         !state.protectionSleevePositioned ||
@@ -1042,6 +1528,19 @@ const useFiberTrainingStore = create((set) => ({
   startHeaterClosing: () => {
     set((state) => {
       if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.CLOSE_HEATER &&
+        !state.spliceInHeater &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:close-heater-before-loading-splice',
+          'Place the protected splice in the heater before closing it.',
+        )
+      }
+
+      if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.CLOSE_HEATER ||
         !state.spliceInHeater ||
         state.heaterClosed ||
@@ -1077,6 +1576,19 @@ const useFiberTrainingStore = create((set) => ({
   },
   startProtectionSleeveHeating: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.READY_TO_HEAT &&
+        (!state.spliceInHeater || !state.heaterClosed) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:heat-before-heater-ready',
+          'Load the splice and close the heater before starting the cycle.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.READY_TO_HEAT ||
         !state.spliceInHeater ||
@@ -1130,12 +1642,29 @@ const useFiberTrainingStore = create((set) => ({
               FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE,
               FIBER_PROCEDURE_STEPS.HEATING_COMPLETE,
             ),
+            completedProcedureStages: addCompletedProcedureStages(
+              state.completedProcedureStages,
+              FIBER_ASSESSMENT_STAGE_IDS.SLEEVE_HEAT_SHRUNK,
+            ),
           }
         : {},
     )
   },
   startHeaterOpening: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.OPEN_HEATER &&
+        (!state.heatingComplete || !state.coolingComplete) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:open-heater-before-cooling',
+          'Wait for the heating and cooling cycle to finish.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.OPEN_HEATER ||
         !state.heaterClosed ||
@@ -1173,6 +1702,19 @@ const useFiberTrainingStore = create((set) => ({
   },
   startProtectedSpliceRemoval: () => {
     set((state) => {
+      if (
+        state.currentStep === FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER &&
+        (state.heaterClosed || !state.coolingComplete) &&
+        !state.isProcedureAnimating
+      ) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:remove-splice-before-heater-open',
+          'Open the heater after cooling before removing the protected splice.',
+        )
+      }
+
       if (
         state.currentStep !== FIBER_PROCEDURE_STEPS.REMOVE_FROM_HEATER ||
         state.heaterClosed ||
@@ -1229,19 +1771,37 @@ const useFiberTrainingStore = create((set) => ({
         state.coolingComplete &&
         state.protectedSpliceRemoved
 
-      return inspectionPassed
-        ? {
-            procedureFeedback: 'Final protected splice inspection: PASS.',
-            finalInspectionPassed: true,
-            completedSteps: addCompletedSteps(
-              state.completedSteps,
-              FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
-            ),
-          }
-        : {
-            procedureFeedback:
-              'Complete sleeve installation, heating, and removal before inspection.',
-          }
+      if (!inspectionPassed) {
+        return createFiberErrorUpdate(
+          state,
+          FIBER_ASSESSMENT_MISTAKE_TYPES.SEQUENCE,
+          'sequence:final-inspection-before-protection-complete',
+          'Complete sleeve installation, heating, and removal before inspection.',
+        )
+      }
+
+      const completedProcedureStages = addCompletedProcedureStages(
+        state.completedProcedureStages,
+        FIBER_ASSESSMENT_STAGE_IDS.FINAL_INSPECTION_PASSED,
+      )
+      const assessmentUpdate =
+        state.assessmentStartTime && !state.assessmentEndTime
+          ? createFiberAssessmentCompletionUpdate(
+              state,
+              completedProcedureStages,
+            )
+          : {}
+
+      return {
+        procedureFeedback: 'Final protected splice inspection: PASS.',
+        finalInspectionPassed: true,
+        completedSteps: addCompletedSteps(
+          state.completedSteps,
+          FIBER_PROCEDURE_STEPS.FINAL_INSPECTION,
+        ),
+        completedProcedureStages,
+        ...assessmentUpdate,
+      }
     })
   },
   completeFiberModule: () => {
@@ -1679,6 +2239,7 @@ const useFiberTrainingStore = create((set) => ({
             state.completedSteps,
             finalInspectionSteps,
           ),
+          ...createReopenedFiberAssessmentState(state),
         }
       }
 

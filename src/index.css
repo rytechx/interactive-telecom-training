@@ -1061,6 +1061,70 @@ canvas {
   scrollbar-width: thin;
 }
 
+.fiber-assessment-panel {
+  width: min(1080px, calc(100vw - 48px));
+}
+
+.fiber-assessment-grid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+}
+
+.fiber-splice-quality dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.fiber-splice-quality dl div {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  background: rgb(54 166 187 / 8%);
+  border: 1px solid rgb(100 204 224 / 12%);
+  border-radius: 6px;
+}
+
+.fiber-splice-quality dt {
+  color: #9fb3bb;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.fiber-splice-quality dd {
+  margin: 0;
+  color: #9ee8d5;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.fiber-splice-quality p {
+  margin: 11px 0 0;
+  color: #8fa2aa;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.assessment-score-breakdown .assessment-deduction-row strong {
+  color: #ffadad;
+}
+
+.fiber-procedure-review ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 28px;
+  margin: 0;
+  padding-left: 24px;
+  color: #cfdbdf;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fiber-procedure-review li::marker {
+  color: #86d8ee;
+  font-weight: 800;
+}
+
 .assessment-header {
   display: flex;
   align-items: center;
@@ -1339,6 +1403,10 @@ canvas {
     padding: 18px;
   }
 
+  .fiber-assessment-panel {
+    width: calc(100vw - 28px);
+  }
+
   .assessment-header {
     align-items: stretch;
     flex-direction: column;
@@ -1352,6 +1420,11 @@ canvas {
 
   .assessment-content-grid,
   .assessment-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .fiber-splice-quality dl,
+  .fiber-procedure-review ol {
     grid-template-columns: 1fr;
   }
 

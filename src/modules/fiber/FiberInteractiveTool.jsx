@@ -76,6 +76,9 @@ export default function FiberInteractiveTool({ tool, children }) {
   const isProcedureAnimating = useFiberTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const assessmentVisible = useFiberTrainingStore(
+    (state) => state.assessmentVisible,
+  )
   const hoveredToolId = useToolStore((state) => state.hoveredToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
@@ -93,6 +96,7 @@ export default function FiberInteractiveTool({ tool, children }) {
     activeWorkstationId === FIBER_WORKSTATION.id &&
     workstationPhase === WORKSTATION_PHASES.FOCUSED &&
     isTrainingMode &&
+    !assessmentVisible &&
     Boolean(expectedToolId) &&
     toolViewState === TOOL_VIEW_STATES.IDLE &&
     !activeToolId &&

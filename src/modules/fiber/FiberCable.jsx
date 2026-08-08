@@ -167,6 +167,9 @@ export default function FiberCable({
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
+  const assessmentVisible = useFiberTrainingStore(
+    (state) => state.assessmentVisible,
+  )
   const cableAssemblyRef = useRef(null)
   const jacketRef = useRef(null)
   const jacketOffcutRef = useRef(null)
@@ -270,12 +273,13 @@ export default function FiberCable({
     activeToolId === FIBER_TOOL_IDS.CLEAVER &&
     canUseWorkpiece
   const canInteract =
-    canSelectCable ||
-    canStripJacket ||
-    canStripCoating ||
-    canCleanFiber ||
-    canPositionFiber ||
-    canCleaveFiber
+    !assessmentVisible &&
+    (canSelectCable ||
+      canStripJacket ||
+      canStripCoating ||
+      canCleanFiber ||
+      canPositionFiber ||
+      canCleaveFiber)
   const isHovered = canInteract && hoveredObjectId === FIBER_CABLE_ID
   const showDedicatedCleaver =
     activeToolId === FIBER_TOOL_IDS.CLEAVER &&

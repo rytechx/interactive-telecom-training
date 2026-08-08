@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import FiberAssessment from '../modules/fiber/FiberAssessment.jsx'
 import FiberProcedurePanel from '../modules/fiber/FiberProcedurePanel.jsx'
 import { isFiberRestartableStep } from '../modules/fiber/fiberProcedure.js'
 import { getFiberToolConfig } from '../modules/fiber/fiberToolConfigs.js'
@@ -8,6 +9,12 @@ import useInteractionStore, {
 } from '../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../workstations/workstationConfigs.js'
+
+function releasePointerLock() {
+  if (document.pointerLockElement) {
+    document.exitPointerLock()
+  }
+}
 
 export default function FiberInteractionSystem() {
   const activeWorkstationId = useInteractionStore(
@@ -24,6 +31,9 @@ export default function FiberInteractionSystem() {
   )
   const trainingStarted = useFiberTrainingStore(
     (state) => state.trainingStarted,
+  )
+  const assessmentVisible = useFiberTrainingStore(
+    (state) => state.assessmentVisible,
   )
   const beginFiberTraining = useFiberTrainingStore(
     (state) => state.beginFiberTraining,
@@ -42,6 +52,12 @@ export default function FiberInteractionSystem() {
   )
   const completeFiberModule = useFiberTrainingStore(
     (state) => state.completeFiberModule,
+  )
+  const openFiberAssessment = useFiberTrainingStore(
+    (state) => state.openFiberAssessment,
+  )
+  const recordFiberRestartStep = useFiberTrainingStore(
+    (state) => state.recordFiberRestartStep,
   )
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
@@ -78,8 +94,13 @@ export default function FiberInteractionSystem() {
       event.preventDefault()
       event.stopPropagation()
 
+      if (fiberState.assessmentVisible) {
+        return
+      }
+
       if (toolState.activeToolId) {
         if (isFiberRestartableStep(fiberState.currentStep)) {
+          fiberState.recordFiberRestartStep()
           fiberState.restartFiberStep()
         }
         toolState.returnActiveTool()
@@ -123,6 +144,7 @@ export default function FiberInteractionSystem() {
 
   const handleRestartStep = () => {
     resetToolState()
+    recordFiberRestartStep()
     restartFiberStep()
   }
 
@@ -136,14 +158,18 @@ export default function FiberInteractionSystem() {
     restartFiberTraining()
   }
 
-  const handleCompleteTraining = () => {
+  const handleViewAssessment = () => {
+    resetToolState()
+    releasePointerLock()
     completeFiberModule()
+    openFiberAssessment()
   }
 
   const handleReturnTool = () => {
     const fiberState = useFiberTrainingStore.getState()
 
     if (isFiberRestartableStep(fiberState.currentStep)) {
+      fiberState.recordFiberRestartStep()
       fiberState.restartFiberStep()
     }
 
@@ -176,15 +202,24 @@ export default function FiberInteractionSystem() {
       )}
 
       {workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode && (
-        <div className="training-overlay fiber-training-overlay">
-          {trainingStarted &&
+        <div
+          className={`training-overlay fiber-training-overlay${
+            assessmentVisible ? ' is-assessment' : ''
+          }`}
+        >
+          {assessmentVisible ? (
+            <FiberAssessment
+              onRetry={handleRestartModule}
+              onReturnToLaboratory={handleExit}
+            />
+          ) : trainingStarted &&
           toolViewState !== TOOL_VIEW_STATES.INSPECTING ? (
             <FiberProcedurePanel
               onContinue={handleContinue}
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
               onReturnTool={handleReturnTool}
-              onCompleteTraining={handleCompleteTraining}
+              onViewAssessment={handleViewAssessment}
               onExit={handleExit}
             />
           ) : !trainingStarted ? (
@@ -218,7 +253,9 @@ export default function FiberInteractionSystem() {
         </div>
       )}
 
-      {toolViewState === TOOL_VIEW_STATES.INSPECTING && selectedTool && (
+      {!assessmentVisible &&
+        toolViewState === TOOL_VIEW_STATES.INSPECTING &&
+        selectedTool && (
         <aside
           className="tool-inspection-panel fiber-tool-inspection"
           aria-labelledby="fiber-tool-title"

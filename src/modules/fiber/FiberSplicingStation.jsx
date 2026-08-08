@@ -625,10 +625,14 @@ export default function FiberSplicingStation({
   const inspectProtectedSplice = useFiberTrainingStore(
     (state) => state.inspectProtectedSplice,
   )
+  const assessmentVisible = useFiberTrainingStore(
+    (state) => state.assessmentVisible,
+  )
   const toolViewState = useToolStore((state) => state.toolViewState)
   const actionConfig = getActionConfig(currentStep)
   const canInteract =
     Boolean(actionConfig) &&
+    !assessmentVisible &&
     !isProcedureAnimating &&
     toolViewState === TOOL_VIEW_STATES.IDLE
   const isHovered =
