@@ -337,6 +337,17 @@ canvas {
   border-color: rgb(105 202 222 / 34%);
 }
 
+.fiber-cleave-quality {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  color: #d8f5e1;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgb(64 158 98 / 18%);
+  border: 1px solid rgb(92 202 132 / 32%);
+  border-radius: 6px;
+}
+
 .connector-orientation-instruction {
   display: grid;
   gap: 5px;

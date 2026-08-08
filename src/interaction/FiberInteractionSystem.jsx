@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import FiberProcedurePanel from '../modules/fiber/FiberProcedurePanel.jsx'
-import {
-  FIBER_PROCEDURE_STEPS,
-} from '../modules/fiber/fiberProcedure.js'
+import { isFiberRestartableStep } from '../modules/fiber/fiberProcedure.js'
 import { getFiberToolConfig } from '../modules/fiber/fiberToolConfigs.js'
 import useFiberTrainingStore from '../store/useFiberTrainingStore.js'
 import useInteractionStore, {
@@ -10,13 +8,6 @@ import useInteractionStore, {
 } from '../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../workstations/workstationConfigs.js'
-
-const strippingSteps = [
-  FIBER_PROCEDURE_STEPS.STRIP_OUTER_JACKET,
-  FIBER_PROCEDURE_STEPS.STRIPPING_OUTER_JACKET,
-  FIBER_PROCEDURE_STEPS.OUTER_JACKET_REMOVED,
-  FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE,
-]
 
 export default function FiberInteractionSystem() {
   const activeWorkstationId = useInteractionStore(
@@ -42,6 +33,9 @@ export default function FiberInteractionSystem() {
   )
   const restartFiberTraining = useFiberTrainingStore(
     (state) => state.restartFiberTraining,
+  )
+  const continueFiberProcedure = useFiberTrainingStore(
+    (state) => state.continueFiberProcedure,
   )
   const resetFiberTraining = useFiberTrainingStore(
     (state) => state.resetFiberTraining,
@@ -82,7 +76,7 @@ export default function FiberInteractionSystem() {
       event.stopPropagation()
 
       if (toolState.activeToolId) {
-        if (strippingSteps.includes(fiberState.currentStep)) {
+        if (isFiberRestartableStep(fiberState.currentStep)) {
           fiberState.restartFiberStep()
         }
         toolState.returnActiveTool()
@@ -129,6 +123,11 @@ export default function FiberInteractionSystem() {
     restartFiberStep()
   }
 
+  const handleContinue = () => {
+    resetToolState()
+    continueFiberProcedure()
+  }
+
   const handleRestartModule = () => {
     resetToolState()
     restartFiberTraining()
@@ -137,7 +136,7 @@ export default function FiberInteractionSystem() {
   const handleReturnTool = () => {
     const fiberState = useFiberTrainingStore.getState()
 
-    if (strippingSteps.includes(fiberState.currentStep)) {
+    if (isFiberRestartableStep(fiberState.currentStep)) {
       fiberState.restartFiberStep()
     }
 
@@ -174,6 +173,7 @@ export default function FiberInteractionSystem() {
           {trainingStarted &&
           toolViewState !== TOOL_VIEW_STATES.INSPECTING ? (
             <FiberProcedurePanel
+              onContinue={handleContinue}
               onRestartStep={handleRestartStep}
               onRestartModule={handleRestartModule}
               onReturnTool={handleReturnTool}

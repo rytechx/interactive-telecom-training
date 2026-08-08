@@ -5,17 +5,13 @@ import {
   FIBER_PROCEDURE_STEPS,
   FIBER_TOTAL_STEPS,
   getFiberProcedureStep,
+  isFiberContinuationStep,
+  isFiberRestartableStep,
 } from './fiberProcedure.js'
 import { getFiberToolConfig } from './fiberToolConfigs.js'
 
-const restartableSteps = [
-  FIBER_PROCEDURE_STEPS.STRIP_OUTER_JACKET,
-  FIBER_PROCEDURE_STEPS.STRIPPING_OUTER_JACKET,
-  FIBER_PROCEDURE_STEPS.OUTER_JACKET_REMOVED,
-  FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE,
-]
-
 export default function FiberProcedurePanel({
+  onContinue,
   onRestartStep,
   onRestartModule,
   onReturnTool,
@@ -34,14 +30,24 @@ export default function FiberProcedurePanel({
   const outerJacketRemoved = useFiberTrainingStore(
     (state) => state.outerJacketRemoved,
   )
+  const coatingRemoved = useFiberTrainingStore((state) => state.coatingRemoved)
+  const fiberCleaned = useFiberTrainingStore((state) => state.fiberCleaned)
+  const fiberCleaved = useFiberTrainingStore((state) => state.fiberCleaved)
   const selectedToolId = useToolStore((state) => state.selectedToolId)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const activeTool = getFiberToolConfig(activeToolId ?? selectedToolId)
   const procedureStep = getFiberProcedureStep(currentStep)
   const isComplete =
-    currentStep === FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE &&
-    outerJacketRemoved
-  const hasError = procedureFeedback?.startsWith('Use the ')
+    (currentStep === FIBER_PROCEDURE_STEPS.TASK_1_COMPLETE &&
+      outerJacketRemoved) ||
+    (currentStep === FIBER_PROCEDURE_STEPS.COATING_REMOVED &&
+      coatingRemoved) ||
+    (currentStep === FIBER_PROCEDURE_STEPS.FIBER_CLEANED && fiberCleaned) ||
+    (currentStep === FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE && fiberCleaved)
+  const hasError =
+    procedureFeedback?.startsWith('Use the ') ||
+    procedureFeedback?.startsWith('Position the ')
+  const canContinue = isFiberContinuationStep(currentStep)
 
   if (activeModuleId !== FIBER_MODULE_ID) {
     return null
@@ -83,6 +89,24 @@ export default function FiberProcedurePanel({
         <p className="procedure-next">{procedureStep.nextInstruction}</p>
       )}
 
+      {currentStep === FIBER_PROCEDURE_STEPS.TASK_2_COMPLETE && (
+        <p className="fiber-cleave-quality" role="status">
+          Clean square cleave achieved.
+        </p>
+      )}
+
+      {canContinue && (
+        <div className="training-actions procedure-primary-actions">
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={isProcedureAnimating}
+          >
+            Continue
+          </button>
+        </div>
+      )}
+
       <div className="training-actions procedure-secondary-actions">
         {activeToolId && (
           <button
@@ -94,7 +118,7 @@ export default function FiberProcedurePanel({
             Return Tool
           </button>
         )}
-        {restartableSteps.includes(currentStep) && (
+        {isFiberRestartableStep(currentStep) && (
           <button
             type="button"
             className="secondary"

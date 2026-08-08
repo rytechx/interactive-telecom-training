@@ -54,6 +54,10 @@ const FIBER_WORKSTATION = Object.freeze({
   technicianCameraTarget: Object.freeze([5.05, 0.94, -2.55]),
   technicianLightPosition: Object.freeze([5.25, 3.05, -2.05]),
   technicianTransitionDuration: 0.9,
+  cleavingCameraPosition: Object.freeze([4.13, 1.75, -2.27]),
+  cleavingCameraTarget: Object.freeze([4.08, 0.98, -2.9]),
+  cleavingLightPosition: Object.freeze([4.38, 2.78, -2.44]),
+  cleavingTransitionDuration: 0.78,
   transitionDuration: 1,
 })
 
