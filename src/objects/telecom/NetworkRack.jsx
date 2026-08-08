@@ -1,14 +1,11 @@
-import PatchPanel from './PatchPanel.jsx'
-import RouterUnit from './RouterUnit.jsx'
-import SwitchUnit from './SwitchUnit.jsx'
-
 export default function NetworkRack({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = 1,
-  width = 2,
-  height = 2.5,
-  depth = 1,
+  width = 2.05,
+  height = 2.85,
+  depth = 0.9,
+  children,
 }) {
   const postX = width / 2 - 0.08
   const postZ = depth / 2 - 0.08
@@ -18,6 +15,10 @@ export default function NetworkRack({
     [-postX, height / 2, postZ],
     [postX, height / 2, postZ],
   ]
+  const railHolePositions = Array.from(
+    { length: 12 },
+    (_, index) => 0.28 + index * 0.2,
+  )
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
@@ -46,9 +47,26 @@ export default function NetworkRack({
         </mesh>
       ))}
 
-      <RouterUnit position={[0, 1.62, 0.16]} />
-      <SwitchUnit position={[0, 1.31, 0.18]} />
-      <PatchPanel position={[0, 1.02, 0.22]} />
+      {[-width / 2 + 0.11, width / 2 - 0.11].map((railX) => (
+        <group key={railX} position={[railX, 0, depth / 2 + 0.005]}>
+          <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.1, height - 0.22, 0.065]} />
+            <meshStandardMaterial
+              color="#333c42"
+              metalness={0.75}
+              roughness={0.38}
+            />
+          </mesh>
+          {railHolePositions.map((holeY) => (
+            <mesh key={holeY} position={[0, holeY, 0.038]}>
+              <boxGeometry args={[0.035, 0.035, 0.012]} />
+              <meshStandardMaterial color="#080b0d" roughness={0.75} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+
+      {children}
     </group>
   )
 }

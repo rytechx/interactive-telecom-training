@@ -1,6 +1,7 @@
 import Ceiling from './Ceiling.jsx'
 import {
   FIBER_WORKSTATION,
+  NETWORK_WORKSTATION,
   RJ45_WORKSTATION,
 } from '../../workstations/workstationConfigs.js'
 import CeilingLights from './CeilingLights.jsx'
@@ -14,7 +15,7 @@ import Windows from './Windows.jsx'
 
 const rj45WorkbenchPosition = RJ45_WORKSTATION.interactionPosition
 const fiberWorkbenchPosition = FIBER_WORKSTATION.interactionPosition
-const networkRackPosition = [-4.8, 0, -9.2]
+const networkRackPosition = NETWORK_WORKSTATION.interactionPosition
 const storageCabinetPosition = [4.8, 0, -9.4]
 
 export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
@@ -40,7 +41,6 @@ export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
       />
       <TelecomEquipment
         rj45WorkbenchPosition={rj45WorkbenchPosition}
-        networkRackPosition={networkRackPosition}
       />
       <LabColliders
         width={width}

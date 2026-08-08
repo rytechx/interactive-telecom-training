@@ -1,5 +1,4 @@
 import CableTester from '../../objects/telecom/CableTester.jsx'
-import NetworkRack from '../../objects/telecom/NetworkRack.jsx'
 import {
   CrimpingTool,
   RJ45Connector,
@@ -18,7 +17,6 @@ function getToolPlacement(tool) {
 
 export default function TelecomEquipment({
   rj45WorkbenchPosition = [-5, 0, -2.5],
-  networkRackPosition = [-4.8, 0, -9.2],
 }) {
   const toolsById = Object.fromEntries(
     RJ45_TOOL_CONFIGS.map((tool) => [tool.id, tool]),
@@ -38,7 +36,6 @@ export default function TelecomEquipment({
 
   return (
     <group>
-      <NetworkRack position={networkRackPosition} />
       <group position={rj45WorkbenchPosition}>
         <InteractiveTool
           tool={toolsById[TOOL_IDS.CRIMPING_TOOL]}

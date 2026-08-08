@@ -74,9 +74,34 @@ const FIBER_WORKSTATION = Object.freeze({
   transitionDuration: 1,
 })
 
+const NETWORK_WORKSTATION = Object.freeze({
+  id: 'network-rack-workstation',
+  displayName: 'Network Device Installation & Troubleshooting',
+  interactionPosition: Object.freeze([-4.8, 0, -9.2]),
+  workspacePosition: Object.freeze([-4.8, 1.4, -9.2]),
+  focusCameraPosition: Object.freeze([-4.4, 1.74, -4.6]),
+  focusCameraTarget: Object.freeze([-4.55, 1.34, -9.08]),
+  technicianCameraPosition: Object.freeze([-4.4, 1.74, -4.6]),
+  technicianCameraTarget: Object.freeze([-4.55, 1.34, -9.08]),
+  portCameraPosition: Object.freeze([-4.35, 1.7, -5]),
+  portCameraTarget: Object.freeze([-5, 1.25, -9.02]),
+  powerCameraPosition: Object.freeze([-3.65, 2.6, -5.5]),
+  powerCameraTarget: Object.freeze([-3.72, 1.16, -8.92]),
+  workstationCameraPosition: Object.freeze([-3.65, 1.65, -4.7]),
+  workstationCameraTarget: Object.freeze([-3.75, 0.88, -8.94]),
+  verificationCameraPosition: Object.freeze([-4.3, 1.72, -6.55]),
+  verificationCameraTarget: Object.freeze([-4.98, 1.54, -9.04]),
+  technicianFov: 50,
+  closeupFov: 46,
+  powerFov: 50,
+  transitionDuration: 1,
+  procedureTransitionDuration: 0.72,
+})
+
 const workstationConfigs = Object.freeze({
   [RJ45_WORKSTATION.id]: RJ45_WORKSTATION,
   [FIBER_WORKSTATION.id]: FIBER_WORKSTATION,
+  [NETWORK_WORKSTATION.id]: NETWORK_WORKSTATION,
 })
 
 function getWorkstationConfig(workstationId) {
@@ -86,6 +111,7 @@ function getWorkstationConfig(workstationId) {
 export {
   FIBER_WORKSTATION,
   getWorkstationConfig,
+  NETWORK_WORKSTATION,
   RJ45_WORKSTATION,
   workstationConfigs,
 }

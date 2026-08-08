@@ -1,0 +1,272 @@
+const NETWORK_DEVICE_IDS = Object.freeze({
+  PATCH_PANEL: 'patch-panel',
+  MANAGED_SWITCH: 'managed-switch',
+  ROUTER: 'router',
+  WORKSTATION_PC: 'workstation-pc',
+  PDU: 'rack-pdu',
+})
+
+const NETWORK_SLOT_IDS = Object.freeze({
+  PATCH_PANEL: 'rack-ru-4',
+  MANAGED_SWITCH: 'rack-ru-5',
+  ROUTER: 'rack-ru-6',
+})
+
+const NETWORK_PORT_TYPES = Object.freeze({
+  ETHERNET: 'ethernet',
+  POWER: 'power',
+  CONSOLE: 'console',
+})
+
+const NETWORK_RACK_CONFIG = Object.freeze({
+  width: 2.05,
+  height: 2.85,
+  depth: 0.9,
+  railX: 0.91,
+  frontZ: 0.43,
+})
+
+const switchPortXPositions = [-0.62, -0.44, -0.26, -0.08, 0.1, 0.28, 0.46, 0.64]
+const patchPortXPositions = [-0.62, -0.44, -0.26, -0.08, 0.1, 0.28, 0.46, 0.64]
+
+const NETWORK_DEVICE_CONFIGS = Object.freeze({
+  [NETWORK_DEVICE_IDS.PATCH_PANEL]: Object.freeze({
+    id: NETWORK_DEVICE_IDS.PATCH_PANEL,
+    name: '8-Port Patch Panel',
+    shortName: 'Patch Panel',
+    type: 'rack-device',
+    color: '#252c31',
+    dimensions: Object.freeze([1.72, 0.22, 0.44]),
+    preparationPosition: Object.freeze([1.82, 1.03, 0.42]),
+    mountedPosition: Object.freeze([0, 1.15, 0.12]),
+    targetSlotId: NETWORK_SLOT_IDS.PATCH_PANEL,
+    rackUnit: 4,
+    ports: Object.freeze(
+      patchPortXPositions.map((positionX, index) =>
+        Object.freeze({
+          id: `patch-panel-port-${index + 1}`,
+          deviceId: NETWORK_DEVICE_IDS.PATCH_PANEL,
+          name: `Patch Panel Port ${index + 1}`,
+          shortLabel: `${index + 1}`,
+          portNumber: index + 1,
+          type: NETWORK_PORT_TYPES.ETHERNET,
+          position: Object.freeze([positionX, 0, 0.245]),
+        }),
+      ),
+    ),
+  }),
+  [NETWORK_DEVICE_IDS.MANAGED_SWITCH]: Object.freeze({
+    id: NETWORK_DEVICE_IDS.MANAGED_SWITCH,
+    name: '8-Port Managed Switch',
+    shortName: 'Managed Switch',
+    type: 'rack-device',
+    color: '#1b2429',
+    dimensions: Object.freeze([1.72, 0.24, 0.5]),
+    preparationPosition: Object.freeze([1.82, 0.73, 0.42]),
+    mountedPosition: Object.freeze([0, 1.49, 0.09]),
+    targetSlotId: NETWORK_SLOT_IDS.MANAGED_SWITCH,
+    rackUnit: 5,
+    ports: Object.freeze([
+      ...switchPortXPositions.map((positionX, index) =>
+        Object.freeze({
+          id: `switch-port-${index + 1}`,
+          deviceId: NETWORK_DEVICE_IDS.MANAGED_SWITCH,
+          name:
+            index === 7
+              ? 'Switch Port 8 Uplink'
+              : `Switch Port ${index + 1}`,
+          shortLabel: `${index + 1}`,
+          portNumber: index + 1,
+          type: NETWORK_PORT_TYPES.ETHERNET,
+          position: Object.freeze([positionX, -0.01, 0.275]),
+          hasLinkIndicator: true,
+        }),
+      ),
+      Object.freeze({
+        id: 'switch-power-port',
+        deviceId: NETWORK_DEVICE_IDS.MANAGED_SWITCH,
+        name: 'Managed Switch Power Input',
+        shortLabel: 'POWER',
+        faceLabel: 'POWER',
+        type: NETWORK_PORT_TYPES.POWER,
+        position: Object.freeze([0.82, 0.055, 0.285]),
+      }),
+    ]),
+  }),
+  [NETWORK_DEVICE_IDS.ROUTER]: Object.freeze({
+    id: NETWORK_DEVICE_IDS.ROUTER,
+    name: 'Gigabit Training Router',
+    shortName: 'Router',
+    type: 'rack-device',
+    color: '#20282e',
+    dimensions: Object.freeze([1.72, 0.24, 0.52]),
+    preparationPosition: Object.freeze([1.82, 0.43, 0.42]),
+    mountedPosition: Object.freeze([0, 1.83, 0.08]),
+    targetSlotId: NETWORK_SLOT_IDS.ROUTER,
+    rackUnit: 6,
+    ports: Object.freeze([
+      Object.freeze({
+        id: 'router-wan-1',
+        deviceId: NETWORK_DEVICE_IDS.ROUTER,
+        name: 'Router WAN Port',
+        shortLabel: 'WAN',
+        type: NETWORK_PORT_TYPES.ETHERNET,
+        position: Object.freeze([-0.48, -0.005, 0.285]),
+        hasLinkIndicator: true,
+      }),
+      Object.freeze({
+        id: 'router-lan-1',
+        deviceId: NETWORK_DEVICE_IDS.ROUTER,
+        name: 'Router LAN 1',
+        shortLabel: 'LAN 1',
+        type: NETWORK_PORT_TYPES.ETHERNET,
+        position: Object.freeze([-0.25, -0.005, 0.285]),
+        hasLinkIndicator: true,
+      }),
+      Object.freeze({
+        id: 'router-console',
+        deviceId: NETWORK_DEVICE_IDS.ROUTER,
+        name: 'Router Console Port',
+        shortLabel: 'CON',
+        type: NETWORK_PORT_TYPES.CONSOLE,
+        position: Object.freeze([0.08, -0.005, 0.285]),
+      }),
+      Object.freeze({
+        id: 'router-power-port',
+        deviceId: NETWORK_DEVICE_IDS.ROUTER,
+        name: 'Router Power Input',
+        shortLabel: 'POWER',
+        faceLabel: 'POWER',
+        type: NETWORK_PORT_TYPES.POWER,
+        position: Object.freeze([0.82, 0.055, 0.295]),
+      }),
+    ]),
+  }),
+  [NETWORK_DEVICE_IDS.WORKSTATION_PC]: Object.freeze({
+    id: NETWORK_DEVICE_IDS.WORKSTATION_PC,
+    name: 'Network Workstation PC',
+    shortName: 'Workstation PC',
+    type: 'desktop-device',
+    color: '#303941',
+    dimensions: Object.freeze([0.66, 0.88, 0.64]),
+    preparationPosition: Object.freeze([3.3, 0.44, 0.4]),
+    mountedPosition: Object.freeze([3.3, 0.44, 0.4]),
+    ports: Object.freeze([
+      Object.freeze({
+        id: 'pc-eth0',
+        deviceId: NETWORK_DEVICE_IDS.WORKSTATION_PC,
+        name: 'Workstation Ethernet',
+        shortLabel: 'ETH',
+        type: NETWORK_PORT_TYPES.ETHERNET,
+        position: Object.freeze([0, 0.08, 0.345]),
+        hasLinkIndicator: true,
+      }),
+    ]),
+  }),
+})
+
+const NETWORK_RACK_SLOTS = Object.freeze([
+  Object.freeze({
+    id: NETWORK_SLOT_IDS.PATCH_PANEL,
+    rackUnit: 4,
+    label: 'RU 4 · Patch Panel',
+    position: Object.freeze([0, 1.15, 0.45]),
+    expectedDeviceId: NETWORK_DEVICE_IDS.PATCH_PANEL,
+  }),
+  Object.freeze({
+    id: NETWORK_SLOT_IDS.MANAGED_SWITCH,
+    rackUnit: 5,
+    label: 'RU 5 · Managed Switch',
+    position: Object.freeze([0, 1.49, 0.45]),
+    expectedDeviceId: NETWORK_DEVICE_IDS.MANAGED_SWITCH,
+  }),
+  Object.freeze({
+    id: NETWORK_SLOT_IDS.ROUTER,
+    rackUnit: 6,
+    label: 'RU 6 · Router',
+    position: Object.freeze([0, 1.83, 0.45]),
+    expectedDeviceId: NETWORK_DEVICE_IDS.ROUTER,
+  }),
+])
+
+const PDU_PORTS = Object.freeze([
+  Object.freeze({
+    id: 'pdu-outlet-1',
+    deviceId: NETWORK_DEVICE_IDS.PDU,
+    name: 'PDU Outlet 1',
+    shortLabel: '1',
+    faceLabel: 'OUT 1',
+    type: NETWORK_PORT_TYPES.POWER,
+    position: Object.freeze([1.04, 1.15, 0.24]),
+  }),
+  Object.freeze({
+    id: 'pdu-outlet-2',
+    deviceId: NETWORK_DEVICE_IDS.PDU,
+    name: 'PDU Outlet 2',
+    shortLabel: '2',
+    faceLabel: 'OUT 2',
+    type: NETWORK_PORT_TYPES.POWER,
+    position: Object.freeze([1.04, 0.78, 0.24]),
+  }),
+])
+
+const NETWORK_PORTS = Object.freeze(
+  Object.fromEntries([
+    ...Object.values(NETWORK_DEVICE_CONFIGS).flatMap((device) => device.ports),
+    ...PDU_PORTS,
+  ].map((port) => [port.id, port])),
+)
+
+const NETWORK_REQUIRED_VERIFICATION_PORT_IDS = Object.freeze([
+  'switch-port-1',
+  'switch-port-2',
+  'switch-port-8',
+  'router-lan-1',
+])
+
+function getNetworkDeviceConfig(deviceId) {
+  return NETWORK_DEVICE_CONFIGS[deviceId] ?? null
+}
+
+function getNetworkPortConfig(portId) {
+  return NETWORK_PORTS[portId] ?? null
+}
+
+function getNetworkPortRackPosition(portId) {
+  const port = getNetworkPortConfig(portId)
+
+  if (!port) {
+    return null
+  }
+
+  if (port.deviceId === NETWORK_DEVICE_IDS.PDU) {
+    return [...port.position]
+  }
+
+  const device = getNetworkDeviceConfig(port.deviceId)
+
+  if (!device) {
+    return null
+  }
+
+  return [
+    device.mountedPosition[0] + port.position[0],
+    device.mountedPosition[1] + port.position[1],
+    device.mountedPosition[2] + port.position[2],
+  ]
+}
+
+export {
+  getNetworkDeviceConfig,
+  getNetworkPortConfig,
+  getNetworkPortRackPosition,
+  NETWORK_DEVICE_CONFIGS,
+  NETWORK_DEVICE_IDS,
+  NETWORK_PORTS,
+  NETWORK_PORT_TYPES,
+  NETWORK_RACK_CONFIG,
+  NETWORK_RACK_SLOTS,
+  NETWORK_REQUIRED_VERIFICATION_PORT_IDS,
+  NETWORK_SLOT_IDS,
+  PDU_PORTS,
+}

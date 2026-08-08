@@ -337,6 +337,201 @@ canvas {
   border-color: rgb(105 202 222 / 34%);
 }
 
+.network-training-overlay {
+  background: linear-gradient(
+    90deg,
+    rgb(4 10 14 / 38%) 0,
+    rgb(4 10 14 / 12%) 31%,
+    transparent 46%
+  );
+}
+
+.network-training-panel {
+  width: min(340px, calc(100% - 40px));
+  border-color: rgb(91 188 226 / 28%);
+}
+
+.network-procedure-panel {
+  width: min(326px, calc(100% - 40px));
+  border-color: rgb(91 188 226 / 30%);
+}
+
+.network-procedure-panel .procedure-step-number {
+  color: #79d3f2;
+}
+
+.network-selection-status {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 9px;
+}
+
+.network-selection-status div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  background: rgb(64 143 176 / 10%);
+  border: 1px solid rgb(91 188 226 / 18%);
+  border-radius: 5px;
+}
+
+.network-selection-status dt {
+  color: #a8bcc5;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.network-selection-status dd {
+  margin: 0;
+  color: #dff5fc;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.network-hover-status {
+  margin: 0 0 9px;
+  padding: 7px 9px;
+  color: #bfefff;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgb(57 139 173 / 13%);
+  border-left: 3px solid #66c9eb;
+  border-radius: 4px;
+}
+
+.network-installation-status,
+.network-power-status,
+.network-link-verification,
+.network-completion-summary {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 9px;
+  padding: 9px;
+  background: rgb(6 12 15 / 44%);
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 6px;
+}
+
+.network-installation-status span,
+.network-power-status span,
+.network-link-verification span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #b9c8ce;
+  font-size: 10px;
+}
+
+.network-installation-status strong,
+.network-power-status strong,
+.network-link-verification b {
+  color: #80929a;
+  font-size: 10px;
+}
+
+.network-installation-status span.is-complete,
+.network-link-verification span.is-complete {
+  color: #d6f3df;
+}
+
+.network-installation-status span.is-complete strong,
+.network-link-verification span.is-complete b,
+.network-power-status strong {
+  color: #79dfa0;
+}
+
+.network-link-verification > strong,
+.network-completion-summary > strong {
+  margin-bottom: 3px;
+  color: #8edff5;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.network-completion-summary span {
+  color: #c8d7dc;
+  font-size: 10px;
+}
+
+.network-completion-summary b {
+  padding: 7px;
+  color: #bff3d0;
+  font-size: 11px;
+  text-align: center;
+  background: rgb(55 153 91 / 18%);
+  border: 1px solid rgb(91 205 133 / 28%);
+  border-radius: 4px;
+}
+
+.network-completion-summary p {
+  margin: 3px 0 0;
+  color: #aad9e7;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.network-object-tooltip {
+  padding: 5px 8px;
+  color: #effaff;
+  font: 700 11px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgb(11 21 27 / 94%);
+  border: 1px solid rgb(102 204 238 / 42%);
+  border-radius: 5px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
+}
+
+.network-device-face-label,
+.network-prep-label {
+  display: inline-block;
+  padding: 2px 5px;
+  color: #dcebf0;
+  font: 800 9px/1 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgb(5 9 11 / 82%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 2px;
+}
+
+.network-power-port-label,
+.network-power-tray-label {
+  display: inline-block;
+  padding: 2px 4px;
+  color: #eaf5f7;
+  font: 800 8px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgb(5 9 11 / 88%);
+  border: 1px solid rgb(185 221 232 / 28%);
+  border-radius: 2px;
+}
+
+.network-power-tray-label {
+  color: #d9edf2;
+  font-size: 9px;
+}
+
+.network-device-power-status strong {
+  color: #80929a;
+}
+
+.network-device-power-status strong.is-connected {
+  color: #79dfa0;
+}
+
+.network-prep-label {
+  color: #b9dce7;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
 .fiber-cleave-quality {
   margin: 0 0 10px;
   padding: 8px 10px;
@@ -1377,6 +1572,12 @@ canvas {
 
   .procedure-panel.is-testing {
     width: min(300px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
+    padding: 14px;
+  }
+
+  .network-procedure-panel {
+    width: min(310px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;
   }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import FiberInteractionSystem from './FiberInteractionSystem.jsx'
+import NetworkInteractionSystem from './NetworkInteractionSystem.jsx'
 import RJ45Assessment from '../modules/rj45/RJ45Assessment.jsx'
 import RJ45ProcedurePanel from '../modules/rj45/RJ45ProcedurePanel.jsx'
 import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
@@ -12,6 +13,7 @@ import { getToolConfig } from '../tools/toolConfigs.js'
 import {
   FIBER_WORKSTATION,
   getWorkstationConfig,
+  NETWORK_WORKSTATION,
   RJ45_WORKSTATION,
 } from '../workstations/workstationConfigs.js'
 
@@ -186,7 +188,8 @@ export default function InteractionSystem() {
 
       if (
         event.code === 'Escape' &&
-        interactionState.activeInteractable?.id === FIBER_WORKSTATION.id &&
+        (interactionState.activeInteractable?.id === FIBER_WORKSTATION.id ||
+          interactionState.activeInteractable?.id === NETWORK_WORKSTATION.id) &&
         interactionState.workstationPhase !== WORKSTATION_PHASES.EXPLORATION
       ) {
         return
@@ -488,6 +491,7 @@ export default function InteractionSystem() {
       )}
 
       <FiberInteractionSystem />
+      <NetworkInteractionSystem />
     </>
   )
 }
