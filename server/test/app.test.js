@@ -85,6 +85,28 @@ test('current-user endpoint rejects requests without a session cookie', async ()
   assert.equal(payload.code, 'AUTH_REQUIRED')
 })
 
+test('training progress endpoint requires an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/training/progress`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
+test('training attempt endpoint requires an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/training/attempts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ moduleKey: 'rj45' }),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
 test('logout endpoint clears the HTTP-only session cookie', async () => {
   const response = await fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST' })
   const setCookieHeader = response.headers.get('set-cookie')
