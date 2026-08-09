@@ -14,6 +14,28 @@ import {
   NETWORK_MODULE_ID,
   NETWORK_PROCEDURE_STEPS,
 } from '../modules/network/networkProcedure.js'
+import {
+  isWorkstationConfigurationCorrect,
+} from '../modules/network/networkConnectivity.js'
+import {
+  CLI_MODES,
+  executeTerminalCommand,
+  getTerminalPrompt,
+  NETWORK_TERMINAL_TYPES,
+} from '../modules/network/terminalCommands.js'
+import { validateIPv4Values } from '../modules/network/ipv4Utils.js'
+
+const NETWORK_OVERLAYS = Object.freeze({
+  PC_SETTINGS: 'pc-settings',
+  ROUTER_TERMINAL: 'router-terminal',
+  SWITCH_TERMINAL: 'switch-terminal',
+  WORKSTATION_TERMINAL: 'workstation-terminal',
+})
+
+const clearedNetworkHoverState = Object.freeze({
+  hoveredNetworkObjectId: null,
+  hoveredNetworkLabel: null,
+})
 
 const deviceSelectionRules = Object.freeze({
   [NETWORK_PROCEDURE_STEPS.SELECT_PATCH_PANEL]: Object.freeze({
@@ -63,6 +85,20 @@ const continuationRules = Object.freeze({
     NETWORK_PROCEDURE_STEPS.CONNECT_PC_TO_SWITCH,
   [NETWORK_PROCEDURE_STEPS.PC_SWITCH_CONNECTED]:
     NETWORK_PROCEDURE_STEPS.POWER_ON_NETWORK,
+  [NETWORK_PROCEDURE_STEPS.PHYSICAL_INSTALLATION_COMPLETE]:
+    NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4,
+  [NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED]:
+    NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+  [NETWORK_PROCEDURE_STEPS.ROUTER_CONFIGURED]:
+    NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+  [NETWORK_PROCEDURE_STEPS.SWITCH_CONFIGURED]:
+    NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG,
+  [NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED]:
+    NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+  [NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS]:
+    NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+  [NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS]:
+    NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE,
 })
 
 const connectionStepCableRules = Object.freeze({
@@ -116,10 +152,36 @@ function createInitialNetworkState() {
     selectedNetworkPortId: null,
     hoveredNetworkObjectId: null,
     hoveredNetworkLabel: null,
+    inspectionViewRequest: { id: 0, view: 'reset' },
     networkConnections: createInitialConnections(),
     portOccupancy: {},
     verifiedLinkPortIds: [],
     physicalLinksVerified: false,
+    networkOverlay: null,
+    settingsFeedback: null,
+    settingsFeedbackType: null,
+    workstationIp: '',
+    workstationMask: '',
+    workstationGateway: '',
+    workstationIpConfigured: false,
+    routerLanIp: '',
+    routerLanMask: '',
+    routerLanAdminUp: false,
+    routerLanConfigured: false,
+    routerCliMode: CLI_MODES.USER_EXEC,
+    routerTerminalHistory: [],
+    switchManagementIp: '',
+    switchManagementMask: '',
+    switchDefaultGateway: '',
+    switchVlan1AdminUp: false,
+    switchManagementConfigured: false,
+    switchCliMode: CLI_MODES.USER_EXEC,
+    switchTerminalHistory: [],
+    workstationTerminalHistory: [],
+    terminalSequence: 0,
+    pcConfigVerified: false,
+    routerPingPassed: false,
+    switchPingPassed: false,
   }
 }
 
@@ -235,6 +297,55 @@ function disconnectCable(state, cableId) {
   return update
 }
 
+const terminalHistoryFields = Object.freeze({
+  [NETWORK_TERMINAL_TYPES.ROUTER]: 'routerTerminalHistory',
+  [NETWORK_TERMINAL_TYPES.SWITCH]: 'switchTerminalHistory',
+  [NETWORK_TERMINAL_TYPES.WORKSTATION]: 'workstationTerminalHistory',
+})
+
+function getWorkstationResetState() {
+  return {
+    workstationIp: '',
+    workstationMask: '',
+    workstationGateway: '',
+    workstationIpConfigured: false,
+    settingsFeedback: null,
+    settingsFeedbackType: null,
+    pcConfigVerified: false,
+    routerPingPassed: false,
+    switchPingPassed: false,
+    workstationTerminalHistory: [],
+  }
+}
+
+function getRouterResetState() {
+  return {
+    routerLanIp: '',
+    routerLanMask: '',
+    routerLanAdminUp: false,
+    routerLanConfigured: false,
+    routerCliMode: CLI_MODES.USER_EXEC,
+    routerTerminalHistory: [],
+    pcConfigVerified: false,
+    routerPingPassed: false,
+    switchPingPassed: false,
+  }
+}
+
+function getSwitchResetState() {
+  return {
+    switchManagementIp: '',
+    switchManagementMask: '',
+    switchDefaultGateway: '',
+    switchVlan1AdminUp: false,
+    switchManagementConfigured: false,
+    switchCliMode: CLI_MODES.USER_EXEC,
+    switchTerminalHistory: [],
+    pcConfigVerified: false,
+    switchPingPassed: false,
+  }
+}
+
 const useNetworkTrainingStore = create((set) => ({
   ...createInitialNetworkState(),
 
@@ -243,7 +354,8 @@ const useNetworkTrainingStore = create((set) => ({
     set((state) =>
       state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.INSPECT_RACK &&
       !state.isProcedureAnimating
-        ? {
+          ? {
+            ...clearedNetworkHoverState,
             networkCurrentStep: NETWORK_PROCEDURE_STEPS.SELECT_PATCH_PANEL,
             procedureFeedback:
               'Rack inspected. RU 4, RU 5, and RU 6 are available.',
@@ -268,6 +380,7 @@ const useNetworkTrainingStore = create((set) => ({
       }
 
       return {
+        ...clearedNetworkHoverState,
         selectedNetworkDeviceId: deviceId,
         selectedNetworkPortId: null,
         networkCurrentStep: rule.nextStep,
@@ -293,6 +406,7 @@ const useNetworkTrainingStore = create((set) => ({
       }
 
       return {
+        ...clearedNetworkHoverState,
         activeInstallationDeviceId: rule.deviceId,
         isProcedureAnimating: true,
         procedureFeedback: `Installing ${device.shortName} at RU ${device.rackUnit}...`,
@@ -315,6 +429,7 @@ const useNetworkTrainingStore = create((set) => ({
       const device = getNetworkDeviceConfig(deviceId)
 
       return {
+        ...clearedNetworkHoverState,
         [rule.installedField]: true,
         activeInstallationDeviceId: null,
         selectedNetworkDeviceId: null,
@@ -327,10 +442,18 @@ const useNetworkTrainingStore = create((set) => ({
   continueNetworkProcedure: () => {
     set((state) => {
       const nextStep = continuationRules[state.networkCurrentStep]
+      const keepWorkstationTerminal = [
+        NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+        NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+      ].includes(nextStep)
 
       return nextStep
-        ? {
+          ? {
+            ...clearedNetworkHoverState,
             networkCurrentStep: nextStep,
+            networkOverlay: keepWorkstationTerminal
+              ? state.networkOverlay
+              : null,
             procedureFeedback: null,
             selectedNetworkDeviceId: null,
             selectedCableId: null,
@@ -338,6 +461,157 @@ const useNetworkTrainingStore = create((set) => ({
             selectedNetworkPortId: null,
           }
         : {}
+    })
+  },
+  openWorkstationConfiguration: () => {
+    set((state) => {
+      if (state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4) {
+        return {
+          networkOverlay: NETWORK_OVERLAYS.PC_SETTINGS,
+          settingsFeedback: null,
+          settingsFeedbackType: null,
+          procedureFeedback: 'Workstation Ethernet IPv4 settings opened.',
+        }
+      }
+
+      if (
+        [
+          NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG,
+          NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED,
+          NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+          NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS,
+          NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+          NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS,
+        ].includes(state.networkCurrentStep)
+      ) {
+        return {
+          networkOverlay: NETWORK_OVERLAYS.WORKSTATION_TERMINAL,
+          procedureFeedback: 'Workstation command prompt opened.',
+        }
+      }
+
+      return {}
+    })
+  },
+  openNetworkDeviceTerminal: (deviceId) => {
+    set((state) => {
+      if (
+        deviceId === NETWORK_DEVICE_IDS.ROUTER &&
+        [
+          NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+          NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER,
+        ].includes(state.networkCurrentStep)
+      ) {
+        return {
+          networkOverlay: NETWORK_OVERLAYS.ROUTER_TERMINAL,
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER,
+          procedureFeedback: 'Router console opened.',
+        }
+      }
+
+      if (
+        deviceId === NETWORK_DEVICE_IDS.MANAGED_SWITCH &&
+        [
+          NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+          NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH,
+        ].includes(state.networkCurrentStep)
+      ) {
+        return {
+          networkOverlay: NETWORK_OVERLAYS.SWITCH_TERMINAL,
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH,
+          procedureFeedback: 'Managed switch console opened.',
+        }
+      }
+
+      return {}
+    })
+  },
+  closeNetworkOverlay: () => {
+    set({ networkOverlay: null, settingsFeedback: null, settingsFeedbackType: null })
+  },
+  applyWorkstationIPv4: ({ ipAddress, subnetMask, defaultGateway }) => {
+    set((state) => {
+      if (state.networkCurrentStep !== NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4) {
+        return {}
+      }
+
+      const syntaxValidation = validateIPv4Values({
+        ipAddress,
+        subnetMask,
+        defaultGateway,
+      })
+
+      if (!syntaxValidation.valid) {
+        return {
+          settingsFeedback: syntaxValidation.message,
+          settingsFeedbackType: 'error',
+          procedureFeedback: syntaxValidation.message,
+        }
+      }
+
+      const candidateState = {
+        ...state,
+        workstationIp: ipAddress.trim(),
+        workstationMask: subnetMask.trim(),
+        workstationGateway: defaultGateway.trim(),
+      }
+      const workstationIpConfigured = isWorkstationConfigurationCorrect(
+        candidateState,
+      )
+
+      if (!workstationIpConfigured) {
+        return {
+          workstationIp: candidateState.workstationIp,
+          workstationMask: candidateState.workstationMask,
+          workstationGateway: candidateState.workstationGateway,
+          workstationIpConfigured: false,
+          settingsFeedback: 'Valid address but incorrect configuration.',
+          settingsFeedbackType: 'error',
+          procedureFeedback: 'Valid address but incorrect configuration.',
+        }
+      }
+
+      return {
+        workstationIp: candidateState.workstationIp,
+        workstationMask: candidateState.workstationMask,
+        workstationGateway: candidateState.workstationGateway,
+        workstationIpConfigured: true,
+        networkCurrentStep: NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED,
+        networkOverlay: null,
+        settingsFeedback: null,
+        settingsFeedbackType: null,
+        procedureFeedback: 'IPv4 configuration applied successfully.',
+      }
+    })
+  },
+  executeNetworkCommand: (terminalType, command) => {
+    set((state) => {
+      const normalizedCommand = command.trim()
+      const historyField = terminalHistoryFields[terminalType]
+
+      if (!normalizedCommand || !historyField || state.isProcedureAnimating) {
+        return {}
+      }
+
+      const prompt = getTerminalPrompt(terminalType, state)
+      const result = executeTerminalCommand(terminalType, normalizedCommand, state)
+      const terminalSequence = state.terminalSequence + 1
+      const historyEntry = {
+        id: terminalSequence,
+        prompt,
+        command: normalizedCommand,
+        output: result.output,
+      }
+      const nextHistory = result.clearHistory
+        ? []
+        : [...state[historyField], historyEntry]
+
+      return {
+        ...result.updates,
+        [historyField]: nextHistory,
+        terminalSequence,
+        ...(result.feedback ? { procedureFeedback: result.feedback } : {}),
+      }
     })
   },
   selectNetworkCable: (cableId) => {
@@ -364,6 +638,7 @@ const useNetworkTrainingStore = create((set) => ({
       }
 
       return {
+        ...clearedNetworkHoverState,
         selectedCableId: cableId,
         selectedSourcePortId: null,
         selectedNetworkPortId: null,
@@ -405,6 +680,7 @@ const useNetworkTrainingStore = create((set) => ({
         }
 
         return {
+          ...clearedNetworkHoverState,
           selectedSourcePortId: portId,
           selectedNetworkPortId: portId,
           procedureFeedback: `${port.name} selected. Now choose ${getNetworkPortConfig(cable.destinationPortId)?.name}.`,
@@ -422,6 +698,7 @@ const useNetworkTrainingStore = create((set) => ({
       }
 
       return {
+        ...clearedNetworkHoverState,
         selectedNetworkPortId: portId,
         activeConnectionId: cable.id,
         isProcedureAnimating: true,
@@ -557,6 +834,14 @@ const useNetworkTrainingStore = create((set) => ({
         : {},
     )
   },
+  requestNetworkInspectionView: (view) => {
+    set((state) => ({
+      inspectionViewRequest: {
+        id: state.inspectionViewRequest.id + 1,
+        view,
+      },
+    }))
+  },
   restartNetworkStep: () => {
     set((state) => {
       const installationRule = installationRules[state.networkCurrentStep]
@@ -599,6 +884,92 @@ const useNetworkTrainingStore = create((set) => ({
         return {
           routerInstalled: false,
           networkCurrentStep: NETWORK_PROCEDURE_STEPS.SELECT_ROUTER,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4 ||
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED
+      ) {
+        return {
+          ...getWorkstationResetState(),
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4,
+          networkOverlay: null,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        [
+          NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+          NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER,
+          NETWORK_PROCEDURE_STEPS.ROUTER_CONFIGURED,
+        ].includes(state.networkCurrentStep)
+      ) {
+        return {
+          ...getRouterResetState(),
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+          networkOverlay: null,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        [
+          NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+          NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH,
+          NETWORK_PROCEDURE_STEPS.SWITCH_CONFIGURED,
+        ].includes(state.networkCurrentStep)
+      ) {
+        return {
+          ...getSwitchResetState(),
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+          networkOverlay: null,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG ||
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED
+      ) {
+        return {
+          pcConfigVerified: false,
+          routerPingPassed: false,
+          switchPingPassed: false,
+          workstationTerminalHistory: [],
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG,
+          networkOverlay: NETWORK_OVERLAYS.WORKSTATION_TERMINAL,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.PING_ROUTER ||
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS
+      ) {
+        return {
+          routerPingPassed: false,
+          switchPingPassed: false,
+          workstationTerminalHistory: [],
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+          networkOverlay: NETWORK_OVERLAYS.WORKSTATION_TERMINAL,
+          procedureFeedback: null,
+        }
+      }
+
+      if (
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.PING_SWITCH ||
+        state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS ||
+        state.networkCurrentStep ===
+          NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE
+      ) {
+        return {
+          switchPingPassed: false,
+          workstationTerminalHistory: [],
+          networkCurrentStep: NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+          networkOverlay: NETWORK_OVERLAYS.WORKSTATION_TERMINAL,
           procedureFeedback: null,
         }
       }
@@ -707,3 +1078,4 @@ const useNetworkTrainingStore = create((set) => ({
 }))
 
 export default useNetworkTrainingStore
+export { NETWORK_OVERLAYS }

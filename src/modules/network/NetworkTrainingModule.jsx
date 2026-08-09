@@ -9,7 +9,6 @@ import NetworkRackCameraController from './NetworkRackCameraController.jsx'
 import NetworkRackWorkstation from './NetworkRackWorkstation.jsx'
 
 export default function NetworkTrainingModule({
-  hoveredObjectId,
   onHoveredObjectChange,
 }) {
   const activeWorkstationId = useInteractionStore(
@@ -23,6 +22,9 @@ export default function NetworkTrainingModule({
   )
   const resetNetworkTraining = useNetworkTrainingStore(
     (state) => state.resetNetworkTraining,
+  )
+  const hoveredNetworkObjectId = useNetworkTrainingStore(
+    (state) => state.hoveredNetworkObjectId,
   )
   const isNetworkFocused =
     activeWorkstationId === NETWORK_WORKSTATION.id &&
@@ -40,17 +42,22 @@ export default function NetworkTrainingModule({
     resetNetworkTraining,
   ])
 
+  useEffect(() => {
+    onHoveredObjectChange?.(hoveredNetworkObjectId)
+  }, [hoveredNetworkObjectId, onHoveredObjectChange])
+
   return (
     <>
       <Interactable
         id={NETWORK_WORKSTATION.id}
         label={NETWORK_WORKSTATION.displayName}
         position={NETWORK_WORKSTATION.interactionPosition}
-        interactionDistance={2.4}
+        interactionDistance={2.8}
       >
         <NetworkRackWorkstation
           position={NETWORK_WORKSTATION.interactionPosition}
-          hoveredObjectId={hoveredObjectId}
+          rotation={NETWORK_WORKSTATION.rotation}
+          hoveredObjectId={hoveredNetworkObjectId}
           onHoveredObjectChange={onHoveredObjectChange}
         />
       </Interactable>

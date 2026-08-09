@@ -15,6 +15,8 @@ export default function NetworkDevice({
   installing = false,
   selected = false,
   canSelect = false,
+  canConfigure = false,
+  configurationLabel = null,
   powered = false,
   networkPowered = false,
   powerOnStartedAt = null,
@@ -22,10 +24,12 @@ export default function NetworkDevice({
   interactivePortIds = [],
   hoveredObjectId = null,
   selectedPortId = null,
+  targetPortId = null,
   showLabel = false,
   onHover,
   onHoverEnd,
   onSelectDevice,
+  onConfigure,
   onSelectPort,
   onInstallationComplete,
 }) {
@@ -53,6 +57,9 @@ export default function NetworkDevice({
   const isHovered = hoveredObjectId === config.id
   const isRackDevice = config.type === 'rack-device'
   const frontZ = bodyDimensions[2] / 2 + 0.012
+  const canInteract = canSelect || canConfigure
+  const interactionOffset = installed ? 0.32 : 0.1
+  const interactionDepth = installed ? 0.26 : 0.16
 
   useEffect(() => {
     if (!groupRef.current || installing) {
@@ -97,12 +104,15 @@ export default function NetworkDevice({
   })
 
   const handlePointerEnter = (event) => {
-    if (!canSelect) {
+    if (!canInteract) {
       return
     }
 
     event.stopPropagation()
-    onHover?.(config.id, config.shortName)
+    onHover?.(
+      config.id,
+      canConfigure ? configurationLabel ?? `Configure ${config.shortName}` : config.shortName,
+    )
   }
 
   const handlePointerLeave = (event) => {
@@ -111,11 +121,16 @@ export default function NetworkDevice({
   }
 
   const handleClick = (event) => {
-    if (!canSelect) {
+    if (!canInteract) {
       return
     }
 
     event.stopPropagation()
+    if (canConfigure) {
+      onConfigure?.(config.id)
+      return
+    }
+
     onSelectDevice?.(config.id)
   }
 
@@ -140,7 +155,11 @@ export default function NetworkDevice({
             0.025,
           ]}
         />
-        <meshStandardMaterial color="#10161a" metalness={0.4} roughness={0.62} />
+        <meshStandardMaterial
+          color={config.frontColor ?? '#20292e'}
+          metalness={0.42}
+          roughness={0.6}
+        />
       </mesh>
 
       {config.id !== 'patch-panel' && (
@@ -160,6 +179,7 @@ export default function NetworkDevice({
           isInteractive={interactivePortIds.includes(port.id)}
           isHovered={hoveredObjectId === port.id}
           isSelected={selectedPortId === port.id}
+          isTarget={targetPortId === port.id}
           linkActive={
             networkPowered && activeLinkPortIds.includes(port.id)
           }
@@ -174,27 +194,37 @@ export default function NetworkDevice({
       ))}
 
       {showLabel && (
-        <Html position={[0, bodyDimensions[1] / 2 + 0.055, frontZ]} center>
+        <Html
+          position={[0, bodyDimensions[1] / 2 + 0.055, frontZ]}
+          center
+          zIndexRange={[3, 0]}
+        >
           <span className="network-device-face-label">{config.shortName}</span>
         </Html>
       )}
 
       <mesh
-        position={[0, 0, frontZ + 0.52]}
+        position={[0, 0, frontZ + interactionOffset]}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}
       >
         <boxGeometry
-          args={[bodyDimensions[0], bodyDimensions[1] + 0.08, 0.12]}
+          args={[bodyDimensions[0], bodyDimensions[1] + 0.08, interactionDepth]}
         />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {isHovered && canSelect && (
-        <Html position={[0, bodyDimensions[1] / 2 + 0.22, 0.1]} center>
+      {isHovered && canInteract && (
+        <Html
+          position={[0, bodyDimensions[1] / 2 + 0.22, 0.1]}
+          center
+          zIndexRange={[3, 0]}
+        >
           <div className="network-object-tooltip" role="tooltip">
-            {config.shortName}
+            {canConfigure
+              ? configurationLabel ?? `Configure ${config.shortName}`
+              : config.shortName}
           </div>
         </Html>
       )}

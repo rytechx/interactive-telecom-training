@@ -16,6 +16,7 @@ import Windows from './Windows.jsx'
 const rj45WorkbenchPosition = RJ45_WORKSTATION.interactionPosition
 const fiberWorkbenchPosition = FIBER_WORKSTATION.interactionPosition
 const networkRackPosition = NETWORK_WORKSTATION.interactionPosition
+const networkRackRotation = NETWORK_WORKSTATION.rotation
 const storageCabinetPosition = [4.8, 0, -9.4]
 
 export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
@@ -50,6 +51,7 @@ export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
         rj45WorkbenchPosition={rj45WorkbenchPosition}
         fiberWorkbenchPosition={fiberWorkbenchPosition}
         networkRackPosition={networkRackPosition}
+        networkRackRotation={networkRackRotation}
         storageCabinetPosition={storageCabinetPosition}
       />
     </group>

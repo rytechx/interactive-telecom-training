@@ -22,6 +22,18 @@ export default function useKeyboardControls() {
 
   useEffect(() => {
     const updateControl = (event, isPressed) => {
+      const eventTarget = event.target
+      const isEditableTarget =
+        eventTarget instanceof HTMLInputElement ||
+        eventTarget instanceof HTMLTextAreaElement ||
+        eventTarget instanceof HTMLSelectElement ||
+        eventTarget?.isContentEditable
+
+      if (isEditableTarget) {
+        controls.current = { ...initialControls }
+        return
+      }
+
       const action = keyActions[event.code]
 
       if (!action) {

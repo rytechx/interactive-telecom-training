@@ -3,6 +3,7 @@ import {
   getNetworkPortRackPosition,
   NETWORK_PORT_TYPES,
 } from './networkDeviceConfigs.js'
+import { NETWORK_WORKSTATION_LAYOUT } from './networkWorkstationLayout.js'
 
 const NETWORK_CABLE_IDS = Object.freeze({
   ROUTER_POWER: 'router-power-cable',
@@ -13,23 +14,29 @@ const NETWORK_CABLE_IDS = Object.freeze({
 })
 
 const POWER_CABLE_HOME_SHAPE = Object.freeze([
-  Object.freeze([-0.3, 0, -0.08]),
-  Object.freeze([-0.17, 0.025, 0.05]),
-  Object.freeze([0, 0.035, 0.12]),
-  Object.freeze([0.17, 0.025, 0.05]),
-  Object.freeze([0.3, 0, -0.08]),
+  Object.freeze([-0.38, 0, -0.1]),
+  Object.freeze([-0.2, 0.028, 0.06]),
+  Object.freeze([0, 0.04, 0.14]),
+  Object.freeze([0.2, 0.028, 0.06]),
+  Object.freeze([0.38, 0, -0.1]),
 ])
 
 const ROUTER_POWER_HOME = Object.freeze({
-  position: Object.freeze([1.43, 1.09, 0.72]),
+  position: NETWORK_WORKSTATION_LAYOUT.routerPowerHomePosition,
   rotation: Object.freeze([0, 0, 0]),
   scale: 1,
 })
 
 const SWITCH_POWER_HOME = Object.freeze({
-  position: Object.freeze([2.21, 1.09, 0.72]),
+  position: NETWORK_WORKSTATION_LAYOUT.switchPowerHomePosition,
   rotation: Object.freeze([0, 0, 0]),
   scale: 1,
+})
+
+const PREPARATION_CABLE_CENTERS = Object.freeze({
+  patch: NETWORK_WORKSTATION_LAYOUT.patchCableHomePosition,
+  uplink: NETWORK_WORKSTATION_LAYOUT.uplinkCableHomePosition,
+  workstation: NETWORK_WORKSTATION_LAYOUT.workstationCableHomePosition,
 })
 
 function createHomePath(homePosition, homeRotation, homeScale) {
@@ -57,13 +64,24 @@ function createConnectionPath(sourcePortId, destinationPortId, routePoints) {
   ])
 }
 
+function createParkedEthernetPath(centerPosition) {
+  const [centerX, centerY, centerZ] = centerPosition
+
+  return Object.freeze([
+    Object.freeze([centerX - 0.2, centerY, centerZ - 0.08]),
+    Object.freeze([centerX, centerY + 0.07, centerZ + 0.08]),
+    Object.freeze([centerX + 0.2, centerY, centerZ - 0.08]),
+  ])
+}
+
 const NETWORK_CABLE_CONFIGS = Object.freeze([
   Object.freeze({
     id: NETWORK_CABLE_IDS.ROUTER_POWER,
     name: 'Router Power Cable',
     type: NETWORK_PORT_TYPES.POWER,
-    color: '#252b30',
-    highlightColor: '#78a9bc',
+    color: '#434d53',
+    plugColor: '#657178',
+    highlightColor: '#8fc1d2',
     sourcePortId: 'router-power-port',
     destinationPortId: 'pdu-outlet-1',
     homePosition: ROUTER_POWER_HOME.position,
@@ -78,20 +96,22 @@ const NETWORK_CABLE_CONFIGS = Object.freeze([
       'router-power-port',
       'pdu-outlet-1',
       [
-        [0.94, 1.9, 0.54],
-        [1.13, 1.72, 0.48],
-        [1.14, 1.26, 0.42],
+        [0.98, 1.9, 0.48],
+        [1.2, 1.72, 0.5],
+        [1.46, 1.45, 0.48],
+        [1.44, 1.2, 0.46],
       ],
     ),
-    thickness: 0.022,
-    hitboxDimensions: Object.freeze([0.74, 0.3, 0.48]),
+    thickness: 0.027,
+    interactionWidth: 0.11,
   }),
   Object.freeze({
     id: NETWORK_CABLE_IDS.SWITCH_POWER,
     name: 'Switch Power Cable',
     type: NETWORK_PORT_TYPES.POWER,
-    color: '#30373c',
-    highlightColor: '#88b5c6',
+    color: '#4b555b',
+    plugColor: '#6b767c',
+    highlightColor: '#9ac7d6',
     sourcePortId: 'switch-power-port',
     destinationPortId: 'pdu-outlet-2',
     homePosition: SWITCH_POWER_HOME.position,
@@ -106,83 +126,101 @@ const NETWORK_CABLE_CONFIGS = Object.freeze([
       'switch-power-port',
       'pdu-outlet-2',
       [
-        [0.96, 1.56, 0.54],
-        [1.15, 1.38, 0.47],
-        [1.14, 0.9, 0.4],
+        [0.98, 1.56, 0.47],
+        [1.2, 1.38, 0.5],
+        [1.46, 1.04, 0.48],
+        [1.44, 0.76, 0.46],
       ],
     ),
-    thickness: 0.022,
-    hitboxDimensions: Object.freeze([0.74, 0.3, 0.48]),
+    thickness: 0.027,
+    interactionWidth: 0.11,
   }),
   Object.freeze({
     id: NETWORK_CABLE_IDS.PATCH_TO_SWITCH,
     name: 'Blue Patch Cable',
     type: NETWORK_PORT_TYPES.ETHERNET,
-    color: '#2f78a8',
+    color: '#3389bd',
     sourcePortId: 'patch-panel-port-1',
     destinationPortId: 'switch-port-1',
-    parkedPath: Object.freeze([
-      Object.freeze([1.25, 0.32, 0.92]),
-      Object.freeze([1.5, 0.38, 1.02]),
-      Object.freeze([1.78, 0.32, 0.92]),
-    ]),
+    parkedPath: createParkedEthernetPath(PREPARATION_CABLE_CENTERS.patch),
     connectedPath: createConnectionPath(
       'patch-panel-port-1',
       'switch-port-1',
       [
-        [-0.76, 1.15, 0.72],
-        [-0.78, 1.49, 0.72],
+        [-0.82, 1.15, 0.59],
+        [-0.82, 1.49, 0.59],
       ],
     ),
-    thickness: 0.018,
+    thickness: 0.016,
+    connectionDuration: 1,
+    interactionWidth: 0.075,
   }),
   Object.freeze({
     id: NETWORK_CABLE_IDS.SWITCH_TO_ROUTER,
     name: 'Yellow Uplink Cable',
     type: NETWORK_PORT_TYPES.ETHERNET,
-    color: '#d0a53a',
+    color: '#d8ad42',
     sourcePortId: 'switch-port-8',
     destinationPortId: 'router-lan-1',
-    parkedPath: Object.freeze([
-      Object.freeze([1.2, 0.26, 1.12]),
-      Object.freeze([1.48, 0.2, 1.2]),
-      Object.freeze([1.78, 0.26, 1.12]),
-    ]),
+    parkedPath: createParkedEthernetPath(PREPARATION_CABLE_CENTERS.uplink),
     connectedPath: createConnectionPath(
       'switch-port-8',
       'router-lan-1',
       [
-        [0.78, 1.49, 0.72],
-        [0.78, 1.83, 0.72],
-        [-0.18, 1.83, 0.72],
+        [0.82, 1.49, 0.54],
+        [0.86, 1.62, 0.54],
+        [0.86, 1.86, 0.54],
+        [0.7, 1.94, 0.54],
+        [-0.25, 1.94, 0.54],
       ],
     ),
-    thickness: 0.018,
+    thickness: 0.016,
+    connectionDuration: 1.05,
+    interactionWidth: 0.075,
   }),
   Object.freeze({
     id: NETWORK_CABLE_IDS.PC_TO_SWITCH,
     name: 'Gray Workstation Cable',
     type: NETWORK_PORT_TYPES.ETHERNET,
-    color: '#7d8991',
+    color: '#9aa5ab',
     sourcePortId: 'pc-eth0',
     destinationPortId: 'switch-port-2',
-    parkedPath: Object.freeze([
-      Object.freeze([1.22, 0.2, 1.34]),
-      Object.freeze([1.5, 0.14, 1.42]),
-      Object.freeze([1.78, 0.2, 1.34]),
-    ]),
+    parkedPath: createParkedEthernetPath(
+      PREPARATION_CABLE_CENTERS.workstation,
+    ),
     connectedPath: createConnectionPath(
       'pc-eth0',
       'switch-port-2',
       [
-        [3.18, 0.42, 0.9],
-        [2.76, 0.22, 0.98],
-        [1.12, 0.22, 0.92],
-        [-0.72, 0.22, 0.82],
-        [-0.72, 1.49, 0.72],
+        [
+          NETWORK_WORKSTATION_LAYOUT.workstationPcPosition[0],
+          0.22,
+          NETWORK_WORKSTATION_LAYOUT.workstationPcPosition[2] + 0.42,
+        ],
+        [
+          NETWORK_WORKSTATION_LAYOUT.workstationPcPosition[0] + 0.3,
+          0.11,
+          NETWORK_WORKSTATION_LAYOUT.workstationPcPosition[2] + 0.54,
+        ],
+        [
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[0] + 0.15,
+          0.09,
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[2] + 0.72,
+        ],
+        [-7.55, 0.09, 1.9],
+        [-6.15, 0.09, 2.08],
+        [-4.65, 0.09, 2.08],
+        [-3.45, 0.09, 2],
+        [-2.05, 0.09, 1.86],
+        [-1.12, 0.12, 1.55],
+        [-1.02, 0.72, 0.92],
+        [-0.92, 1.25, 0.62],
+        [-0.56, 1.43, 0.56],
       ],
     ),
-    thickness: 0.018,
+    thickness: 0.016,
+    connectionDuration: 1.1,
+    interactionWidth: 0.075,
   }),
 ])
 

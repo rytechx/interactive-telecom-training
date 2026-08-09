@@ -1,24 +1,70 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CatmullRomCurve3, Vector3 } from 'three'
+import { CatmullRomCurve3, Quaternion, TubeGeometry, Vector3 } from 'three'
 import { NETWORK_PORT_TYPES } from './networkDeviceConfigs.js'
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
 }
 
+function clamp01(value) {
+  return Math.min(Math.max(value, 0), 1)
+}
+
+function createCableCurve(path) {
+  return new CatmullRomCurve3(
+    path.map((point) => new Vector3().fromArray(point)),
+    false,
+    'centripetal',
+  )
+}
+
+function CableHitboxSegment({ start, end, width, onPointerEnter, onPointerLeave, onClick }) {
+  const transform = useMemo(() => {
+    const startPosition = new Vector3().copy(start)
+    const endPosition = new Vector3().copy(end)
+    const direction = endPosition.clone().sub(startPosition)
+    const length = direction.length()
+
+    return {
+      length,
+      position: startPosition.add(endPosition).multiplyScalar(0.5),
+      quaternion: new Quaternion().setFromUnitVectors(
+        new Vector3(1, 0, 0),
+        direction.normalize(),
+      ),
+    }
+  }, [end, start])
+
+  return (
+    <mesh
+      position={transform.position}
+      quaternion={transform.quaternion}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onClick}
+    >
+      <boxGeometry args={[transform.length + width, width, width]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  )
+}
+
 function CablePlug({
   groupRef,
   cableType,
   color,
+  configuredPlugColor,
   endRole,
   highlighted,
   muted,
   highlightColor,
 }) {
   const isPower = cableType === NETWORK_PORT_TYPES.POWER
-  const plugColor = highlighted ? highlightColor : isPower ? '#20262a' : color
+  const plugColor = highlighted
+    ? highlightColor
+    : configuredPlugColor ?? (isPower ? '#4e595f' : color)
 
   return (
     <group ref={groupRef}>
@@ -90,20 +136,33 @@ export default function NetworkCable({
   onConnectionComplete,
 }) {
   const cableMaterialRef = useRef(null)
+  const cableMeshRef = useRef(null)
   const sourcePlugRef = useRef(null)
   const destinationPlugRef = useRef(null)
+  const animatedGeometryRef = useRef(null)
   const animationElapsed = useRef(0)
   const animationCompleted = useRef(false)
   const isHovered = hoveredObjectId === config.id
   const canInteract = canSelect || canReject
   const highlighted = selected || isHovered
-  const activePath = connected || connecting ? config.connectedPath : config.parkedPath
-  const curve = useMemo(
+  const parkedCurve = useMemo(
+    () => createCableCurve(config.parkedPath),
+    [config.parkedPath],
+  )
+  const connectedCurve = useMemo(
+    () => createCableCurve(config.connectedPath),
+    [config.connectedPath],
+  )
+  const restingGeometry = useMemo(
     () =>
-      new CatmullRomCurve3(
-        activePath.map((point) => new Vector3().fromArray(point)),
+      new TubeGeometry(
+        connected ? connectedCurve : parkedCurve,
+        28,
+        config.thickness,
+        7,
+        false,
       ),
-    [activePath],
+    [connected, connectedCurve, config.thickness, parkedCurve],
   )
   const parkedSource = useMemo(
     () => new Vector3().fromArray(config.parkedPath[0]),
@@ -121,21 +180,66 @@ export default function NetworkCable({
     () => new Vector3().fromArray(config.connectedPath.at(-1)),
     [config.connectedPath],
   )
+  const cableHitboxSegments = useMemo(() => {
+    const hitboxPoints = parkedCurve.getSpacedPoints(
+      config.hitboxSegmentCount ?? 5,
+    )
+
+    return hitboxPoints.slice(1).map((point, index) => ({
+      end: point,
+      id: `${config.id}-hitbox-${index}`,
+      start: hitboxPoints[index],
+    }))
+  }, [config.hitboxSegmentCount, config.id, parkedCurve])
   const tooltipPosition = config.parkedPath[Math.floor(config.parkedPath.length / 2)]
 
   useEffect(() => {
     animationElapsed.current = 0
     animationCompleted.current = false
 
-    if (!connecting) {
-      sourcePlugRef.current?.position.copy(
-        connected ? connectedSource : parkedSource,
-      )
-      destinationPlugRef.current?.position.copy(
-        connected ? connectedDestination : parkedDestination,
-      )
+    if (animatedGeometryRef.current) {
+      animatedGeometryRef.current.dispose()
+      animatedGeometryRef.current = null
     }
-  }, [connected, connectedDestination, connectedSource, connecting, parkedDestination, parkedSource])
+
+    if (cableMeshRef.current) {
+      cableMeshRef.current.geometry = restingGeometry
+    }
+
+    if (connecting) {
+      sourcePlugRef.current?.position.copy(parkedSource)
+      destinationPlugRef.current?.position.copy(parkedDestination)
+      return
+    }
+
+    if (destinationPlugRef.current) {
+      destinationPlugRef.current.visible = true
+    }
+
+    sourcePlugRef.current?.position.copy(
+      connected ? connectedSource : parkedSource,
+    )
+    destinationPlugRef.current?.position.copy(
+      connected ? connectedDestination : parkedDestination,
+    )
+  }, [
+    connected,
+    connectedDestination,
+    connectedSource,
+    connecting,
+    parkedDestination,
+    parkedSource,
+    restingGeometry,
+  ])
+
+  useEffect(
+    () => () => {
+      animatedGeometryRef.current?.dispose()
+    },
+    [],
+  )
+
+  useEffect(() => () => restingGeometry.dispose(), [restingGeometry])
 
   useFrame((_, delta) => {
     const material = cableMaterialRef.current
@@ -143,7 +247,7 @@ export default function NetworkCable({
     if (material) {
       material.emissiveIntensity = highlighted ? 0.3 : 0.02
       material.opacity = connecting
-        ? Math.min(0.25 + animationElapsed.current / 1.1, 1)
+        ? 1
         : highlighted
           ? 1
           : muted
@@ -153,6 +257,7 @@ export default function NetworkCable({
 
     if (
       !connecting ||
+      !cableMeshRef.current ||
       !sourcePlugRef.current ||
       !destinationPlugRef.current ||
       animationCompleted.current
@@ -161,21 +266,48 @@ export default function NetworkCable({
     }
 
     animationElapsed.current += delta
-    const progress = Math.min(animationElapsed.current / 1.15, 1)
-    const sourceProgress = smoothStep(Math.min(progress / 0.48, 1))
-    const destinationProgress = smoothStep(
-      Math.min(Math.max((progress - 0.42) / 0.58, 0), 1),
+    const progress = Math.min(
+      animationElapsed.current / (config.connectionDuration ?? 1.05),
+      1,
     )
+    const sourceProgress = smoothStep(Math.min(progress / 0.28, 1))
+    const routeProgress = smoothStep(clamp01((progress - 0.28) / 0.72))
 
     sourcePlugRef.current.position.lerpVectors(
       parkedSource,
       connectedSource,
       sourceProgress,
     )
-    destinationPlugRef.current.position.lerpVectors(
-      parkedDestination,
-      connectedDestination,
-      destinationProgress,
+
+    if (routeProgress === 0) {
+      destinationPlugRef.current.visible = false
+      cableMeshRef.current.geometry = restingGeometry
+      return
+    }
+
+    const visibleRouteProgress = Math.max(routeProgress, 0.015)
+    const animatedPoints = Array.from({ length: 19 }, (_, index) =>
+      connectedCurve.getPoint((index / 18) * visibleRouteProgress),
+    )
+    const animatedCurve = new CatmullRomCurve3(
+      animatedPoints,
+      false,
+      'centripetal',
+    )
+    const animatedGeometry = new TubeGeometry(
+      animatedCurve,
+      28,
+      config.thickness,
+      7,
+      false,
+    )
+
+    animatedGeometryRef.current?.dispose()
+    animatedGeometryRef.current = animatedGeometry
+    cableMeshRef.current.geometry = animatedGeometry
+    destinationPlugRef.current.visible = true
+    destinationPlugRef.current.position.copy(
+      connectedCurve.getPoint(routeProgress),
     )
 
     if (progress < 1) {
@@ -211,8 +343,7 @@ export default function NetworkCable({
 
   return (
     <group>
-      <mesh>
-        <tubeGeometry args={[curve, 28, config.thickness, 7, false]} />
+      <mesh ref={cableMeshRef} geometry={restingGeometry}>
         <meshStandardMaterial
           ref={cableMaterialRef}
           color={config.color}
@@ -228,6 +359,7 @@ export default function NetworkCable({
         groupRef={sourcePlugRef}
         cableType={config.type}
         color={config.color}
+        configuredPlugColor={config.plugColor}
         endRole="device"
         highlighted={highlighted}
         muted={muted && !highlighted}
@@ -237,28 +369,31 @@ export default function NetworkCable({
         groupRef={destinationPlugRef}
         cableType={config.type}
         color={config.color}
+        configuredPlugColor={config.plugColor}
         endRole="pdu"
         highlighted={highlighted}
         muted={muted && !highlighted}
         highlightColor={config.highlightColor ?? config.color}
       />
 
-      {!connected && !connecting && (
-        <mesh
-          position={tooltipPosition}
-          onPointerEnter={handlePointerEnter}
-          onPointerLeave={handlePointerLeave}
-          onClick={handleClick}
-        >
-          <boxGeometry args={config.hitboxDimensions ?? [0.72, 0.24, 0.32]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
-      )}
+      {canInteract && !connected && !connecting &&
+        cableHitboxSegments.map((segment) => (
+          <CableHitboxSegment
+            key={segment.id}
+            start={segment.start}
+            end={segment.end}
+            width={config.interactionWidth ?? config.thickness * 4}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
+            onClick={handleClick}
+          />
+        ))}
 
       {isHovered && canInteract && (
         <Html
           position={[tooltipPosition[0], tooltipPosition[1] + 0.2, tooltipPosition[2]]}
           center
+          zIndexRange={[3, 0]}
         >
           <div className="network-object-tooltip" role="tooltip">
             {config.name}

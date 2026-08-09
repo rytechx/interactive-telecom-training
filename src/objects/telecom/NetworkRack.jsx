@@ -24,15 +24,15 @@ export default function NetworkRack({
     <group position={position} rotation={rotation} scale={scale}>
       <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
         <boxGeometry args={[width, 0.12, depth]} />
-        <meshStandardMaterial color="#1d2327" metalness={0.65} roughness={0.45} />
+        <meshStandardMaterial color="#343d43" metalness={0.62} roughness={0.46} />
       </mesh>
       <mesh position={[0, height - 0.06, 0]} castShadow receiveShadow>
         <boxGeometry args={[width, 0.12, depth]} />
-        <meshStandardMaterial color="#1d2327" metalness={0.65} roughness={0.45} />
+        <meshStandardMaterial color="#343d43" metalness={0.62} roughness={0.46} />
       </mesh>
       <mesh position={[0, height / 2, -depth / 2 + 0.035]} receiveShadow>
         <boxGeometry args={[width - 0.2, height - 0.2, 0.07]} />
-        <meshStandardMaterial color="#171c20" metalness={0.5} roughness={0.55} />
+        <meshStandardMaterial color="#293137" metalness={0.46} roughness={0.58} />
       </mesh>
 
       {postPositions.map((postPosition) => (
@@ -43,7 +43,7 @@ export default function NetworkRack({
           receiveShadow
         >
           <boxGeometry args={[0.12, height, 0.12]} />
-          <meshStandardMaterial color="#2b3237" metalness={0.7} roughness={0.4} />
+          <meshStandardMaterial color="#465159" metalness={0.68} roughness={0.42} />
         </mesh>
       ))}
 
@@ -52,9 +52,9 @@ export default function NetworkRack({
           <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[0.1, height - 0.22, 0.065]} />
             <meshStandardMaterial
-              color="#333c42"
-              metalness={0.75}
-              roughness={0.38}
+              color="#59666d"
+              metalness={0.72}
+              roughness={0.4}
             />
           </mesh>
           {railHolePositions.map((holeY) => (

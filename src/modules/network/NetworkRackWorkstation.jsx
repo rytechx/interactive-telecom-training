@@ -5,6 +5,7 @@ import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
 import NetworkCable from './NetworkCable.jsx'
 import NetworkDevice from './NetworkDevice.jsx'
 import NetworkPort from './NetworkPort.jsx'
+import NetworkWorkstationMonitor from './NetworkWorkstationMonitor.jsx'
 import {
   NETWORK_CABLE_CONFIGS,
   NETWORK_CABLE_IDS,
@@ -14,11 +15,14 @@ import {
   NETWORK_DEVICE_IDS,
   NETWORK_PORTS,
   NETWORK_PORT_TYPES,
+  NETWORK_PDU_CONFIG,
   NETWORK_RACK_CONFIG,
   NETWORK_RACK_SLOTS,
+  NETWORK_REQUIRED_VERIFICATION_PORT_IDS,
   PDU_PORTS,
 } from './networkDeviceConfigs.js'
 import { NETWORK_PROCEDURE_STEPS } from './networkProcedure.js'
+import { NETWORK_WORKSTATION_LAYOUT } from './networkWorkstationLayout.js'
 
 const selectionStepDeviceIds = Object.freeze({
   [NETWORK_PROCEDURE_STEPS.SELECT_PATCH_PANEL]:
@@ -39,6 +43,26 @@ const powerConnectionSteps = Object.freeze([
   NETWORK_PROCEDURE_STEPS.POWER_CONNECTED,
 ])
 
+const routerConfigurationSteps = Object.freeze([
+  NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER,
+])
+
+const switchConfigurationSteps = Object.freeze([
+  NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH,
+])
+
+const workstationConfigurationSteps = Object.freeze([
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4,
+  NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG,
+  NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED,
+  NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+  NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS,
+  NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+  NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS,
+])
+
 const cableSelectionStepIds = Object.freeze({
   [NETWORK_PROCEDURE_STEPS.CONNECT_PATCH_TO_SWITCH]: Object.freeze([
     NETWORK_CABLE_IDS.PATCH_TO_SWITCH,
@@ -55,56 +79,156 @@ const cableSelectionStepIds = Object.freeze({
   ]),
 })
 
-function PreparationCart({ showLabel = false }) {
-  const shelfHeights = [0.28, 0.58, 0.88]
+function PreparationBench({ showLabels = false }) {
+  const {
+    preparationBenchDepth,
+    preparationBenchHeight,
+    preparationBenchLegOffsetX,
+    preparationBenchLegOffsetZ,
+    preparationBenchPosition,
+    preparationBenchTopThickness,
+    preparationBenchWidth,
+    preparationZoneMarkings,
+  } = NETWORK_WORKSTATION_LAYOUT
+  const legHeight = preparationBenchHeight - preparationBenchTopThickness
 
   return (
-    <group position={[1.82, 0, 0.42]}>
-      {shelfHeights.map((shelfY) => (
-        <mesh key={shelfY} position={[0, shelfY, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.95, 0.07, 1.05]} />
-          <meshStandardMaterial color="#555f65" metalness={0.5} roughness={0.55} />
+    <group position={preparationBenchPosition}>
+      <mesh
+        position={[0, preparationBenchHeight - preparationBenchTopThickness / 2, 0]}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry
+          args={[
+            preparationBenchWidth,
+            preparationBenchTopThickness,
+            preparationBenchDepth,
+          ]}
+        />
+        <meshStandardMaterial color="#778287" metalness={0.28} roughness={0.62} />
+      </mesh>
+
+      {preparationZoneMarkings.map((zone) => (
+        <mesh key={zone.id} position={zone.position} receiveShadow>
+          <boxGeometry args={zone.dimensions} />
+          <meshStandardMaterial color={zone.color} metalness={0.08} roughness={0.82} />
         </mesh>
       ))}
-      {[-0.88, 0.88].flatMap((positionX) =>
-        [-0.44, 0.44].map((positionZ) => (
+
+      {[-preparationBenchLegOffsetX, preparationBenchLegOffsetX].flatMap(
+        (positionX) =>
+          [-preparationBenchLegOffsetZ, preparationBenchLegOffsetZ].map((positionZ) => (
           <mesh
             key={`${positionX}-${positionZ}`}
-            position={[positionX, 0.46, positionZ]}
+            position={[positionX, legHeight / 2, positionZ]}
             castShadow
+            receiveShadow
           >
-            <boxGeometry args={[0.07, 0.92, 0.07]} />
-            <meshStandardMaterial color="#30383d" metalness={0.55} roughness={0.5} />
+            <boxGeometry args={[0.09, legHeight, 0.09]} />
+            <meshStandardMaterial
+              color="#465158"
+              metalness={0.58}
+              roughness={0.48}
+            />
           </mesh>
-        )),
+          )),
       )}
-      {showLabel && (
-        <Html position={[0, 1.28, 0.1]} center>
-          <span className="network-prep-label">Equipment Preparation</span>
+
+      <mesh position={[0, 0.4, -0.68]} castShadow receiveShadow>
+        <boxGeometry args={[preparationBenchWidth - 0.2, 0.08, 0.08]} />
+        <meshStandardMaterial color="#4c585e" metalness={0.52} roughness={0.5} />
+      </mesh>
+
+      {showLabels && preparationZoneMarkings.map((zone) => (
+        <Html
+          key={`${zone.id}-label`}
+          position={[zone.position[0], 0.76, 0.92]}
+          center
+          zIndexRange={[2, 0]}
+        >
+          <span className="network-bench-zone-label">{zone.label}</span>
         </Html>
-      )}
+      ))}
     </group>
   )
 }
 
-function PowerPreparationTray({ visible }) {
-  if (!visible) {
-    return null
-  }
-
+function RackCableManagement() {
   return (
     <group>
-      <mesh position={[1.82, 0.96, 0.72]} castShadow receiveShadow>
-        <boxGeometry args={[1.95, 0.06, 0.9]} />
-        <meshStandardMaterial color="#7a878d" metalness={0.08} roughness={0.82} />
+      <mesh position={NETWORK_WORKSTATION_LAYOUT.rackCableGuidePosition} receiveShadow>
+        <boxGeometry args={[0.13, 2.18, 0.1]} />
+        <meshStandardMaterial color="#56636a" metalness={0.62} roughness={0.46} />
       </mesh>
-      <mesh position={[1.82, 0.997, 0.72]} receiveShadow>
-        <boxGeometry args={[0.025, 0.018, 0.82]} />
-        <meshStandardMaterial color="#d6e1e5" roughness={0.72} />
+      <mesh
+        position={NETWORK_WORKSTATION_LAYOUT.rackHorizontalManagerPosition}
+        receiveShadow
+      >
+        <boxGeometry args={[1.5, 0.09, 0.11]} />
+        <meshStandardMaterial color="#4b585f" metalness={0.58} roughness={0.5} />
       </mesh>
-      <Html position={[1.82, 1.27, 0.32]} center>
-        <span className="network-power-tray-label">POWER LEADS</span>
-      </Html>
+    </group>
+  )
+}
+
+function WorkstationDesk() {
+  const {
+    workstationDeskDepth,
+    workstationDeskHeight,
+    workstationDeskLegInset,
+    workstationDeskLegThickness,
+    workstationDeskPosition,
+    workstationDeskTopThickness,
+    workstationDeskWidth,
+  } = NETWORK_WORKSTATION_LAYOUT
+  const legHeight = workstationDeskHeight - workstationDeskTopThickness
+  const legOffsetX = workstationDeskWidth / 2 - workstationDeskLegInset
+  const legOffsetZ = workstationDeskDepth / 2 - workstationDeskLegInset
+
+  return (
+    <group position={workstationDeskPosition}>
+      <mesh
+        position={[
+          0,
+          workstationDeskHeight - workstationDeskTopThickness / 2,
+          0,
+        ]}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry
+          args={[
+            workstationDeskWidth,
+            workstationDeskTopThickness,
+            workstationDeskDepth,
+          ]}
+        />
+        <meshStandardMaterial color="#69767c" metalness={0.34} roughness={0.6} />
+      </mesh>
+      {[-legOffsetX, legOffsetX].flatMap((positionX) =>
+        [-legOffsetZ, legOffsetZ].map((positionZ) => (
+          <mesh
+            key={`${positionX}-${positionZ}`}
+            position={[positionX, legHeight / 2, positionZ]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry
+              args={[
+                workstationDeskLegThickness,
+                legHeight,
+                workstationDeskLegThickness,
+              ]}
+            />
+            <meshStandardMaterial
+              color="#465158"
+              metalness={0.48}
+              roughness={0.52}
+            />
+          </mesh>
+        )),
+      )}
     </group>
   )
 }
@@ -113,22 +237,53 @@ function RackPdu({
   interactivePortIds,
   hoveredObjectId,
   selectedPortId,
+  targetPortId,
   onHover,
   onHoverEnd,
   onSelectPort,
 }) {
   return (
     <group>
-      <mesh position={[1.04, 0.96, 0.02]} castShadow receiveShadow>
-        <boxGeometry args={[0.17, 1.35, 0.25]} />
-        <meshStandardMaterial color="#252c31" metalness={0.6} roughness={0.48} />
+      {NETWORK_PDU_CONFIG.mountingBracketPositions.map((bracketPosition) => (
+        <mesh
+          key={bracketPosition.join('-')}
+          position={bracketPosition}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={NETWORK_PDU_CONFIG.mountingBracketDimensions} />
+          <meshStandardMaterial
+            color="#465158"
+            metalness={0.64}
+            roughness={0.46}
+          />
+        </mesh>
+      ))}
+      <mesh
+        position={NETWORK_PDU_CONFIG.position}
+        rotation={NETWORK_PDU_CONFIG.rotation}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry args={NETWORK_PDU_CONFIG.dimensions} />
+        <meshStandardMaterial color="#59666d" metalness={0.58} roughness={0.48} />
       </mesh>
-      <mesh position={[1.04, 0.96, 0.155]}>
-        <boxGeometry args={[0.12, 1.24, 0.018]} />
-        <meshStandardMaterial color="#11171a" metalness={0.44} roughness={0.58} />
+      <mesh
+        position={NETWORK_PDU_CONFIG.facePosition}
+        rotation={NETWORK_PDU_CONFIG.rotation}
+      >
+        <boxGeometry args={NETWORK_PDU_CONFIG.faceDimensions} />
+        <meshStandardMaterial color="#738188" metalness={0.38} roughness={0.56} />
       </mesh>
-      <Html position={[1.04, 1.72, 0.16]} center>
-        <span className="network-power-port-label">RACK PDU</span>
+      <mesh
+        position={NETWORK_PDU_CONFIG.accentPosition}
+        rotation={NETWORK_PDU_CONFIG.rotation}
+      >
+        <boxGeometry args={[0.22, 0.012, 0.012]} />
+        <meshStandardMaterial color="#39464c" metalness={0.45} roughness={0.58} />
+      </mesh>
+      <Html position={NETWORK_PDU_CONFIG.labelPosition} center zIndexRange={[2, 0]}>
+        <span className="network-port-marking is-pdu-title">RACK PDU</span>
       </Html>
       {PDU_PORTS.map((port) => (
         <NetworkPort
@@ -137,6 +292,7 @@ function RackPdu({
           isInteractive={interactivePortIds.includes(port.id)}
           isHovered={hoveredObjectId === port.id}
           isSelected={selectedPortId === port.id}
+          isTarget={targetPortId === port.id}
           onPointerEnter={(hoveredPort) =>
             onHover(hoveredPort.id, hoveredPort.name)
           }
@@ -150,6 +306,7 @@ function RackPdu({
 
 export default function NetworkRackWorkstation({
   position,
+  rotation = [0, 0, 0],
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
@@ -188,6 +345,9 @@ export default function NetworkRackWorkstation({
   )
   const selectedNetworkPortId = useNetworkTrainingStore(
     (state) => state.selectedNetworkPortId,
+  )
+  const selectedSourcePortId = useNetworkTrainingStore(
+    (state) => state.selectedSourcePortId,
   )
   const activeInstallationDeviceId = useNetworkTrainingStore(
     (state) => state.activeInstallationDeviceId,
@@ -234,29 +394,47 @@ export default function NetworkRackWorkstation({
   const clearHoveredNetworkObject = useNetworkTrainingStore(
     (state) => state.clearHoveredNetworkObject,
   )
+  const openWorkstationConfiguration = useNetworkTrainingStore(
+    (state) => state.openWorkstationConfiguration,
+  )
+  const openNetworkDeviceTerminal = useNetworkTrainingStore(
+    (state) => state.openNetworkDeviceTerminal,
+  )
   const isPoweringOn =
     networkCurrentStep === NETWORK_PROCEDURE_STEPS.POWERING_ON_NETWORK
   const selectedCable = NETWORK_CABLE_CONFIGS.find(
     (cable) => cable.id === selectedCableId,
   )
+  const targetPortId = selectedCable
+    ? selectedSourcePortId
+      ? selectedCable.destinationPortId
+      : selectedCable.sourcePortId
+    : null
   const isPowerConnectionStep = powerConnectionSteps.includes(
     networkCurrentStep,
   )
-  const ethernetPortIds = Object.values(NETWORK_PORTS)
-    .filter((port) => port.type === NETWORK_PORT_TYPES.ETHERNET)
-    .map((port) => port.id)
   const interactivePortIds = selectedCable
-    ? Object.values(NETWORK_PORTS)
-        .filter((port) => port.type === selectedCable.type)
-        .map((port) => port.id)
+    ? selectedCable.type === NETWORK_PORT_TYPES.POWER
+      ? Object.values(NETWORK_PORTS)
+          .filter((port) => port.type === NETWORK_PORT_TYPES.POWER)
+          .map((port) => port.id)
+      : [selectedCable.sourcePortId, selectedCable.destinationPortId]
     : networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_LINKS
-      ? ethernetPortIds
+      ? NETWORK_REQUIRED_VERIFICATION_PORT_IDS
       : []
   const activeLinkPortIds = Object.keys(portOccupancy)
   const selectableCableIds = cableSelectionStepIds[networkCurrentStep] ?? []
   const selectedStepDeviceId = selectionStepDeviceIds[networkCurrentStep]
   const isSelectingDevice = Boolean(selectedStepDeviceId)
   const isInstallingDevice = installationSteps.includes(networkCurrentStep)
+  const configurationDeviceId = routerConfigurationSteps.includes(networkCurrentStep)
+    ? NETWORK_DEVICE_IDS.ROUTER
+    : switchConfigurationSteps.includes(networkCurrentStep)
+      ? NETWORK_DEVICE_IDS.MANAGED_SWITCH
+      : null
+  const canConfigureWorkstation = workstationConfigurationSteps.includes(
+    networkCurrentStep,
+  )
   const installedByDeviceId = {
     [NETWORK_DEVICE_IDS.PATCH_PANEL]: patchPanelInstalled,
     [NETWORK_DEVICE_IDS.MANAGED_SWITCH]: switchInstalled,
@@ -296,7 +474,7 @@ export default function NetworkRackWorkstation({
   }
 
   return (
-    <group position={position}>
+    <group position={position} rotation={rotation}>
       <NetworkRack
         width={NETWORK_RACK_CONFIG.width}
         height={NETWORK_RACK_CONFIG.height}
@@ -312,6 +490,12 @@ export default function NetworkRackWorkstation({
             canSelect={
               isSelectingDevice && device.type === 'rack-device'
             }
+            canConfigure={configurationDeviceId === device.id}
+            configurationLabel={
+              device.id === NETWORK_DEVICE_IDS.ROUTER
+                ? 'Open Router Console'
+                : 'Open Switch Console'
+            }
             powered={
               (networkPowered || isPoweringOn) &&
               (device.id === NETWORK_DEVICE_IDS.ROUTER
@@ -326,10 +510,12 @@ export default function NetworkRackWorkstation({
             interactivePortIds={interactivePortIds}
             hoveredObjectId={hoveredObjectId}
             selectedPortId={selectedNetworkPortId}
-            showLabel={networkTrainingStarted}
+            targetPortId={targetPortId}
+            showLabel={false}
             onHover={handleHover}
             onHoverEnd={handleHoverEnd}
             onSelectDevice={selectNetworkDevice}
+            onConfigure={openNetworkDeviceTerminal}
             onSelectPort={
               networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_LINKS
                 ? verifyNetworkLinkPort
@@ -339,14 +525,25 @@ export default function NetworkRackWorkstation({
           />
         ))}
 
+        <NetworkWorkstationMonitor
+          canConfigure={canConfigureWorkstation}
+          isHovered={hoveredObjectId === 'workstation-monitor'}
+          onHover={handleHover}
+          onHoverEnd={handleHoverEnd}
+          onConfigure={openWorkstationConfiguration}
+        />
+
         <RackPdu
           interactivePortIds={interactivePortIds}
           hoveredObjectId={hoveredObjectId}
           selectedPortId={selectedNetworkPortId}
+          targetPortId={targetPortId}
           onHover={handleHover}
           onHoverEnd={handleHoverEnd}
           onSelectPort={selectNetworkPort}
         />
+
+        <RackCableManagement />
 
         {NETWORK_RACK_SLOTS.map((slot) => {
           const selectedDevice = NETWORK_DEVICE_CONFIGS[slot.expectedDeviceId]
@@ -397,7 +594,15 @@ export default function NetworkRackWorkstation({
                 />
               </mesh>
               {isSlotHovered && (
-                <Html position={[slot.position[0], slot.position[1] + 0.22, 0.62]} center>
+                <Html
+                  position={[
+                    slot.position[0],
+                    slot.position[1] + 0.22,
+                    0.62,
+                  ]}
+                  center
+                  zIndexRange={[3, 0]}
+                >
                   <div className="network-object-tooltip" role="tooltip">
                     {isExpected
                       ? `Install ${selectedDevice.shortName}`
@@ -414,15 +619,6 @@ export default function NetworkRackWorkstation({
             (item) => item.id === cable.id,
           )
           const isPowerCable = cable.type === NETWORK_PORT_TYPES.POWER
-          const isWrongCableCandidate =
-            isPowerConnectionStep &&
-            cable.type === NETWORK_PORT_TYPES.ETHERNET &&
-            !connection?.connected
-
-          if (isPowerCable && !connection?.connected && !isPowerConnectionStep) {
-            return null
-          }
-
           return (
             <NetworkCable
               key={cable.id}
@@ -435,7 +631,7 @@ export default function NetworkRackWorkstation({
                 selectableCableIds.includes(cable.id) &&
                 !connection?.connected
               }
-              canReject={networkTrainingStarted && isWrongCableCandidate}
+              canReject={false}
               muted={isPowerConnectionStep && !isPowerCable}
               hoveredObjectId={hoveredObjectId}
               onHover={handleHover}
@@ -473,14 +669,28 @@ export default function NetworkRackWorkstation({
         </mesh>
       </NetworkRack>
 
-      <PreparationCart showLabel={networkTrainingStarted} />
-      <PowerPreparationTray visible={isPowerConnectionStep} />
+      <PreparationBench showLabels={networkTrainingStarted} />
+      <WorkstationDesk />
 
       <pointLight
-        position={[0.4, 3.1, 1.8]}
+        position={NETWORK_WORKSTATION_LAYOUT.stationLightPosition}
         color="#edf9ff"
-        intensity={networkTrainingStarted ? 1.8 : 0}
-        distance={5}
+        intensity={networkTrainingStarted ? 2.35 : 0}
+        distance={7.2}
+        decay={2}
+      />
+      <pointLight
+        position={NETWORK_WORKSTATION_LAYOUT.rackLightPosition}
+        color="#f4fbff"
+        intensity={networkTrainingStarted ? 1.25 : 0}
+        distance={4.4}
+        decay={2}
+      />
+      <pointLight
+        position={NETWORK_WORKSTATION_LAYOUT.rackRearLightPosition}
+        color="#eef7fa"
+        intensity={networkTrainingStarted ? 0.9 : 0}
+        distance={3.8}
         decay={2}
       />
     </group>

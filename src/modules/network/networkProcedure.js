@@ -1,5 +1,5 @@
 const NETWORK_MODULE_ID = 'network-device-installation'
-const NETWORK_TOTAL_STEPS = 10
+const NETWORK_TOTAL_STEPS = 13
 
 const NETWORK_PROCEDURE_STEPS = Object.freeze({
   NOT_STARTED: 'network-not-started',
@@ -25,6 +25,21 @@ const NETWORK_PROCEDURE_STEPS = Object.freeze({
   POWERING_ON_NETWORK: 'network-powering-on',
   VERIFY_LINKS: 'verify-physical-links',
   PHYSICAL_INSTALLATION_COMPLETE: 'physical-installation-complete',
+  CONFIGURE_PC_IPV4: 'configure-workstation-ipv4',
+  PC_IPV4_CONFIGURED: 'workstation-ipv4-configured',
+  OPEN_ROUTER_CLI: 'open-router-cli',
+  CONFIGURE_ROUTER: 'configure-router-lan',
+  ROUTER_CONFIGURED: 'router-lan-configured',
+  OPEN_SWITCH_CLI: 'open-switch-cli',
+  CONFIGURE_SWITCH: 'configure-switch-management',
+  SWITCH_CONFIGURED: 'switch-management-configured',
+  VERIFY_PC_CONFIG: 'verify-workstation-configuration',
+  PC_CONFIG_VERIFIED: 'workstation-configuration-verified',
+  PING_ROUTER: 'ping-router',
+  ROUTER_PING_PASS: 'router-ping-pass',
+  PING_SWITCH: 'ping-switch',
+  SWITCH_PING_PASS: 'switch-ping-pass',
+  LOGICAL_CONFIGURATION_COMPLETE: 'logical-configuration-complete',
 })
 
 const procedure = Object.freeze({
@@ -161,6 +176,93 @@ const procedure = Object.freeze({
     title: 'Physical Installation Pass',
     instruction: 'Physical network installation completed successfully.',
   }),
+  [NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4]: Object.freeze({
+    stepNumber: 10,
+    title: 'Configure Workstation IPv4 Settings',
+    instruction:
+      'Open the workstation monitor and configure its IPv4 address, subnet mask, and default gateway.',
+    acceptedAction: 'configure-workstation',
+  }),
+  [NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED]: Object.freeze({
+    stepNumber: 10,
+    title: 'Workstation IPv4 Configured',
+    instruction: 'IPv4 configuration applied successfully.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI]: Object.freeze({
+    stepNumber: 11,
+    title: 'Configure Router LAN Interface',
+    instruction: 'Open the router console to configure its G0/0 LAN interface.',
+    acceptedAction: 'open-router-cli',
+  }),
+  [NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER]: Object.freeze({
+    stepNumber: 11,
+    title: 'Configure Router LAN Interface',
+    instruction:
+      'Configure G0/0 with the router LAN address and enable the interface.',
+    acceptedAction: 'configure-router',
+  }),
+  [NETWORK_PROCEDURE_STEPS.ROUTER_CONFIGURED]: Object.freeze({
+    stepNumber: 11,
+    title: 'Router LAN Configured',
+    instruction: 'Router LAN configuration complete.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI]: Object.freeze({
+    stepNumber: 12,
+    title: 'Configure Switch Management',
+    instruction: 'Open the managed switch console to configure VLAN 1.',
+    acceptedAction: 'open-switch-cli',
+  }),
+  [NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH]: Object.freeze({
+    stepNumber: 12,
+    title: 'Configure Switch Management',
+    instruction:
+      'Configure VLAN 1 with a management address and set the router as its default gateway.',
+    acceptedAction: 'configure-switch',
+  }),
+  [NETWORK_PROCEDURE_STEPS.SWITCH_CONFIGURED]: Object.freeze({
+    stepNumber: 12,
+    title: 'Switch Management Configured',
+    instruction: 'Managed switch configuration complete.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG]: Object.freeze({
+    stepNumber: 13,
+    title: 'Verify Workstation Configuration',
+    instruction: 'Open the workstation terminal and inspect its IPv4 settings.',
+    acceptedAction: 'verify-workstation',
+  }),
+  [NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED]: Object.freeze({
+    stepNumber: 13,
+    title: 'Workstation Configuration Verified',
+    instruction: 'The workstation reports the configured training IPv4 values.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.PING_ROUTER]: Object.freeze({
+    stepNumber: 13,
+    title: 'Test Router Connectivity',
+    instruction: 'Use the workstation terminal to test connectivity to the router LAN interface.',
+    acceptedAction: 'ping-router',
+  }),
+  [NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS]: Object.freeze({
+    stepNumber: 13,
+    title: 'Router Connectivity Pass',
+    instruction: 'PC to Router connectivity has been verified.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.PING_SWITCH]: Object.freeze({
+    stepNumber: 13,
+    title: 'Test Switch Connectivity',
+    instruction: 'Use the workstation terminal to test the switch management interface.',
+    acceptedAction: 'ping-switch',
+  }),
+  [NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS]: Object.freeze({
+    stepNumber: 13,
+    title: 'Switch Connectivity Pass',
+    instruction: 'PC to Switch connectivity has been verified.',
+  }),
+  [NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE]: Object.freeze({
+    stepNumber: 13,
+    title: 'Logical Network Configuration Pass',
+    instruction:
+      'Network devices are physically and logically configured correctly.',
+  }),
 })
 
 const continuationSteps = Object.freeze([
@@ -171,6 +273,42 @@ const continuationSteps = Object.freeze([
   NETWORK_PROCEDURE_STEPS.PATCH_SWITCH_CONNECTED,
   NETWORK_PROCEDURE_STEPS.SWITCH_ROUTER_CONNECTED,
   NETWORK_PROCEDURE_STEPS.PC_SWITCH_CONNECTED,
+  NETWORK_PROCEDURE_STEPS.PHYSICAL_INSTALLATION_COMPLETE,
+  NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.ROUTER_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.SWITCH_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED,
+  NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS,
+  NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS,
+])
+
+const logicalNetworkSteps = Object.freeze([
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4,
+  NETWORK_PROCEDURE_STEPS.PC_IPV4_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.OPEN_ROUTER_CLI,
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_ROUTER,
+  NETWORK_PROCEDURE_STEPS.ROUTER_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.OPEN_SWITCH_CLI,
+  NETWORK_PROCEDURE_STEPS.CONFIGURE_SWITCH,
+  NETWORK_PROCEDURE_STEPS.SWITCH_CONFIGURED,
+  NETWORK_PROCEDURE_STEPS.VERIFY_PC_CONFIG,
+  NETWORK_PROCEDURE_STEPS.PC_CONFIG_VERIFIED,
+  NETWORK_PROCEDURE_STEPS.PING_ROUTER,
+  NETWORK_PROCEDURE_STEPS.ROUTER_PING_PASS,
+  NETWORK_PROCEDURE_STEPS.PING_SWITCH,
+  NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS,
+  NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE,
+])
+
+const cablingInteractionSteps = Object.freeze([
+  NETWORK_PROCEDURE_STEPS.INSTALL_PATCH_PANEL,
+  NETWORK_PROCEDURE_STEPS.INSTALL_SWITCH,
+  NETWORK_PROCEDURE_STEPS.INSTALL_ROUTER,
+  NETWORK_PROCEDURE_STEPS.CONNECT_POWER,
+  NETWORK_PROCEDURE_STEPS.CONNECT_PATCH_TO_SWITCH,
+  NETWORK_PROCEDURE_STEPS.CONNECT_SWITCH_TO_ROUTER,
+  NETWORK_PROCEDURE_STEPS.CONNECT_PC_TO_SWITCH,
+  NETWORK_PROCEDURE_STEPS.VERIFY_LINKS,
 ])
 
 const restartableSteps = Object.freeze(
@@ -193,9 +331,19 @@ function isNetworkRestartableStep(stepId) {
   return restartableSteps.includes(stepId)
 }
 
+function isLogicalNetworkStep(stepId) {
+  return logicalNetworkSteps.includes(stepId)
+}
+
+function isNetworkCablingStep(stepId) {
+  return cablingInteractionSteps.includes(stepId)
+}
+
 export {
   getNetworkProcedureStep,
+  isNetworkCablingStep,
   isNetworkContinuationStep,
+  isLogicalNetworkStep,
   isNetworkRestartableStep,
   NETWORK_MODULE_ID,
   NETWORK_PROCEDURE_STEPS,

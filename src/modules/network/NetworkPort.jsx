@@ -1,6 +1,9 @@
 import { Html } from '@react-three/drei'
 import NetworkLinkIndicator from './NetworkLinkIndicator.jsx'
-import { NETWORK_PORT_TYPES } from './networkDeviceConfigs.js'
+import {
+  NETWORK_DEVICE_IDS,
+  NETWORK_PORT_TYPES,
+} from './networkDeviceConfigs.js'
 
 const contactPositions = [-0.034, -0.011, 0.011, 0.034]
 
@@ -9,6 +12,7 @@ export default function NetworkPort({
   isInteractive = false,
   isHovered = false,
   isSelected = false,
+  isTarget = false,
   linkActive = false,
   powerOnStartedAt = null,
   linkDelay = 0,
@@ -17,16 +21,29 @@ export default function NetworkPort({
   onSelect,
 }) {
   const isPowerPort = port.type === NETWORK_PORT_TYPES.POWER
-  const portWidth = isPowerPort ? 0.095 : 0.13
-  const portHeight = isPowerPort ? 0.075 : 0.082
-  const hitboxDimensions = isPowerPort
-    ? [portWidth * 1.8, portHeight * 1.9, 0.14]
-    : [portWidth + 0.045, portHeight + 0.09, 0.1]
+  const isPduOutlet = port.deviceId === NETWORK_DEVICE_IDS.PDU
+  const [portWidth, portHeight] =
+    port.visibleDimensions ?? (isPowerPort ? [0.095, 0.075] : [0.13, 0.082])
+  const hitboxDimensions =
+    port.hitboxDimensions ??
+    (isPowerPort
+      ? [portWidth * 2.2, portHeight * 2.25, 0.16]
+      : isTarget
+        ? [portWidth + 0.06, portHeight + 0.1, 0.12]
+        : [portWidth + 0.045, portHeight + 0.09, 0.1])
   const highlightColor = isSelected
     ? '#6dcdf2'
     : isHovered
       ? '#89dcf7'
-      : '#06090b'
+      : isTarget
+        ? '#6dc7df'
+      : isPowerPort
+        ? port.socketRingColor ?? '#4b575d'
+        : '#0a1013'
+  const isEmphasized = isHovered || isSelected || isTarget
+  const tooltipPosition = port.tooltipPosition ?? [0, 0.18, 0.12]
+  const physicalLabelPosition =
+    port.physicalLabelPosition ?? [0, -0.105, 0.1]
 
   const handlePointerEnter = (event) => {
     if (!isInteractive) {
@@ -52,13 +69,22 @@ export default function NetworkPort({
   }
 
   return (
-    <group position={port.position}>
+    <group position={port.position} rotation={port.rotation ?? [0, 0, 0]}>
       <mesh>
         <boxGeometry args={[portWidth + 0.025, portHeight + 0.025, 0.024]} />
         <meshStandardMaterial
-          color={isHovered || isSelected ? '#45677a' : '#151b1f'}
-          emissive={isHovered || isSelected ? '#2b718d' : '#000000'}
-          emissiveIntensity={isHovered || isSelected ? 0.34 : 0}
+          color={
+            isSelected
+              ? '#5b91a7'
+              : isHovered
+                ? '#527c8f'
+                : isTarget
+                  ? '#416f80'
+                  : port.faceplateColor ?? '#263138'
+          }
+          emissive={isEmphasized ? '#2b718d' : '#000000'}
+          emissiveIntensity={isSelected ? 0.48 : isTarget ? 0.36 : isHovered ? 0.28 : 0}
+          metalness={isPduOutlet ? 0.35 : 0.12}
           roughness={0.62}
         />
       </mesh>
@@ -71,8 +97,18 @@ export default function NetworkPort({
           </mesh>
           <mesh position={[0, 0, 0.034]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.013, 0.013, 0.012, 12]} />
-            <meshStandardMaterial color="#20272b" roughness={0.9} />
+            <meshStandardMaterial color="#151c20" roughness={0.9} />
           </mesh>
+          {[-0.014, 0.014].map((positionX) => (
+            <mesh key={positionX} position={[positionX, 0.012, 0.044]}>
+              <sphereGeometry args={[0.0045, 8, 8]} />
+              <meshStandardMaterial
+                color="#b9a775"
+                metalness={0.72}
+                roughness={0.38}
+              />
+            </mesh>
+          ))}
         </>
       ) : (
         <mesh position={[0, 0, 0.016]}>
@@ -102,27 +138,40 @@ export default function NetworkPort({
         />
       )}
 
-      <mesh
-        position={[0, 0, 0.055]}
-        onPointerEnter={handlePointerEnter}
-        onPointerLeave={handlePointerLeave}
-        onClick={handleClick}
-      >
-        <boxGeometry args={hitboxDimensions} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
+      {isInteractive && (
+        <mesh
+          position={[0, 0, isTarget ? 0.09 : 0.075]}
+          onPointerEnter={handlePointerEnter}
+          onPointerLeave={handlePointerLeave}
+          onClick={handleClick}
+        >
+          <boxGeometry args={hitboxDimensions} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
 
-      {isHovered && (
-        <Html position={[0, 0.18, 0.12]} center>
-          <div className="network-object-tooltip" role="tooltip">
+      {(isHovered || isSelected) && (
+        <Html position={tooltipPosition} center zIndexRange={[4, 0]}>
+          <div
+            className={`network-object-tooltip${
+              isSelected ? ' is-selected' : ''
+            }`}
+            role="tooltip"
+          >
             {port.name}
           </div>
         </Html>
       )}
 
-      {isPowerPort && port.faceLabel && (
-        <Html position={[0, -0.1, 0.08]} center>
-          <span className="network-power-port-label">{port.faceLabel}</span>
+      {isPowerPort && port.physicalLabel && (
+        <Html position={physicalLabelPosition} center zIndexRange={[2, 0]}>
+          <span
+            className={`network-port-marking${
+              isPduOutlet ? ' is-pdu-number' : ''
+            }`}
+          >
+            {port.physicalLabel}
+          </span>
         </Html>
       )}
     </group>

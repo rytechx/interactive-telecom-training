@@ -1,4 +1,13 @@
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
+import {
+  NETWORK_DEVICE_CONFIGS,
+  NETWORK_DEVICE_IDS,
+  NETWORK_RACK_CONFIG,
+} from '../../modules/network/networkDeviceConfigs.js'
+import {
+  getNetworkWorkstationWorldPosition,
+  NETWORK_WORKSTATION_LAYOUT,
+} from '../../modules/network/networkWorkstationLayout.js'
 
 export default function LabColliders({
   width = 20,
@@ -7,7 +16,8 @@ export default function LabColliders({
   wallThickness = 0.2,
   rj45WorkbenchPosition = [-5, 0, -2.5],
   fiberWorkbenchPosition = [5, 0, -2.5],
-  networkRackPosition = [-4.8, 0, -9.2],
+  networkRackPosition = [-5, 0, 8.05],
+  networkRackRotation = [0, Math.PI, 0],
   storageCabinetPosition = [4.8, 0, -9.4],
 }) {
   const wallX = width / 2 - wallThickness / 2
@@ -22,6 +32,53 @@ export default function LabColliders({
     0.325,
     fiberWorkbenchPosition[2] + 1.55,
   ]
+  const networkPreparationPosition = getNetworkWorkstationWorldPosition(
+    NETWORK_WORKSTATION_LAYOUT.preparationBenchPosition,
+    networkRackPosition,
+    networkRackRotation,
+  )
+  const networkDeskTopPosition = getNetworkWorkstationWorldPosition(
+    [
+      NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[0],
+      NETWORK_WORKSTATION_LAYOUT.workstationDeskHeight -
+        NETWORK_WORKSTATION_LAYOUT.workstationDeskTopThickness / 2,
+      NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[2],
+    ],
+    networkRackPosition,
+    networkRackRotation,
+  )
+  const workstationDeskLegHeight =
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskHeight -
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskTopThickness
+  const workstationDeskLegOffsetX =
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskWidth / 2 -
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskLegInset
+  const workstationDeskLegOffsetZ =
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskDepth / 2 -
+    NETWORK_WORKSTATION_LAYOUT.workstationDeskLegInset
+  const networkDeskLegPositions = [
+    -workstationDeskLegOffsetX,
+    workstationDeskLegOffsetX,
+  ].flatMap((offsetX) =>
+    [-workstationDeskLegOffsetZ, workstationDeskLegOffsetZ].map((offsetZ) =>
+      getNetworkWorkstationWorldPosition(
+        [
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[0] + offsetX,
+          workstationDeskLegHeight / 2,
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskPosition[2] + offsetZ,
+        ],
+        networkRackPosition,
+        networkRackRotation,
+      ),
+    ),
+  )
+  const workstationPcConfig =
+    NETWORK_DEVICE_CONFIGS[NETWORK_DEVICE_IDS.WORKSTATION_PC]
+  const networkPcPosition = getNetworkWorkstationWorldPosition(
+    NETWORK_WORKSTATION_LAYOUT.workstationPcPosition,
+    networkRackPosition,
+    networkRackRotation,
+  )
 
   return (
     <RigidBody type="fixed" colliders={false} friction={0.9} restitution={0}>
@@ -82,12 +139,60 @@ export default function LabColliders({
       />
       <CuboidCollider
         name="network-rack-collider"
-        args={[1, 1.25, 0.5]}
+        args={[
+          NETWORK_RACK_CONFIG.colliderWidth / 2,
+          NETWORK_RACK_CONFIG.height / 2,
+          NETWORK_RACK_CONFIG.depth / 2,
+        ]}
         position={[
           networkRackPosition[0],
-          1.25,
+          NETWORK_RACK_CONFIG.height / 2,
           networkRackPosition[2],
         ]}
+        rotation={networkRackRotation}
+      />
+      <CuboidCollider
+        name="network-preparation-table-collider"
+        args={[
+          NETWORK_WORKSTATION_LAYOUT.preparationBenchWidth / 2,
+          NETWORK_WORKSTATION_LAYOUT.preparationBenchHeight / 2,
+          NETWORK_WORKSTATION_LAYOUT.preparationBenchDepth / 2,
+        ]}
+        position={[
+          networkPreparationPosition[0],
+          NETWORK_WORKSTATION_LAYOUT.preparationBenchHeight / 2,
+          networkPreparationPosition[2],
+        ]}
+        rotation={networkRackRotation}
+      />
+      <CuboidCollider
+        name="network-workstation-desk-top-collider"
+        args={[
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskWidth / 2,
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskTopThickness / 2,
+          NETWORK_WORKSTATION_LAYOUT.workstationDeskDepth / 2,
+        ]}
+        position={networkDeskTopPosition}
+        rotation={networkRackRotation}
+      />
+      {networkDeskLegPositions.map((legPosition, index) => (
+        <CuboidCollider
+          key={`network-workstation-desk-leg-${index + 1}`}
+          name={`network-workstation-desk-leg-${index + 1}-collider`}
+          args={[
+            NETWORK_WORKSTATION_LAYOUT.workstationDeskLegThickness / 2,
+            workstationDeskLegHeight / 2,
+            NETWORK_WORKSTATION_LAYOUT.workstationDeskLegThickness / 2,
+          ]}
+          position={legPosition}
+          rotation={networkRackRotation}
+        />
+      ))}
+      <CuboidCollider
+        name="network-workstation-pc-collider"
+        args={workstationPcConfig.dimensions.map((dimension) => dimension / 2)}
+        position={networkPcPosition}
+        rotation={networkRackRotation}
       />
       <CuboidCollider
         name="storage-cabinet-collider"

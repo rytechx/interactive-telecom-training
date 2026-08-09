@@ -1,4 +1,5 @@
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import LogicalNetworkStatus from './LogicalNetworkStatus.jsx'
 import { getNetworkCableConfig } from './networkCableConfigs.js'
 import {
   getNetworkDeviceConfig,
@@ -7,6 +8,8 @@ import {
 } from './networkDeviceConfigs.js'
 import {
   getNetworkProcedureStep,
+  isLogicalNetworkStep,
+  isNetworkCablingStep,
   isNetworkContinuationStep,
   isNetworkRestartableStep,
   NETWORK_PROCEDURE_STEPS,
@@ -82,27 +85,43 @@ export default function NetworkProcedurePanel({
   const selectedCable = getNetworkCableConfig(selectedCableId)
   const selectedSourcePort = getNetworkPortConfig(selectedSourcePortId)
   const selectedPort = getNetworkPortConfig(selectedNetworkPortId)
+  const destinationPort = selectedCable
+    ? getNetworkPortConfig(selectedCable.destinationPortId)
+    : null
   const canContinue = isNetworkContinuationStep(networkCurrentStep)
-  const isComplete =
+  const isPhysicalComplete =
     networkCurrentStep ===
       NETWORK_PROCEDURE_STEPS.PHYSICAL_INSTALLATION_COMPLETE &&
     physicalLinksVerified
+  const isLogicalStage = isLogicalNetworkStep(networkCurrentStep)
+  const isCablingInteraction = isNetworkCablingStep(networkCurrentStep)
+  const isLogicalComplete =
+    networkCurrentStep ===
+    NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE
   const hasError =
     procedureFeedback?.includes('Incorrect') ||
     procedureFeedback?.includes('cannot') ||
     procedureFeedback?.includes('not required') ||
     procedureFeedback?.includes('Select a power cable') ||
     procedureFeedback?.includes('already occupied') ||
-    procedureFeedback?.includes('before startup')
+    procedureFeedback?.includes('before startup') ||
+    procedureFeedback?.includes('Invalid') ||
+    procedureFeedback?.includes('incorrect') ||
+    procedureFeedback?.includes('failed')
   const hasSuccess =
     procedureFeedback?.includes('installed') ||
     procedureFeedback?.includes('connected') ||
     procedureFeedback?.includes('LINK ACTIVE') ||
-    procedureFeedback?.includes('PASS')
+    procedureFeedback?.includes('PASS') ||
+    procedureFeedback?.includes('successfully') ||
+    procedureFeedback?.includes('complete') ||
+    procedureFeedback?.includes('verified')
 
   return (
     <section
-      className="training-panel procedure-panel network-procedure-panel"
+      className={`training-panel procedure-panel network-procedure-panel${
+        isCablingInteraction ? ' is-cabling-compact' : ''
+      }`}
       role="dialog"
       aria-modal="false"
       aria-labelledby="network-procedure-title"
@@ -136,7 +155,13 @@ export default function NetworkProcedurePanel({
               <dd>{selectedSourcePort.name}</dd>
             </div>
           )}
-          {selectedPort && selectedPort.id !== selectedSourcePort?.id && (
+          {destinationPort && (
+            <div>
+              <dt>Destination</dt>
+              <dd>{destinationPort.name}</dd>
+            </div>
+          )}
+          {!destinationPort && selectedPort && selectedPort.id !== selectedSourcePort?.id && (
             <div>
               <dt>Selected Port</dt>
               <dd>{selectedPort.name}</dd>
@@ -147,7 +172,8 @@ export default function NetworkProcedurePanel({
 
       {hoveredNetworkLabel && (
         <p className="network-hover-status" role="status">
-          {hoveredNetworkLabel}
+          <span>Hovering</span>
+          <strong>{hoveredNetworkLabel}</strong>
         </p>
       )}
 
@@ -179,7 +205,8 @@ export default function NetworkProcedurePanel({
         networkCurrentStep === NETWORK_PROCEDURE_STEPS.POWER_ON_NETWORK ||
         networkCurrentStep === NETWORK_PROCEDURE_STEPS.POWERING_ON_NETWORK ||
         networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_LINKS ||
-        isComplete) && (
+        isPhysicalComplete ||
+        isLogicalStage) && (
         <div
           className="network-power-status network-device-power-status"
           aria-label="Network power status"
@@ -225,7 +252,7 @@ export default function NetworkProcedurePanel({
       )}
 
       {(networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_LINKS ||
-        isComplete) && (
+        isPhysicalComplete) && (
         <div className="network-link-verification">
           <strong>Physical Link Verification</strong>
           {NETWORK_REQUIRED_VERIFICATION_PORT_IDS.map((portId) => (
@@ -244,7 +271,7 @@ export default function NetworkProcedurePanel({
         </div>
       )}
 
-      {isComplete && (
+      {isPhysicalComplete && (
         <div className="network-completion-summary" role="status">
           <strong>PHYSICAL NETWORK STATUS</strong>
           <span>Router Power: ON</span>
@@ -260,6 +287,24 @@ export default function NetworkProcedurePanel({
         </div>
       )}
 
+      {isLogicalStage && <LogicalNetworkStatus />}
+
+      {isLogicalComplete && (
+        <div className="network-completion-summary" role="status">
+          <strong>LOGICAL NETWORK CONFIGURATION</strong>
+          <span>Workstation IPv4: PASS</span>
+          <span>Router Interface: PASS</span>
+          <span>Switch Management: PASS</span>
+          <span>PC → Router: PASS</span>
+          <span>PC → Switch: PASS</span>
+          <b>NETWORK CONFIGURATION PASS</b>
+          <p>
+            Network devices are physically and logically configured correctly.
+          </p>
+          <p>Next Training Stage: Diagnose and troubleshoot network faults.</p>
+        </div>
+      )}
+
       {canContinue && (
         <div className="training-actions procedure-primary-actions">
           <button
@@ -267,7 +312,12 @@ export default function NetworkProcedurePanel({
             onClick={onContinue}
             disabled={isProcedureAnimating}
           >
-            Continue
+            {networkCurrentStep ===
+            NETWORK_PROCEDURE_STEPS.PHYSICAL_INSTALLATION_COMPLETE
+              ? 'Continue to Network Configuration'
+              : networkCurrentStep === NETWORK_PROCEDURE_STEPS.SWITCH_PING_PASS
+                ? 'View Results'
+                : 'Continue'}
           </button>
         </div>
       )}

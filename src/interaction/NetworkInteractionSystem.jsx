@@ -1,9 +1,16 @@
 import { useEffect } from 'react'
+import NetworkInspectionToolbar from '../modules/network/NetworkInspectionToolbar.jsx'
+import NetworkTerminal from '../modules/network/NetworkTerminal.jsx'
 import NetworkProcedurePanel from '../modules/network/NetworkProcedurePanel.jsx'
+import WorkstationIPv4Settings from '../modules/network/WorkstationIPv4Settings.jsx'
+import { isNetworkCablingStep } from '../modules/network/networkProcedure.js'
+import { NETWORK_TERMINAL_TYPES } from '../modules/network/terminalCommands.js'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
-import useNetworkTrainingStore from '../store/useNetworkTrainingStore.js'
+import useNetworkTrainingStore, {
+  NETWORK_OVERLAYS,
+} from '../store/useNetworkTrainingStore.js'
 import { NETWORK_WORKSTATION } from '../workstations/workstationConfigs.js'
 
 export default function NetworkInteractionSystem() {
@@ -22,6 +29,15 @@ export default function NetworkInteractionSystem() {
   const networkTrainingStarted = useNetworkTrainingStore(
     (state) => state.networkTrainingStarted,
   )
+  const networkOverlay = useNetworkTrainingStore(
+    (state) => state.networkOverlay,
+  )
+  const networkCurrentStep = useNetworkTrainingStore(
+    (state) => state.networkCurrentStep,
+  )
+  const isProcedureAnimating = useNetworkTrainingStore(
+    (state) => state.isProcedureAnimating,
+  )
   const beginNetworkTraining = useNetworkTrainingStore(
     (state) => state.beginNetworkTraining,
   )
@@ -39,6 +55,12 @@ export default function NetworkInteractionSystem() {
   )
   const resetNetworkTraining = useNetworkTrainingStore(
     (state) => state.resetNetworkTraining,
+  )
+  const closeNetworkOverlay = useNetworkTrainingStore(
+    (state) => state.closeNetworkOverlay,
+  )
+  const requestNetworkInspectionView = useNetworkTrainingStore(
+    (state) => state.requestNetworkInspectionView,
   )
   const isNetworkWorkstation =
     activeWorkstationId === NETWORK_WORKSTATION.id
@@ -67,6 +89,11 @@ export default function NetworkInteractionSystem() {
         return
       }
 
+      if (networkState.networkOverlay) {
+        networkState.closeNetworkOverlay()
+        return
+      }
+
       networkState.resetNetworkTraining()
       interactionState.requestWorkstationExit()
     }
@@ -81,20 +108,66 @@ export default function NetworkInteractionSystem() {
     requestWorkstationExit()
   }
 
+  const handleRestartStep = () => {
+    restartNetworkStep()
+    requestNetworkInspectionView('reset')
+  }
+
+  const handleRestartModule = () => {
+    restartNetworkTraining()
+    requestNetworkInspectionView('reset')
+  }
+
   if (!isNetworkWorkstation) {
     return null
   }
 
   return workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode ? (
-    <div className="training-overlay network-training-overlay">
+    <div
+      className={`training-overlay network-training-overlay${
+        isNetworkCablingStep(networkCurrentStep) ? ' is-cabling-step' : ''
+      }`}
+    >
       {networkTrainingStarted ? (
-        <NetworkProcedurePanel
-          onContinue={continueNetworkProcedure}
-          onPowerOn={startNetworkPowerOn}
-          onRestartStep={restartNetworkStep}
-          onRestartModule={restartNetworkTraining}
-          onExit={handleExit}
-        />
+        <>
+          <NetworkProcedurePanel
+            onContinue={continueNetworkProcedure}
+            onPowerOn={startNetworkPowerOn}
+            onRestartStep={handleRestartStep}
+            onRestartModule={handleRestartModule}
+            onExit={handleExit}
+          />
+          {!networkOverlay && (
+            <NetworkInspectionToolbar
+              disabled={isProcedureAnimating}
+              onSelectView={requestNetworkInspectionView}
+            />
+          )}
+          {networkOverlay === NETWORK_OVERLAYS.PC_SETTINGS && (
+            <WorkstationIPv4Settings />
+          )}
+          {networkOverlay === NETWORK_OVERLAYS.ROUTER_TERMINAL && (
+            <NetworkTerminal
+              terminalType={NETWORK_TERMINAL_TYPES.ROUTER}
+              title="Router Console"
+              onClose={closeNetworkOverlay}
+            />
+          )}
+          {networkOverlay === NETWORK_OVERLAYS.SWITCH_TERMINAL && (
+            <NetworkTerminal
+              terminalType={NETWORK_TERMINAL_TYPES.SWITCH}
+              title="Managed Switch Console"
+              onClose={closeNetworkOverlay}
+            />
+          )}
+          {networkOverlay === NETWORK_OVERLAYS.WORKSTATION_TERMINAL && (
+            <NetworkTerminal
+              terminalType={NETWORK_TERMINAL_TYPES.WORKSTATION}
+              title="Workstation Command Prompt"
+              onClose={closeNetworkOverlay}
+            />
+          )}
+        </>
       ) : (
         <section
           className="training-panel network-training-panel"
@@ -107,7 +180,7 @@ export default function NetworkInteractionSystem() {
           </h1>
           <p className="training-step">
             Install rack equipment, connect power and Ethernet cabling, then
-            verify physical network links.
+            configure and verify the logical IPv4 network.
           </p>
           <div className="training-actions">
             <button type="button" onClick={beginNetworkTraining}>

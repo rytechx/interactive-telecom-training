@@ -351,9 +351,120 @@ canvas {
   border-color: rgb(91 188 226 / 28%);
 }
 
+.network-inspection-toolbar {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px;
+  color: #b8cbd2;
+  font-family: system-ui, sans-serif;
+  pointer-events: auto;
+  background: rgb(16 25 30 / 90%);
+  border: 1px solid rgb(102 201 231 / 24%);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(5px);
+}
+
+.network-inspection-toolbar > span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.network-inspection-toolbar > div {
+  display: flex;
+  gap: 4px;
+}
+
+.network-inspection-toolbar button {
+  padding: 6px 8px;
+  color: #dcecf1;
+  font: 700 10px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #34434a;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 4px;
+}
+
+.network-inspection-toolbar button:hover:not(:disabled) {
+  color: #f5fdff;
+  background: #45616c;
+  border-color: rgb(108 209 240 / 34%);
+}
+
+.network-inspection-toolbar button.is-reset {
+  color: #bfeafb;
+  background: #294b59;
+}
+
+.network-inspection-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .network-procedure-panel {
   width: min(326px, calc(100% - 40px));
   border-color: rgb(91 188 226 / 30%);
+}
+
+.network-training-overlay.is-cabling-step {
+  background: linear-gradient(
+    90deg,
+    rgb(4 10 14 / 34%) 0,
+    rgb(4 10 14 / 8%) 23%,
+    transparent 34%
+  );
+}
+
+.network-procedure-panel.is-cabling-compact {
+  width: min(248px, calc(100% - 40px));
+  padding: 12px;
+}
+
+.network-procedure-panel.is-cabling-compact h1,
+.network-procedure-panel.is-cabling-compact .network-installation-status,
+.network-procedure-panel.is-cabling-compact .network-power-status {
+  display: none;
+}
+
+.network-procedure-panel.is-cabling-compact h2 {
+  margin-bottom: 7px;
+  color: #e0ebef;
+  font-size: 13px;
+}
+
+.network-procedure-panel.is-cabling-compact .procedure-instruction,
+.network-procedure-panel.is-cabling-compact .procedure-feedback {
+  margin-bottom: 7px;
+  padding: 7px 8px;
+  font-size: 11px;
+}
+
+.network-procedure-panel.is-cabling-compact .network-selection-status,
+.network-procedure-panel.is-cabling-compact .network-hover-status {
+  margin-bottom: 7px;
+}
+
+.network-procedure-panel.is-cabling-compact .network-selection-status div {
+  padding: 6px 7px;
+}
+
+.network-procedure-panel.is-cabling-compact .procedure-secondary-actions {
+  gap: 4px;
+  flex-wrap: nowrap;
+  margin-top: 7px;
+  padding-top: 7px;
+}
+
+.network-procedure-panel.is-cabling-compact .procedure-secondary-actions button {
+  padding: 7px 6px;
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .network-procedure-panel .procedure-step-number {
@@ -392,6 +503,10 @@ canvas {
 }
 
 .network-hover-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0 0 9px;
   padding: 7px 9px;
   color: #bfefff;
@@ -400,6 +515,17 @@ canvas {
   background: rgb(57 139 173 / 13%);
   border-left: 3px solid #66c9eb;
   border-radius: 4px;
+}
+
+.network-hover-status span {
+  color: #8faeb9;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.network-hover-status strong {
+  color: #c9f3ff;
+  text-align: right;
 }
 
 .network-installation-status,
@@ -486,6 +612,20 @@ canvas {
   box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
 }
 
+.network-object-tooltip.is-target {
+  color: #f3fcff;
+  background: rgb(24 69 82 / 96%);
+  border-color: rgb(116 220 246 / 68%);
+  box-shadow: 0 0 0 2px rgb(78 190 220 / 12%), 0 6px 18px rgb(0 0 0 / 30%);
+}
+
+.network-object-tooltip.is-selected {
+  color: #f7fdff;
+  background: rgb(25 78 96 / 97%);
+  border-color: rgb(125 224 248 / 78%);
+  box-shadow: 0 0 0 2px rgb(78 190 220 / 16%), 0 6px 18px rgb(0 0 0 / 30%);
+}
+
 .network-device-face-label,
 .network-prep-label {
   display: inline-block;
@@ -499,18 +639,52 @@ canvas {
   border-radius: 2px;
 }
 
-.network-power-port-label,
-.network-power-tray-label {
+.network-bench-zone-label {
   display: inline-block;
-  padding: 2px 4px;
-  color: #eaf5f7;
-  font: 800 8px/1 system-ui, sans-serif;
+  padding: 2px 5px;
+  color: #d8e6ea;
+  font: 800 7px/1 system-ui, sans-serif;
   letter-spacing: 0.08em;
   white-space: nowrap;
   pointer-events: none;
-  background: rgb(5 9 11 / 88%);
-  border: 1px solid rgb(185 221 232 / 28%);
+  background: rgb(27 36 40 / 88%);
+  border: 1px solid rgb(213 233 239 / 18%);
   border-radius: 2px;
+}
+
+.network-power-tray-label {
+  display: inline-block;
+  padding: 3px 5px;
+  color: #f5fafb;
+  font: 800 9px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  pointer-events: none;
+  background: rgb(35 43 47 / 96%);
+  border: 1px solid rgb(218 235 240 / 44%);
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 28%);
+}
+
+.network-port-marking {
+  display: inline-block;
+  color: #dce7ea;
+  font: 800 7px/1 system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
+}
+
+.network-port-marking.is-pdu-number {
+  color: #f7fbfc;
+  font-size: 10px;
+}
+
+.network-port-marking.is-pdu-title {
+  color: #e4eef1;
+  font-size: 7px;
+  letter-spacing: 0.08em;
 }
 
 .network-power-tray-label {
@@ -524,6 +698,287 @@ canvas {
 
 .network-device-power-status strong.is-connected {
   color: #79dfa0;
+}
+
+.network-logical-status {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 9px;
+  padding: 9px;
+  background: rgb(7 17 22 / 58%);
+  border: 1px solid rgb(90 188 220 / 18%);
+  border-radius: 6px;
+}
+
+.network-logical-status > strong {
+  margin-bottom: 3px;
+  color: #8edff5;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.network-logical-status span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #aebfc6;
+  font-size: 10px;
+}
+
+.network-logical-status b {
+  color: #7d8f97;
+  font-size: 9px;
+}
+
+.network-logical-status span.is-complete,
+.network-logical-status span.is-complete b {
+  color: #79dfa0;
+}
+
+.network-settings-window,
+.network-terminal-window {
+  position: absolute;
+  top: 50%;
+  right: 24px;
+  z-index: 7;
+  color: #eef7fa;
+  font-family: system-ui, sans-serif;
+  pointer-events: auto;
+  background: rgb(15 24 29 / 97%);
+  border: 1px solid rgb(102 201 231 / 28%);
+  border-radius: 10px;
+  box-shadow: 0 22px 60px rgb(0 0 0 / 46%);
+  transform: translateY(-50%);
+}
+
+.network-settings-window {
+  width: min(430px, calc(100vw - 410px));
+  padding: 18px;
+}
+
+.network-window-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.network-window-header span {
+  display: block;
+  margin-bottom: 4px;
+  color: #79d3f2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.network-window-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.network-window-close {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: #d8e7ec;
+  font: 500 22px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #3f4b52;
+  border: 0;
+  border-radius: 6px;
+  place-items: center;
+}
+
+.network-window-close:hover {
+  background: #52616a;
+}
+
+.network-settings-intro {
+  margin: 0 0 16px;
+  color: #b9c9cf;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.network-settings-form {
+  display: grid;
+  gap: 12px;
+}
+
+.network-settings-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.network-settings-form label > span {
+  color: #dce9ed;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.network-settings-form input {
+  width: 100%;
+  padding: 10px 11px;
+  color: #f4fbfd;
+  font: 500 14px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: #0b1216;
+  border: 1px solid #43545d;
+  border-radius: 6px;
+  outline: none;
+}
+
+.network-settings-form input:focus {
+  border-color: #64c8e8;
+  box-shadow: 0 0 0 3px rgb(77 180 213 / 16%);
+}
+
+.network-settings-feedback {
+  margin: 0;
+  padding: 9px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.network-settings-feedback.is-error {
+  color: #ffd4ce;
+  background: rgb(143 45 35 / 26%);
+  border: 1px solid rgb(229 101 86 / 36%);
+}
+
+.network-window-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.network-window-actions button {
+  padding: 9px 15px;
+  color: #102019;
+  font: 800 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #72c68d;
+  border: 0;
+  border-radius: 6px;
+}
+
+.network-window-actions button:hover {
+  background: #86d59f;
+}
+
+.network-window-actions button.secondary {
+  color: #edf5f7;
+  background: #46535a;
+}
+
+.network-terminal-window {
+  display: grid;
+  width: min(720px, calc(100vw - 410px));
+  height: min(520px, calc(100vh - 64px));
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: rgb(5 10 13 / 98%);
+  grid-template-rows: auto 1fr auto;
+}
+
+.network-terminal-header {
+  margin: 0;
+  padding: 13px 15px;
+  font-family: system-ui, sans-serif;
+  background: #172229;
+}
+
+.network-terminal-header h2 {
+  font-size: 16px;
+}
+
+.network-terminal-output {
+  padding: 15px;
+  overflow: auto;
+  color: #d8f1df;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: text;
+  scrollbar-color: #41535c #091015;
+}
+
+.network-terminal-banner {
+  margin: 0;
+  color: #7e9ca8;
+}
+
+.network-terminal-entry {
+  margin-bottom: 11px;
+}
+
+.network-terminal-entry > div {
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+}
+
+.network-terminal-entry span {
+  color: #8bd9f0;
+}
+
+.network-terminal-entry b {
+  color: #f0f7f9;
+  font-weight: 500;
+}
+
+.network-terminal-entry pre {
+  margin: 4px 0 0;
+  color: #c8d9de;
+  font: inherit;
+  white-space: pre-wrap;
+}
+
+.network-terminal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  color: #8bd9f0;
+  background: #0d171c;
+  border-top: 1px solid #26353d;
+}
+
+.network-terminal-input-row label {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.network-terminal-input-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 4px 0;
+  color: #f2fafb;
+  font: 500 13px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.network-terminal-input-row button {
+  padding: 7px 10px;
+  color: #102019;
+  font: 800 10px/1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #72c68d;
+  border: 0;
+  border-radius: 5px;
+}
+
+.network-terminal-input-row button:hover {
+  background: #86d59f;
 }
 
 .network-prep-label {
@@ -1580,6 +2035,22 @@ canvas {
     width: min(310px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;
+  }
+
+  .network-inspection-toolbar {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    max-width: calc(100vw - 28px);
+  }
+
+  .network-inspection-toolbar > span {
+    display: none;
+  }
+
+  .network-inspection-toolbar > div {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .tool-inspection-panel {
