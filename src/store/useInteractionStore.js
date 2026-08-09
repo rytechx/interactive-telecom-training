@@ -86,6 +86,15 @@ const useInteractionStore = create((set) => ({
           },
     )
   },
+  resetInteraction: () => {
+    set({
+      nearbyInteractable: null,
+      activeInteractable: null,
+      isPointerLocked: false,
+      isTrainingMode: false,
+      workstationPhase: WORKSTATION_PHASES.EXPLORATION,
+    })
+  },
 }))
 
 export default useInteractionStore
