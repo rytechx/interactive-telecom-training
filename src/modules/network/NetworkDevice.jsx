@@ -20,6 +20,9 @@ export default function NetworkDevice({
   powered = false,
   networkPowered = false,
   powerOnStartedAt = null,
+  linkPowerOnStartedAt = powerOnStartedAt,
+  linkPowerOnStartedAtByPortId = {},
+  linkDelayByPortId = {},
   activeLinkPortIds = [],
   interactivePortIds = [],
   hoveredObjectId = null,
@@ -183,8 +186,10 @@ export default function NetworkDevice({
           linkActive={
             networkPowered && activeLinkPortIds.includes(port.id)
           }
-          powerOnStartedAt={powerOnStartedAt}
-          linkDelay={1.5}
+          powerOnStartedAt={
+            linkPowerOnStartedAtByPortId[port.id] ?? linkPowerOnStartedAt
+          }
+          linkDelay={linkDelayByPortId[port.id] ?? 1.5}
           onPointerEnter={(hoveredPort) =>
             onHover?.(hoveredPort.id, hoveredPort.name)
           }

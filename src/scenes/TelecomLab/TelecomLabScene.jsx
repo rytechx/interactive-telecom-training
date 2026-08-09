@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { Suspense, useCallback, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import InteractionSystem from '../../interaction/InteractionSystem.jsx'
 import FiberTrainingModule from '../../modules/fiber/FiberTrainingModule.jsx'
 import NetworkTrainingModule from '../../modules/network/NetworkTrainingModule.jsx'
@@ -11,6 +11,8 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
 import useToolStore from '../../store/useToolStore.js'
+import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import { NETWORK_TROUBLESHOOTING_MODES } from '../../modules/network/troubleshooting/troubleshootingScenarios.js'
 import ToolFocusController from '../../tools/ToolFocusController.jsx'
 import WorkstationFocusController from '../../workstations/WorkstationFocusController.jsx'
 import Environment from './Environment.jsx'
@@ -39,6 +41,9 @@ export default function TelecomLabScene() {
     (state) => state.workstationPhase,
   )
   const hoveredToolId = useToolStore((state) => state.hoveredToolId)
+  const networkTroubleshootingMode = useNetworkTrainingStore(
+    (state) => state.troubleshootingMode,
+  )
   const setPointerLocked = useInteractionStore(
     (state) => state.setPointerLocked,
   )
@@ -46,6 +51,15 @@ export default function TelecomLabScene() {
     setPointerLocked(isLocked)
   }, [setPointerLocked])
   const isExploring = workstationPhase === WORKSTATION_PHASES.EXPLORATION
+  const isNetworkTroubleshooting =
+    networkTroubleshootingMode !== NETWORK_TROUBLESHOOTING_MODES.INACTIVE
+  const playerControlsEnabled = isExploring && !isNetworkTroubleshooting
+
+  useEffect(() => {
+    if (isNetworkTroubleshooting && document.pointerLockElement) {
+      document.exitPointerLock()
+    }
+  }, [isNetworkTroubleshooting])
 
   return (
     <div
@@ -62,7 +76,7 @@ export default function TelecomLabScene() {
             <FirstPersonPlayer
               spawnPosition={playerSpawnPosition}
               onLockChange={handleLockChange}
-              enabled={isExploring}
+              enabled={playerControlsEnabled}
               playerBodyRef={playerBodyRef}
             />
             <WorkstationFocusController playerBodyRef={playerBodyRef} />
@@ -85,14 +99,14 @@ export default function TelecomLabScene() {
       </Canvas>
 
       <div
-        className={`player-crosshair${isExploring ? '' : ' is-hidden'}`}
+        className={`player-crosshair${playerControlsEnabled ? '' : ' is-hidden'}`}
         aria-hidden="true"
       />
       <div
         className={`player-instructions${
-          isPointerLocked || !isExploring ? ' is-hidden' : ''
+          isPointerLocked || !playerControlsEnabled ? ' is-hidden' : ''
         }`}
-        aria-hidden={isPointerLocked || !isExploring}
+        aria-hidden={isPointerLocked || !playerControlsEnabled}
       >
         <strong>Click to start</strong>
         <span>WASD to move</span>

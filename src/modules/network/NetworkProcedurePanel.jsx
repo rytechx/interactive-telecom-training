@@ -21,6 +21,7 @@ export default function NetworkProcedurePanel({
   onPowerOn,
   onRestartStep,
   onRestartModule,
+  onStartTroubleshooting,
   onExit,
 }) {
   const networkCurrentStep = useNetworkTrainingStore(
@@ -302,6 +303,18 @@ export default function NetworkProcedurePanel({
             Network devices are physically and logically configured correctly.
           </p>
           <p>Next Training Stage: Diagnose and troubleshoot network faults.</p>
+        </div>
+      )}
+
+      {isLogicalComplete && (
+        <div className="training-actions procedure-primary-actions">
+          <button
+            type="button"
+            onClick={onStartTroubleshooting}
+            disabled={isProcedureAnimating}
+          >
+            Start Troubleshooting
+          </button>
         </div>
       )}
 

@@ -42,6 +42,8 @@ export default function NetworkPort({
         : '#0a1013'
   const isEmphasized = isHovered || isSelected || isTarget
   const tooltipPosition = port.tooltipPosition ?? [0, 0.18, 0.12]
+  const hitboxOffsetZ =
+    port.hitboxOffsetZ ?? (isTarget ? 0.16 : 0.075)
   const physicalLabelPosition =
     port.physicalLabelPosition ?? [0, -0.105, 0.1]
 
@@ -140,9 +142,11 @@ export default function NetworkPort({
 
       {isInteractive && (
         <mesh
-          position={[0, 0, isTarget ? 0.09 : 0.075]}
+          position={[0, 0, hitboxOffsetZ]}
           onPointerEnter={handlePointerEnter}
           onPointerLeave={handlePointerLeave}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
           onClick={handleClick}
         >
           <boxGeometry args={hitboxDimensions} />
@@ -158,7 +162,8 @@ export default function NetworkPort({
             }`}
             role="tooltip"
           >
-            {port.name}
+            <strong>{port.name}</strong>
+            {isTarget && <span>Valid Destination</span>}
           </div>
         </Html>
       )}

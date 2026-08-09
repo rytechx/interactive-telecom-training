@@ -3,6 +3,8 @@ import NetworkInspectionToolbar from '../modules/network/NetworkInspectionToolba
 import NetworkTerminal from '../modules/network/NetworkTerminal.jsx'
 import NetworkProcedurePanel from '../modules/network/NetworkProcedurePanel.jsx'
 import WorkstationIPv4Settings from '../modules/network/WorkstationIPv4Settings.jsx'
+import NetworkTroubleshooting from '../modules/network/troubleshooting/NetworkTroubleshooting.jsx'
+import { NETWORK_TROUBLESHOOTING_MODES } from '../modules/network/troubleshooting/troubleshootingScenarios.js'
 import { isNetworkCablingStep } from '../modules/network/networkProcedure.js'
 import { NETWORK_TERMINAL_TYPES } from '../modules/network/terminalCommands.js'
 import useInteractionStore, {
@@ -12,6 +14,12 @@ import useNetworkTrainingStore, {
   NETWORK_OVERLAYS,
 } from '../store/useNetworkTrainingStore.js'
 import { NETWORK_WORKSTATION } from '../workstations/workstationConfigs.js'
+
+function releasePointerLock() {
+  if (document.pointerLockElement) {
+    document.exitPointerLock()
+  }
+}
 
 export default function NetworkInteractionSystem() {
   const activeWorkstationId = useInteractionStore(
@@ -34,6 +42,9 @@ export default function NetworkInteractionSystem() {
   )
   const networkCurrentStep = useNetworkTrainingStore(
     (state) => state.networkCurrentStep,
+  )
+  const troubleshootingMode = useNetworkTrainingStore(
+    (state) => state.troubleshootingMode,
   )
   const isProcedureAnimating = useNetworkTrainingStore(
     (state) => state.isProcedureAnimating,
@@ -58,6 +69,12 @@ export default function NetworkInteractionSystem() {
   )
   const closeNetworkOverlay = useNetworkTrainingStore(
     (state) => state.closeNetworkOverlay,
+  )
+  const openTroubleshootingSelection = useNetworkTrainingStore(
+    (state) => state.openTroubleshootingSelection,
+  )
+  const exitTroubleshooting = useNetworkTrainingStore(
+    (state) => state.exitTroubleshooting,
   )
   const requestNetworkInspectionView = useNetworkTrainingStore(
     (state) => state.requestNetworkInspectionView,
@@ -94,6 +111,14 @@ export default function NetworkInteractionSystem() {
         return
       }
 
+      if (
+        networkState.troubleshootingMode !==
+        NETWORK_TROUBLESHOOTING_MODES.INACTIVE
+      ) {
+        networkState.exitTroubleshooting()
+        return
+      }
+
       networkState.resetNetworkTraining()
       interactionState.requestWorkstationExit()
     }
@@ -105,6 +130,16 @@ export default function NetworkInteractionSystem() {
 
   const handleExit = () => {
     resetNetworkTraining()
+    requestWorkstationExit()
+  }
+
+  const handleStartTroubleshooting = () => {
+    releasePointerLock()
+    openTroubleshootingSelection()
+  }
+
+  const handleReturnToLaboratory = () => {
+    exitTroubleshooting()
     requestWorkstationExit()
   }
 
@@ -122,6 +157,9 @@ export default function NetworkInteractionSystem() {
     return null
   }
 
+  const troubleshootingOpen =
+    troubleshootingMode !== NETWORK_TROUBLESHOOTING_MODES.INACTIVE
+
   return workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode ? (
     <div
       className={`training-overlay network-training-overlay${
@@ -130,13 +168,20 @@ export default function NetworkInteractionSystem() {
     >
       {networkTrainingStarted ? (
         <>
-          <NetworkProcedurePanel
-            onContinue={continueNetworkProcedure}
-            onPowerOn={startNetworkPowerOn}
-            onRestartStep={handleRestartStep}
-            onRestartModule={handleRestartModule}
-            onExit={handleExit}
-          />
+          {troubleshootingOpen ? (
+            <NetworkTroubleshooting
+              onReturnToLaboratory={handleReturnToLaboratory}
+            />
+          ) : (
+            <NetworkProcedurePanel
+              onContinue={continueNetworkProcedure}
+              onPowerOn={startNetworkPowerOn}
+              onRestartStep={handleRestartStep}
+              onRestartModule={handleRestartModule}
+              onStartTroubleshooting={handleStartTroubleshooting}
+              onExit={handleExit}
+            />
+          )}
           {!networkOverlay && (
             <NetworkInspectionToolbar
               disabled={isProcedureAnimating}

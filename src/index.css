@@ -600,6 +600,311 @@ canvas {
   line-height: 1.4;
 }
 
+.network-troubleshooting-panel {
+  width: min(338px, calc(100% - 40px));
+  max-height: calc(100vh - 40px);
+  border-color: rgb(91 188 226 / 36%);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.network-troubleshooting-panel h1 {
+  margin-bottom: 10px;
+}
+
+.network-troubleshooting-panel.is-port-repair {
+  width: min(286px, calc(100% - 40px));
+}
+
+.troubleshooting-incident,
+.troubleshooting-tools,
+.troubleshooting-hints,
+.troubleshooting-success,
+.troubleshooting-verification {
+  margin-bottom: 9px;
+  padding: 9px;
+  background: rgb(6 13 17 / 58%);
+  border: 1px solid rgb(99 198 230 / 16%);
+  border-radius: 6px;
+}
+
+.troubleshooting-incident > strong,
+.troubleshooting-tools > strong,
+.troubleshooting-hints > strong,
+.troubleshooting-verification > strong,
+.troubleshooting-success > strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #83dcf4;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.troubleshooting-incident p,
+.troubleshooting-hints p {
+  margin: 0;
+  color: #d4e2e6;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.troubleshooting-hints p + p {
+  margin-top: 5px;
+}
+
+.troubleshooting-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 9px;
+}
+
+.troubleshooting-status-grid div {
+  padding: 7px 8px;
+  background: rgb(40 65 75 / 36%);
+  border-radius: 5px;
+}
+
+.troubleshooting-status-grid dt,
+.troubleshooting-success dt {
+  color: #93aab3;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.troubleshooting-status-grid dd,
+.troubleshooting-success dd {
+  margin: 3px 0 0;
+  color: #dce8eb;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.troubleshooting-status-grid dd.is-pass {
+  color: #82e2a5;
+}
+
+.troubleshooting-repair-selection {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 9px;
+  padding: 8px;
+  background: rgb(37 92 111 / 22%);
+  border: 1px solid rgb(104 211 240 / 22%);
+  border-radius: 5px;
+}
+
+.troubleshooting-repair-selection div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.troubleshooting-repair-selection dt {
+  color: #9eb5bd;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.troubleshooting-repair-selection dd {
+  margin: 0;
+  color: #c9f3ff;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.troubleshooting-tools > div,
+.troubleshooting-reference-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.troubleshooting-tools button,
+.troubleshooting-reference-actions button {
+  padding: 7px 6px;
+  color: #dff5fb;
+  font: 700 10px/1.1 system-ui, sans-serif;
+  cursor: pointer;
+  background: #304a56;
+  border: 1px solid rgb(103 200 230 / 22%);
+  border-radius: 5px;
+}
+
+.troubleshooting-tools button:hover,
+.troubleshooting-reference-actions button:hover:not(:disabled) {
+  background: #3b5d6b;
+}
+
+.troubleshooting-reference-actions button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.troubleshooting-diagnosis-field {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.troubleshooting-diagnosis-field span {
+  color: #a9c0c8;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.troubleshooting-diagnosis-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  color: #edf7fa;
+  font: 600 10px/1.2 system-ui, sans-serif;
+  background: #15242b;
+  border: 1px solid #415963;
+  border-radius: 5px;
+  outline: none;
+}
+
+.troubleshooting-feedback {
+  margin: 0 0 9px;
+  padding: 8px 9px;
+  color: #d9e9ed;
+  font-size: 10px;
+  line-height: 1.4;
+  background: rgb(56 112 132 / 18%);
+  border-left: 3px solid #69c8e7;
+  border-radius: 4px;
+}
+
+.troubleshooting-primary-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.troubleshooting-primary-actions button {
+  min-width: 0;
+  padding-inline: 6px;
+}
+
+.troubleshooting-reference-actions {
+  margin-bottom: 9px;
+}
+
+.troubleshooting-methodology {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 14px;
+  margin: 0 0 9px;
+  padding: 9px 9px 9px 26px;
+  color: #bacbd1;
+  font-size: 9px;
+  line-height: 1.35;
+  background: rgb(5 12 15 / 46%);
+  border-radius: 5px;
+}
+
+.troubleshooting-success {
+  border-color: rgb(93 218 139 / 30%);
+}
+
+.troubleshooting-success > strong {
+  color: #8be5aa;
+  font-size: 12px;
+}
+
+.troubleshooting-success dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.troubleshooting-success dd {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.troubleshooting-verification {
+  display: grid;
+  gap: 4px;
+}
+
+.troubleshooting-verification > strong {
+  color: #8be5aa;
+}
+
+.troubleshooting-verification span {
+  color: #c8d8dc;
+  font-size: 10px;
+}
+
+.troubleshooting-metrics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.troubleshooting-metrics-summary span {
+  display: grid;
+  gap: 2px;
+  padding: 6px 4px;
+  color: #98adb5;
+  font-size: 8px;
+  text-align: center;
+  text-transform: uppercase;
+  background: rgb(41 65 74 / 42%);
+  border-radius: 4px;
+}
+
+.troubleshooting-metrics-summary strong {
+  color: #e5f3f6;
+  font-size: 11px;
+}
+
+.troubleshooting-complete-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.network-scenario-list {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 9px;
+}
+
+.network-scenario-list button {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  color: #e6f2f5;
+  text-align: left;
+  cursor: pointer;
+  background: rgb(43 69 79 / 68%);
+  border: 1px solid rgb(99 196 226 / 18%);
+  border-radius: 5px;
+}
+
+.network-scenario-list button:hover {
+  background: rgb(54 88 101 / 82%);
+  border-color: rgb(99 196 226 / 36%);
+}
+
+.network-scenario-list span {
+  color: #79d3f2;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.network-scenario-list strong {
+  font-size: 11px;
+}
+
 .network-object-tooltip {
   padding: 5px 8px;
   color: #effaff;
@@ -610,6 +915,21 @@ canvas {
   border: 1px solid rgb(102 204 238 / 42%);
   border-radius: 5px;
   box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
+}
+
+.network-object-tooltip strong {
+  display: block;
+  font: inherit;
+}
+
+.network-object-tooltip span {
+  display: block;
+  margin-top: 3px;
+  color: #79dff7;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .network-object-tooltip.is-target {
@@ -2035,6 +2355,11 @@ canvas {
     width: min(310px, calc(100% - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;
+  }
+
+  .network-troubleshooting-panel {
+    width: min(320px, calc(100% - 28px));
+    max-height: calc(100vh - 28px);
   }
 
   .network-inspection-toolbar {

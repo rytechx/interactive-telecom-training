@@ -7,6 +7,11 @@ import NetworkDevice from './NetworkDevice.jsx'
 import NetworkPort from './NetworkPort.jsx'
 import NetworkWorkstationMonitor from './NetworkWorkstationMonitor.jsx'
 import {
+  getActiveNetworkLinkPortIds,
+  isRouterPowered,
+  isSwitchPowered,
+} from './networkConnectivity.js'
+import {
   NETWORK_CABLE_CONFIGS,
   NETWORK_CABLE_IDS,
 } from './networkCableConfigs.js'
@@ -22,6 +27,10 @@ import {
   PDU_PORTS,
 } from './networkDeviceConfigs.js'
 import { NETWORK_PROCEDURE_STEPS } from './networkProcedure.js'
+import {
+  getTroubleshootingScenario,
+  NETWORK_TROUBLESHOOTING_MODES,
+} from './troubleshooting/troubleshootingScenarios.js'
 import { NETWORK_WORKSTATION_LAYOUT } from './networkWorkstationLayout.js'
 
 const selectionStepDeviceIds = Object.freeze({
@@ -325,17 +334,17 @@ export default function NetworkRackWorkstation({
   const routerInstalled = useNetworkTrainingStore(
     (state) => state.routerInstalled,
   )
-  const routerPowerConnected = useNetworkTrainingStore(
-    (state) => state.routerPowerConnected,
-  )
-  const switchPowerConnected = useNetworkTrainingStore(
-    (state) => state.switchPowerConnected,
-  )
   const networkPowered = useNetworkTrainingStore(
     (state) => state.networkPowered,
   )
   const powerOnStartedAt = useNetworkTrainingStore(
     (state) => state.powerOnStartedAt,
+  )
+  const switchPowerOnStartedAt = useNetworkTrainingStore(
+    (state) => state.switchPowerOnStartedAt,
+  )
+  const pcLinkOnStartedAt = useNetworkTrainingStore(
+    (state) => state.pcLinkOnStartedAt,
   )
   const selectedNetworkDeviceId = useNetworkTrainingStore(
     (state) => state.selectedNetworkDeviceId,
@@ -358,8 +367,11 @@ export default function NetworkRackWorkstation({
   const networkConnections = useNetworkTrainingStore(
     (state) => state.networkConnections,
   )
-  const portOccupancy = useNetworkTrainingStore(
-    (state) => state.portOccupancy,
+  const troubleshootingMode = useNetworkTrainingStore(
+    (state) => state.troubleshootingMode,
+  )
+  const selectedTroubleshootingScenarioId = useNetworkTrainingStore(
+    (state) => state.selectedTroubleshootingScenarioId,
   )
   const inspectNetworkRack = useNetworkTrainingStore(
     (state) => state.inspectNetworkRack,
@@ -413,17 +425,27 @@ export default function NetworkRackWorkstation({
   const isPowerConnectionStep = powerConnectionSteps.includes(
     networkCurrentStep,
   )
+  const troubleshootingActive =
+    troubleshootingMode === NETWORK_TROUBLESHOOTING_MODES.ACTIVE
+  const troubleshootingScenario = troubleshootingActive
+    ? getTroubleshootingScenario(selectedTroubleshootingScenarioId)
+    : null
   const interactivePortIds = selectedCable
-    ? selectedCable.type === NETWORK_PORT_TYPES.POWER
-      ? Object.values(NETWORK_PORTS)
-          .filter((port) => port.type === NETWORK_PORT_TYPES.POWER)
-          .map((port) => port.id)
-      : [selectedCable.sourcePortId, selectedCable.destinationPortId]
+    ? troubleshootingActive && selectedSourcePortId
+      ? [selectedCable.destinationPortId]
+      : selectedCable.type === NETWORK_PORT_TYPES.POWER
+        ? Object.values(NETWORK_PORTS)
+            .filter((port) => port.type === NETWORK_PORT_TYPES.POWER)
+            .map((port) => port.id)
+        : [selectedCable.sourcePortId, selectedCable.destinationPortId]
     : networkCurrentStep === NETWORK_PROCEDURE_STEPS.VERIFY_LINKS
       ? NETWORK_REQUIRED_VERIFICATION_PORT_IDS
       : []
-  const activeLinkPortIds = Object.keys(portOccupancy)
-  const selectableCableIds = cableSelectionStepIds[networkCurrentStep] ?? []
+  const liveNetworkState = useNetworkTrainingStore.getState()
+  const activeLinkPortIds = getActiveNetworkLinkPortIds(liveNetworkState)
+  const selectableCableIds = troubleshootingScenario?.repairCableId
+    ? [troubleshootingScenario.repairCableId]
+    : cableSelectionStepIds[networkCurrentStep] ?? []
   const selectedStepDeviceId = selectionStepDeviceIds[networkCurrentStep]
   const isSelectingDevice = Boolean(selectedStepDeviceId)
   const isInstallingDevice = installationSteps.includes(networkCurrentStep)
@@ -490,22 +512,51 @@ export default function NetworkRackWorkstation({
             canSelect={
               isSelectingDevice && device.type === 'rack-device'
             }
-            canConfigure={configurationDeviceId === device.id}
+            canConfigure={
+              !selectedCableId &&
+              (configurationDeviceId === device.id ||
+                (troubleshootingActive &&
+                  [
+                    NETWORK_DEVICE_IDS.ROUTER,
+                    NETWORK_DEVICE_IDS.MANAGED_SWITCH,
+                  ].includes(device.id)))
+            }
             configurationLabel={
               device.id === NETWORK_DEVICE_IDS.ROUTER
                 ? 'Open Router Console'
                 : 'Open Switch Console'
             }
             powered={
-              (networkPowered || isPoweringOn) &&
-              (device.id === NETWORK_DEVICE_IDS.ROUTER
-                ? routerPowerConnected
+              device.id === NETWORK_DEVICE_IDS.ROUTER
+                ? isRouterPowered(liveNetworkState) || isPoweringOn
                 : device.id === NETWORK_DEVICE_IDS.MANAGED_SWITCH
-                  ? switchPowerConnected
-                  : device.id === NETWORK_DEVICE_IDS.WORKSTATION_PC)
+                  ? isSwitchPowered(liveNetworkState) || isPoweringOn
+                  : device.id === NETWORK_DEVICE_IDS.WORKSTATION_PC &&
+                    (networkPowered || isPoweringOn)
             }
-            networkPowered={networkPowered || isPoweringOn}
-            powerOnStartedAt={powerOnStartedAt}
+            networkPowered={
+              device.id === NETWORK_DEVICE_IDS.ROUTER
+                ? isRouterPowered(liveNetworkState) || isPoweringOn
+                : device.id === NETWORK_DEVICE_IDS.MANAGED_SWITCH
+                  ? isSwitchPowered(liveNetworkState) || isPoweringOn
+                  : networkPowered || isPoweringOn
+            }
+            powerOnStartedAt={
+              device.id === NETWORK_DEVICE_IDS.MANAGED_SWITCH
+                ? switchPowerOnStartedAt ?? powerOnStartedAt
+                : powerOnStartedAt
+            }
+            linkPowerOnStartedAt={
+              switchPowerOnStartedAt ?? powerOnStartedAt
+            }
+            linkPowerOnStartedAtByPortId={{
+              'pc-eth0': pcLinkOnStartedAt,
+              'switch-port-2': pcLinkOnStartedAt,
+            }}
+            linkDelayByPortId={{
+              'pc-eth0': 0.7,
+              'switch-port-2': 0.7,
+            }}
             activeLinkPortIds={activeLinkPortIds}
             interactivePortIds={interactivePortIds}
             hoveredObjectId={hoveredObjectId}
@@ -526,7 +577,7 @@ export default function NetworkRackWorkstation({
         ))}
 
         <NetworkWorkstationMonitor
-          canConfigure={canConfigureWorkstation}
+          canConfigure={canConfigureWorkstation || troubleshootingActive}
           isHovered={hoveredObjectId === 'workstation-monitor'}
           onHover={handleHover}
           onHoverEnd={handleHoverEnd}
@@ -624,6 +675,8 @@ export default function NetworkRackWorkstation({
               key={cable.id}
               config={cable}
               connected={connection?.connected}
+              sourceConnected={connection?.sourceConnected}
+              destinationConnected={connection?.destinationConnected}
               connecting={activeConnectionId === cable.id}
               selected={selectedCableId === cable.id}
               canSelect={

@@ -7,7 +7,9 @@ import useInteractionStore, {
 } from '../../store/useInteractionStore.js'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
 import { NETWORK_WORKSTATION } from '../../workstations/workstationConfigs.js'
+import { NETWORK_CABLE_IDS } from './networkCableConfigs.js'
 import { NETWORK_PROCEDURE_STEPS } from './networkProcedure.js'
+import { NETWORK_TROUBLESHOOTING_MODES } from './troubleshooting/troubleshootingScenarios.js'
 import { NETWORK_INSPECTION_LIMITS } from './networkWorkstationLayout.js'
 
 const lookAtMatrix = new Matrix4()
@@ -91,7 +93,44 @@ function getNetworkCameraView(
   currentStep,
   selectedCableId,
   selectedSourcePortId,
+  troubleshootingMode,
 ) {
+  if (troubleshootingMode === NETWORK_TROUBLESHOOTING_MODES.ACTIVE) {
+    if (selectedCableId === NETWORK_CABLE_IDS.SWITCH_POWER) {
+      return selectedSourcePortId
+        ? {
+            id: `troubleshooting-pdu-${selectedCableId}`,
+            position: NETWORK_WORKSTATION.pduCameraPosition,
+            target: NETWORK_WORKSTATION.pduCameraTarget,
+            fov: NETWORK_WORKSTATION.pduFov,
+            duration: NETWORK_WORKSTATION.pduTransitionDuration,
+          }
+        : {
+            id: `troubleshooting-power-${selectedCableId}`,
+            position: NETWORK_WORKSTATION.powerCameraPosition,
+            target: NETWORK_WORKSTATION.powerCameraTarget,
+            fov: NETWORK_WORKSTATION.powerFov,
+          }
+    }
+
+    if (selectedCableId === NETWORK_CABLE_IDS.PC_TO_SWITCH) {
+      return selectedSourcePortId
+        ? {
+            id: 'troubleshooting-pc-switch-destination',
+            position: NETWORK_WORKSTATION.pcSwitchPortCameraPosition,
+            target: NETWORK_WORKSTATION.pcSwitchPortCameraTarget,
+            fov: NETWORK_WORKSTATION.pcSwitchPortFov,
+            duration: 0.58,
+          }
+        : {
+            id: 'troubleshooting-workstation-link',
+            position: NETWORK_WORKSTATION.workstationCameraPosition,
+            target: NETWORK_WORKSTATION.workstationCameraTarget,
+            fov: NETWORK_WORKSTATION.technicianFov,
+          }
+    }
+  }
+
   if (pcConfigurationSteps.includes(currentStep)) {
     return {
       id: `pc-configuration-${currentStep}`,
@@ -305,6 +344,9 @@ export default function NetworkRackCameraController() {
   const networkOverlay = useNetworkTrainingStore(
     (state) => state.networkOverlay,
   )
+  const troubleshootingMode = useNetworkTrainingStore(
+    (state) => state.troubleshootingMode,
+  )
   const inspectionViewRequest = useNetworkTrainingStore(
     (state) => state.inspectionViewRequest,
   )
@@ -348,6 +390,7 @@ export default function NetworkRackCameraController() {
       networkCurrentStep,
       selectedCableId,
       selectedSourcePortId,
+      troubleshootingMode,
     )
     const hasNewInspectionRequest =
       inspectionViewRequest.id !== handledInspectionRequestId.current
@@ -406,6 +449,7 @@ export default function NetworkRackCameraController() {
     networkTrainingStarted,
     selectedCableId,
     selectedSourcePortId,
+    troubleshootingMode,
   ])
 
   useFrame((_, delta) => {

@@ -17,7 +17,7 @@ const keyActions = {
   ShiftRight: 'run',
 }
 
-export default function useKeyboardControls() {
+export default function useKeyboardControls(enabled = true) {
   const controls = useRef({ ...initialControls })
 
   useEffect(() => {
@@ -30,6 +30,11 @@ export default function useKeyboardControls() {
         eventTarget?.isContentEditable
 
       if (isEditableTarget) {
+        controls.current = { ...initialControls }
+        return
+      }
+
+      if (!enabled) {
         controls.current = { ...initialControls }
         return
       }
@@ -50,6 +55,8 @@ export default function useKeyboardControls() {
       controls.current = { ...initialControls }
     }
 
+    resetControls()
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', resetControls)
@@ -59,7 +66,7 @@ export default function useKeyboardControls() {
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', resetControls)
     }
-  }, [])
+  }, [enabled])
 
   return controls
 }

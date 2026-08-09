@@ -5,7 +5,10 @@ import {
   canPing,
   getRouterInterfaceStatus,
   getSwitchManagementStatus,
+  isRouterPowered,
   isRouterConfigurationCorrect,
+  isSwitchPowered,
+  isSwitchReady,
   isSwitchConfigurationCorrect,
 } from './networkConnectivity.js'
 import { maskToPrefix, parseIPv4 } from './ipv4Utils.js'
@@ -81,6 +84,19 @@ function getRouterBrief(state) {
   return [
     'Interface              IP-Address      Status                 Protocol',
     `${NETWORK_TOPOLOGY.router.interfaceName.padEnd(22)} ${ipAddress.padEnd(15)} ${interfaceState.status.padEnd(22)} ${interfaceState.protocol}`,
+  ].join('\n')
+}
+
+function getRouterRunningConfig(state) {
+  return [
+    'Building configuration...',
+    '',
+    `interface ${NETWORK_TOPOLOGY.router.interfaceName}`,
+    state.routerLanIp
+      ? ` ip address ${state.routerLanIp} ${state.routerLanMask}`
+      : ' no ip address',
+    state.routerLanAdminUp ? ' no shutdown' : ' shutdown',
+    'end',
   ].join('\n')
 }
 
@@ -169,6 +185,12 @@ function executeRouterCommand(command, state) {
   if (lowerCommand === 'show ip interface brief') {
     return mode === CLI_MODES.USER_EXEC || mode === CLI_MODES.PRIVILEGED_EXEC
       ? { output: getRouterBrief(state) }
+      : { output: invalidModeOutput }
+  }
+
+  if (lowerCommand === 'show running-config') {
+    return mode === CLI_MODES.PRIVILEGED_EXEC
+      ? { output: getRouterRunningConfig(state) }
       : { output: invalidModeOutput }
   }
 
@@ -458,10 +480,22 @@ function executeWorkstationCommand(command, state) {
 
 function executeTerminalCommand(terminalType, command, state) {
   if (terminalType === NETWORK_TERMINAL_TYPES.ROUTER) {
+    if (!isRouterPowered(state)) {
+      return { output: 'Device unavailable / powered off.' }
+    }
+
     return executeRouterCommand(command, state)
   }
 
   if (terminalType === NETWORK_TERMINAL_TYPES.SWITCH) {
+    if (!isSwitchPowered(state)) {
+      return { output: 'Device unavailable / powered off.' }
+    }
+
+    if (!isSwitchReady(state)) {
+      return { output: 'Device starting. Please wait for initialization.' }
+    }
+
     return executeSwitchCommand(command, state)
   }
 

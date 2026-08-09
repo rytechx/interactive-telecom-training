@@ -101,6 +101,13 @@ const NETWORK_DEVICE_CONFIGS = Object.freeze({
           type: NETWORK_PORT_TYPES.ETHERNET,
           position: Object.freeze([positionX, -0.01, 0.275]),
           hasLinkIndicator: true,
+          ...(index === 1
+            ? {
+                hitboxDimensions: Object.freeze([0.3, 0.22, 0.22]),
+                hitboxOffsetZ: 0.4,
+                tooltipPosition: Object.freeze([0, 0.2, 0.2]),
+              }
+            : {}),
         }),
       ),
       Object.freeze({

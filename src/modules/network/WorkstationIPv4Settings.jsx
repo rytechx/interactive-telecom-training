@@ -2,9 +2,16 @@ import { useState } from 'react'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
 
 export default function WorkstationIPv4Settings() {
-  const [ipAddress, setIpAddress] = useState('')
-  const [subnetMask, setSubnetMask] = useState('')
-  const [defaultGateway, setDefaultGateway] = useState('')
+  const workstationIp = useNetworkTrainingStore((state) => state.workstationIp)
+  const workstationMask = useNetworkTrainingStore(
+    (state) => state.workstationMask,
+  )
+  const workstationGateway = useNetworkTrainingStore(
+    (state) => state.workstationGateway,
+  )
+  const [ipAddress, setIpAddress] = useState(workstationIp)
+  const [subnetMask, setSubnetMask] = useState(workstationMask)
+  const [defaultGateway, setDefaultGateway] = useState(workstationGateway)
   const settingsFeedback = useNetworkTrainingStore(
     (state) => state.settingsFeedback,
   )

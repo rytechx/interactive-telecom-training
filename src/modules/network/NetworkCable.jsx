@@ -124,6 +124,8 @@ function CablePlug({
 export default function NetworkCable({
   config,
   connected = false,
+  sourceConnected = connected,
+  destinationConnected = connected,
   connecting = false,
   selected = false,
   canSelect = false,
@@ -145,6 +147,7 @@ export default function NetworkCable({
   const isHovered = hoveredObjectId === config.id
   const canInteract = canSelect || canReject
   const highlighted = selected || isHovered
+  const partiallyConnected = sourceConnected && !destinationConnected
   const parkedCurve = useMemo(
     () => createCableCurve(config.parkedPath),
     [config.parkedPath],
@@ -153,16 +156,36 @@ export default function NetworkCable({
     () => createCableCurve(config.connectedPath),
     [config.connectedPath],
   )
+  const partialPath = useMemo(() => {
+    const connectedPath = config.connectedPath
+    const destination = connectedPath.at(-1)
+    const freeConnectorPosition = [
+      destination[0],
+      destination[1] - 0.16,
+      destination[2] + 0.46,
+    ]
+
+    return [...connectedPath.slice(0, -1), freeConnectorPosition]
+  }, [config.connectedPath])
+  const partialCurve = useMemo(
+    () => createCableCurve(partialPath),
+    [partialPath],
+  )
+  const restingCurve = connected
+    ? connectedCurve
+    : partiallyConnected
+      ? partialCurve
+      : parkedCurve
   const restingGeometry = useMemo(
     () =>
       new TubeGeometry(
-        connected ? connectedCurve : parkedCurve,
+        restingCurve,
         28,
         config.thickness,
         7,
         false,
       ),
-    [connected, connectedCurve, config.thickness, parkedCurve],
+    [config.thickness, restingCurve],
   )
   const parkedSource = useMemo(
     () => new Vector3().fromArray(config.parkedPath[0]),
@@ -180,8 +203,13 @@ export default function NetworkCable({
     () => new Vector3().fromArray(config.connectedPath.at(-1)),
     [config.connectedPath],
   )
+  const partialDestination = useMemo(
+    () => new Vector3().fromArray(partialPath.at(-1)),
+    [partialPath],
+  )
+  const interactiveCurve = partiallyConnected ? partialCurve : parkedCurve
   const cableHitboxSegments = useMemo(() => {
-    const hitboxPoints = parkedCurve.getSpacedPoints(
+    const hitboxPoints = interactiveCurve.getSpacedPoints(
       config.hitboxSegmentCount ?? 5,
     )
 
@@ -190,8 +218,11 @@ export default function NetworkCable({
       id: `${config.id}-hitbox-${index}`,
       start: hitboxPoints[index],
     }))
-  }, [config.hitboxSegmentCount, config.id, parkedCurve])
-  const tooltipPosition = config.parkedPath[Math.floor(config.parkedPath.length / 2)]
+  }, [config.hitboxSegmentCount, config.id, interactiveCurve])
+  const tooltipPosition = useMemo(
+    () => interactiveCurve.getPoint(0.58).toArray(),
+    [interactiveCurve],
+  )
 
   useEffect(() => {
     animationElapsed.current = 0
@@ -207,8 +238,12 @@ export default function NetworkCable({
     }
 
     if (connecting) {
-      sourcePlugRef.current?.position.copy(parkedSource)
-      destinationPlugRef.current?.position.copy(parkedDestination)
+      sourcePlugRef.current?.position.copy(
+        partiallyConnected ? connectedSource : parkedSource,
+      )
+      destinationPlugRef.current?.position.copy(
+        partiallyConnected ? partialDestination : parkedDestination,
+      )
       return
     }
 
@@ -217,19 +252,27 @@ export default function NetworkCable({
     }
 
     sourcePlugRef.current?.position.copy(
-      connected ? connectedSource : parkedSource,
+      sourceConnected ? connectedSource : parkedSource,
     )
     destinationPlugRef.current?.position.copy(
-      connected ? connectedDestination : parkedDestination,
+      destinationConnected
+        ? connectedDestination
+        : partiallyConnected
+          ? partialDestination
+          : parkedDestination,
     )
   }, [
     connected,
     connectedDestination,
     connectedSource,
     connecting,
+    destinationConnected,
+    partialDestination,
+    partiallyConnected,
     parkedDestination,
     parkedSource,
     restingGeometry,
+    sourceConnected,
   ])
 
   useEffect(
@@ -267,9 +310,52 @@ export default function NetworkCable({
 
     animationElapsed.current += delta
     const progress = Math.min(
-      animationElapsed.current / (config.connectionDuration ?? 1.05),
+      animationElapsed.current /
+        (partiallyConnected
+          ? config.repairConnectionDuration ?? 0.85
+          : config.connectionDuration ?? 1.05),
       1,
     )
+
+    if (partiallyConnected) {
+      const insertionProgress = smoothStep(progress)
+      const animatedPoints = Array.from({ length: 19 }, (_, index) => {
+        const curveProgress = index / 18
+
+        return partialCurve
+          .getPoint(curveProgress)
+          .lerp(connectedCurve.getPoint(curveProgress), insertionProgress)
+      })
+      const animatedCurve = new CatmullRomCurve3(
+        animatedPoints,
+        false,
+        'centripetal',
+      )
+      const animatedGeometry = new TubeGeometry(
+        animatedCurve,
+        28,
+        config.thickness,
+        7,
+        false,
+      )
+
+      animatedGeometryRef.current?.dispose()
+      animatedGeometryRef.current = animatedGeometry
+      cableMeshRef.current.geometry = animatedGeometry
+      sourcePlugRef.current.position.copy(connectedSource)
+      destinationPlugRef.current.position.lerpVectors(
+        partialDestination,
+        connectedDestination,
+        insertionProgress,
+      )
+
+      if (progress === 1) {
+        animationCompleted.current = true
+        onConnectionComplete?.(config.id)
+      }
+
+      return
+    }
     const sourceProgress = smoothStep(Math.min(progress / 0.28, 1))
     const routeProgress = smoothStep(clamp01((progress - 0.28) / 0.72))
 

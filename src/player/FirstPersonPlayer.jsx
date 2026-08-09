@@ -26,7 +26,7 @@ export default function FirstPersonPlayer({
   const internalRigidBody = useRef(null)
   const rigidBody = playerBodyRef ?? internalRigidBody
   const pointerLockControls = useRef(null)
-  const keyboard = useKeyboardControls()
+  const keyboard = useKeyboardControls(enabled)
   const camera = useThree((state) => state.camera)
   const supportsPointerLock =
     typeof window !== 'undefined' &&
@@ -43,6 +43,12 @@ export default function FirstPersonPlayer({
       spawnPosition[2],
     )
   }, [camera, spawnPosition])
+
+  useEffect(() => {
+    if (!enabled && document.pointerLockElement) {
+      document.exitPointerLock()
+    }
+  }, [enabled])
 
   useFrame((_, delta) => {
     const body = rigidBody.current

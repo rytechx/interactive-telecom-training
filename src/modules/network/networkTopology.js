@@ -17,6 +17,10 @@ const NETWORK_TOPOLOGY = Object.freeze({
     gateway: '192.168.10.1',
     interfaceName: 'Ethernet',
   }),
+  remoteHost: Object.freeze({
+    ip: '10.10.10.10',
+    name: 'Training Server',
+  }),
 })
 
 export { NETWORK_TOPOLOGY }

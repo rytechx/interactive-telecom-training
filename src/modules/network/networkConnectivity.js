@@ -63,13 +63,37 @@ function isSwitchConfigurationCorrect(state) {
   )
 }
 
+function isRouterPowered(state) {
+  return Boolean(state.networkPowered && state.routerPowerConnected)
+}
+
+function isSwitchPowered(state) {
+  return Boolean(state.networkPowered && state.switchPowerConnected)
+}
+
+function isSwitchReady(state) {
+  return Boolean(
+    isSwitchPowered(state) &&
+      (!state.switchStartupReadyAt || Date.now() >= state.switchStartupReadyAt),
+  )
+}
+
+function isPcSwitchLinkReady(state) {
+  return Boolean(
+    state.pcSwitchConnected &&
+      isSwitchReady(state) &&
+      (!state.pcLinkReadyAt || Date.now() >= state.pcLinkReadyAt),
+  )
+}
+
 function getRouterInterfaceStatus(state) {
   if (!state.routerLanAdminUp) {
     return { status: 'administratively down', protocol: 'down' }
   }
 
   if (
-    !state.networkPowered ||
+    !isRouterPowered(state) ||
+    !isSwitchReady(state) ||
     !state.switchRouterConnected ||
     !parseIPv4(state.routerLanIp) ||
     maskToPrefix(state.routerLanMask) === null
@@ -86,7 +110,7 @@ function getSwitchManagementStatus(state) {
   }
 
   if (
-    !state.networkPowered ||
+    !isSwitchReady(state) ||
     (!state.pcSwitchConnected && !state.switchRouterConnected) ||
     !parseIPv4(state.switchManagementIp) ||
     maskToPrefix(state.switchManagementMask) === null
@@ -101,8 +125,9 @@ function canPing(sourceDeviceId, destinationIp, state) {
   if (
     sourceDeviceId !== NETWORK_DEVICE_IDS.WORKSTATION_PC ||
     !state.workstationIpConfigured ||
-    !state.networkPowered ||
-    !state.pcSwitchConnected ||
+    !isPcSwitchLinkReady(state) ||
+    !parseIPv4(state.workstationIp) ||
+    maskToPrefix(state.workstationMask) === null ||
     !parseIPv4(destinationIp)
   ) {
     return false
@@ -115,7 +140,28 @@ function canPing(sourceDeviceId, destinationIp, state) {
   )
 
   if (!isLocalDestination) {
-    return false
+    const gatewayCorrect = Boolean(
+      parseIPv4(state.workstationGateway) &&
+        addressesMatch(
+          state.workstationGateway,
+          NETWORK_TOPOLOGY.workstation.gateway,
+        ) &&
+        isSameSubnet(
+          state.workstationIp,
+          state.workstationGateway,
+          state.workstationMask,
+        ),
+    )
+    const routerStatus = getRouterInterfaceStatus(state)
+
+    return Boolean(
+      addressesMatch(destinationIp, NETWORK_TOPOLOGY.remoteHost.ip) &&
+        isWorkstationConfigurationCorrect(state) &&
+        gatewayCorrect &&
+        state.switchRouterConnected &&
+        routerStatus.status === 'up' &&
+        routerStatus.protocol === 'up',
+    )
   }
 
   if (addressesMatch(destinationIp, state.routerLanIp)) {
@@ -131,11 +177,38 @@ function canPing(sourceDeviceId, destinationIp, state) {
   return addressesMatch(destinationIp, state.workstationIp)
 }
 
+function getActiveNetworkLinkPortIds(state) {
+  const activePortIds = []
+
+  if (state.patchSwitchConnected && isSwitchPowered(state)) {
+    activePortIds.push('patch-panel-port-1', 'switch-port-1')
+  }
+
+  if (state.pcSwitchConnected && isSwitchPowered(state)) {
+    activePortIds.push('pc-eth0', 'switch-port-2')
+  }
+
+  if (
+    state.switchRouterConnected &&
+    isSwitchPowered(state) &&
+    isRouterPowered(state)
+  ) {
+    activePortIds.push('switch-port-8', 'router-lan-1')
+  }
+
+  return activePortIds
+}
+
 export {
   canPing,
+  getActiveNetworkLinkPortIds,
   getRouterInterfaceStatus,
   getSwitchManagementStatus,
+  isRouterPowered,
   isRouterConfigurationCorrect,
+  isPcSwitchLinkReady,
+  isSwitchPowered,
+  isSwitchReady,
   isSwitchConfigurationCorrect,
   isWorkstationConfigurationCorrect,
 }

@@ -16,6 +16,8 @@ import {
 } from '../modules/network/networkProcedure.js'
 import {
   isWorkstationConfigurationCorrect,
+  isRouterPowered,
+  isSwitchPowered,
 } from '../modules/network/networkConnectivity.js'
 import {
   CLI_MODES,
@@ -24,6 +26,18 @@ import {
   NETWORK_TERMINAL_TYPES,
 } from '../modules/network/terminalCommands.js'
 import { validateIPv4Values } from '../modules/network/ipv4Utils.js'
+import {
+  getNextTroubleshootingScenarioId,
+  getTroubleshootingScenario,
+  NETWORK_TROUBLESHOOTING_MODES,
+  NETWORK_TROUBLESHOOTING_SCENARIOS,
+} from '../modules/network/troubleshooting/troubleshootingScenarios.js'
+import {
+  createInitialTroubleshootingState,
+  createKnownGoodNetworkBaseline,
+  createTroubleshootingScenarioState,
+  getTroubleshootingVerification,
+} from '../modules/network/troubleshooting/troubleshootingUtils.js'
 
 const NETWORK_OVERLAYS = Object.freeze({
   PC_SETTINGS: 'pc-settings',
@@ -124,11 +138,14 @@ function createInitialConnections() {
     destinationPortId: cable.destinationPortId,
     cableType: cable.type,
     connected: false,
+    sourceConnected: false,
+    destinationConnected: false,
   }))
 }
 
 function createInitialNetworkState() {
   return {
+    ...createInitialTroubleshootingState(),
     activeModuleId: null,
     networkTrainingStarted: false,
     networkCurrentStep: NETWORK_PROCEDURE_STEPS.NOT_STARTED,
@@ -185,6 +202,38 @@ function createInitialNetworkState() {
   }
 }
 
+function isTroubleshootingActive(state) {
+  return state.troubleshootingMode === NETWORK_TROUBLESHOOTING_MODES.ACTIVE
+}
+
+function getTroubleshootingConnectionUpdate(cableId) {
+  if (cableId === NETWORK_CABLE_IDS.SWITCH_POWER) {
+    const powerOnStartedAt = Date.now()
+
+    return {
+      switchPowerConnected: true,
+      switchPowerOnStartedAt: powerOnStartedAt,
+      switchStartupReadyAt: powerOnStartedAt + 1800,
+      troubleshootingFeedback:
+        'Switch power restored. Allow the device and links to initialize before verification.',
+    }
+  }
+
+  if (cableId === NETWORK_CABLE_IDS.PC_TO_SWITCH) {
+    const pcLinkOnStartedAt = Date.now()
+
+    return {
+      pcSwitchConnected: true,
+      pcLinkOnStartedAt,
+      pcLinkReadyAt: pcLinkOnStartedAt + 700,
+      troubleshootingFeedback:
+        'Switch Port 2 connection restored. Allow the link to negotiate, then retest connectivity.',
+    }
+  }
+
+  return {}
+}
+
 function createStartedNetworkState() {
   return {
     ...createInitialNetworkState(),
@@ -196,7 +245,14 @@ function createStartedNetworkState() {
 
 function updateConnectionList(connections, cableId, connected) {
   return connections.map((connection) =>
-    connection.id === cableId ? { ...connection, connected } : connection,
+    connection.id === cableId
+      ? {
+          ...connection,
+          connected,
+          sourceConnected: connected,
+          destinationConnected: connected,
+        }
+      : connection,
   )
 }
 
@@ -350,6 +406,196 @@ const useNetworkTrainingStore = create((set) => ({
   ...createInitialNetworkState(),
 
   beginNetworkTraining: () => set(createStartedNetworkState()),
+  openTroubleshootingSelection: () => {
+    set((state) =>
+      state.networkCurrentStep ===
+        NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE
+        ? {
+            ...createKnownGoodNetworkBaseline(),
+            ...createInitialTroubleshootingState(),
+            troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.SELECTION,
+          }
+        : {},
+    )
+  },
+  startTroubleshootingScenario: (scenarioId) => {
+    set(() => createTroubleshootingScenarioState(scenarioId) ?? {})
+  },
+  startRandomTroubleshootingScenario: () => {
+    const randomIndex = Math.floor(
+      Math.random() * NETWORK_TROUBLESHOOTING_SCENARIOS.length,
+    )
+    const scenarioId = NETWORK_TROUBLESHOOTING_SCENARIOS[randomIndex].id
+
+    set(() => createTroubleshootingScenarioState(scenarioId) ?? {})
+  },
+  setTroubleshootingDiagnosis: (diagnosisId) => {
+    set((state) =>
+      isTroubleshootingActive(state) &&
+      !state.troubleshootingDiagnosisConfirmed
+        ? { troubleshootingDiagnosisId: diagnosisId }
+        : {},
+    )
+  },
+  submitTroubleshootingDiagnosis: () => {
+    set((state) => {
+      if (!isTroubleshootingActive(state)) {
+        return {}
+      }
+
+      const scenario = getTroubleshootingScenario(
+        state.selectedTroubleshootingScenarioId,
+      )
+
+      if (!state.troubleshootingDiagnosisId) {
+        return {
+          troubleshootingFeedback: 'Select a likely diagnosis before submitting.',
+        }
+      }
+
+      if (state.troubleshootingDiagnosisId !== scenario?.diagnosisId) {
+        return {
+          troubleshootingFeedback:
+            'Diagnosis incorrect. Continue troubleshooting.',
+          troubleshootingMetrics: {
+            ...state.troubleshootingMetrics,
+            incorrectDiagnosisAttempts:
+              state.troubleshootingMetrics.incorrectDiagnosisAttempts + 1,
+          },
+        }
+      }
+
+      return {
+        troubleshootingDiagnosisConfirmed: true,
+        troubleshootingFeedback:
+          'Diagnosis confirmed. Apply the appropriate repair.',
+      }
+    })
+  },
+  requestTroubleshootingHint: () => {
+    set((state) => {
+      if (!isTroubleshootingActive(state)) {
+        return {}
+      }
+
+      const scenario = getTroubleshootingScenario(
+        state.selectedTroubleshootingScenarioId,
+      )
+      const nextHintLevel = Math.min(
+        state.troubleshootingHintLevel + 1,
+        scenario?.hints.length ?? 0,
+      )
+
+      if (nextHintLevel === state.troubleshootingHintLevel) {
+        return {}
+      }
+
+      return {
+        troubleshootingHintLevel: nextHintLevel,
+        troubleshootingMetrics: {
+          ...state.troubleshootingMetrics,
+          hintsUsed: nextHintLevel,
+        },
+      }
+    })
+  },
+  toggleTroubleshootingMethodology: () => {
+    set((state) => ({
+      troubleshootingMethodologyVisible:
+        !state.troubleshootingMethodologyVisible,
+    }))
+  },
+  verifyTroubleshootingRepair: () => {
+    set((state) => {
+      if (!isTroubleshootingActive(state)) {
+        return {}
+      }
+
+      const repairAttempts = state.troubleshootingMetrics.repairAttempts + 1
+
+      if (!state.troubleshootingDiagnosisConfirmed) {
+        return {
+          troubleshootingFeedback:
+            'Submit the diagnosis before verifying the repair.',
+          troubleshootingMetrics: {
+            ...state.troubleshootingMetrics,
+            repairAttempts,
+          },
+        }
+      }
+
+      const verification = getTroubleshootingVerification(state)
+
+      if (!verification.passed) {
+        return {
+          troubleshootingFeedback:
+            'Repair verification failed. The network issue is still present.',
+          troubleshootingVerificationResults: null,
+          troubleshootingMetrics: {
+            ...state.troubleshootingMetrics,
+            repairAttempts,
+          },
+        }
+      }
+
+      return {
+        troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.COMPLETE,
+        troubleshootingFeedback: 'NETWORK RESTORED',
+        troubleshootingVerificationResults: verification,
+        troubleshootingMetrics: {
+          ...state.troubleshootingMetrics,
+          scenarioEndTime: Date.now(),
+          repairAttempts,
+          scenarioCompleted: true,
+        },
+      }
+    })
+  },
+  restartTroubleshootingScenario: () => {
+    set((state) =>
+      createTroubleshootingScenarioState(
+        state.selectedTroubleshootingScenarioId,
+      ) ?? {},
+    )
+  },
+  startNextTroubleshootingScenario: () => {
+    set((state) => {
+      const nextScenarioId = getNextTroubleshootingScenarioId(
+        state.selectedTroubleshootingScenarioId,
+      )
+
+      return createTroubleshootingScenarioState(nextScenarioId) ?? {}
+    })
+  },
+  returnToTroubleshootingSelection: () => {
+    set({
+      ...createKnownGoodNetworkBaseline(),
+      ...createInitialTroubleshootingState(),
+      troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.SELECTION,
+    })
+  },
+  exitTroubleshooting: () => {
+    set({
+      ...createKnownGoodNetworkBaseline(),
+      ...createInitialTroubleshootingState(),
+    })
+  },
+  openTroubleshootingTool: (overlay) => {
+    set((state) => {
+      if (
+        !isTroubleshootingActive(state) ||
+        !Object.values(NETWORK_OVERLAYS).includes(overlay)
+      ) {
+        return {}
+      }
+
+      return {
+        networkOverlay: overlay,
+        settingsFeedback: null,
+        settingsFeedbackType: null,
+      }
+    })
+  },
   inspectNetworkRack: () => {
     set((state) =>
       state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.INSPECT_RACK &&
@@ -465,6 +711,13 @@ const useNetworkTrainingStore = create((set) => ({
   },
   openWorkstationConfiguration: () => {
     set((state) => {
+      if (isTroubleshootingActive(state)) {
+        return {
+          networkOverlay: NETWORK_OVERLAYS.WORKSTATION_TERMINAL,
+          procedureFeedback: 'Workstation command prompt opened.',
+        }
+      }
+
       if (state.networkCurrentStep === NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4) {
         return {
           networkOverlay: NETWORK_OVERLAYS.PC_SETTINGS,
@@ -495,6 +748,30 @@ const useNetworkTrainingStore = create((set) => ({
   },
   openNetworkDeviceTerminal: (deviceId) => {
     set((state) => {
+      if (isTroubleshootingActive(state)) {
+        if (
+          deviceId === NETWORK_DEVICE_IDS.ROUTER ||
+          deviceId === NETWORK_DEVICE_IDS.MANAGED_SWITCH
+        ) {
+          return {
+            networkOverlay:
+              deviceId === NETWORK_DEVICE_IDS.ROUTER
+                ? NETWORK_OVERLAYS.ROUTER_TERMINAL
+                : NETWORK_OVERLAYS.SWITCH_TERMINAL,
+            procedureFeedback:
+              deviceId === NETWORK_DEVICE_IDS.ROUTER
+                ? isRouterPowered(state)
+                  ? 'Router console opened.'
+                  : 'Device unavailable / powered off.'
+                : isSwitchPowered(state)
+                  ? 'Managed switch console opened.'
+                  : 'Device unavailable / powered off.',
+          }
+        }
+
+        return {}
+      }
+
       if (
         deviceId === NETWORK_DEVICE_IDS.ROUTER &&
         [
@@ -531,7 +808,12 @@ const useNetworkTrainingStore = create((set) => ({
   },
   applyWorkstationIPv4: ({ ipAddress, subnetMask, defaultGateway }) => {
     set((state) => {
-      if (state.networkCurrentStep !== NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4) {
+      const troubleshootingActive = isTroubleshootingActive(state)
+
+      if (
+        !troubleshootingActive &&
+        state.networkCurrentStep !== NETWORK_PROCEDURE_STEPS.CONFIGURE_PC_IPV4
+      ) {
         return {}
       }
 
@@ -555,6 +837,22 @@ const useNetworkTrainingStore = create((set) => ({
         workstationMask: subnetMask.trim(),
         workstationGateway: defaultGateway.trim(),
       }
+
+      if (troubleshootingActive) {
+        return {
+          workstationIp: candidateState.workstationIp,
+          workstationMask: candidateState.workstationMask,
+          workstationGateway: candidateState.workstationGateway,
+          workstationIpConfigured: true,
+          networkOverlay: null,
+          settingsFeedback: null,
+          settingsFeedbackType: null,
+          troubleshootingVerificationResults: null,
+          troubleshootingFeedback:
+            'Workstation IPv4 settings applied. Retest connectivity before verification.',
+        }
+      }
+
       const workstationIpConfigured = isWorkstationConfigurationCorrect(
         candidateState,
       )
@@ -605,19 +903,43 @@ const useNetworkTrainingStore = create((set) => ({
       const nextHistory = result.clearHistory
         ? []
         : [...state[historyField], historyEntry]
+      const troubleshootingMetrics = isTroubleshootingActive(state)
+        ? {
+            ...state.troubleshootingMetrics,
+            diagnosticCommandsUsed: [
+              ...state.troubleshootingMetrics.diagnosticCommandsUsed,
+              {
+                terminalType,
+                command: normalizedCommand,
+                timestamp: Date.now(),
+              },
+            ],
+            pingAttempts:
+              state.troubleshootingMetrics.pingAttempts +
+              (/^ping\s+/i.test(normalizedCommand) ? 1 : 0),
+          }
+        : state.troubleshootingMetrics
 
       return {
         ...result.updates,
         [historyField]: nextHistory,
         terminalSequence,
+        troubleshootingMetrics,
+        ...(isTroubleshootingActive(state)
+          ? { troubleshootingVerificationResults: null }
+          : {}),
         ...(result.feedback ? { procedureFeedback: result.feedback } : {}),
       }
     })
   },
   selectNetworkCable: (cableId) => {
     set((state) => {
-      const allowedCableIds =
-        connectionStepCableRules[state.networkCurrentStep] ?? []
+      const troubleshootingScenario = isTroubleshootingActive(state)
+        ? getTroubleshootingScenario(state.selectedTroubleshootingScenarioId)
+        : null
+      const allowedCableIds = troubleshootingScenario?.repairCableId
+        ? [troubleshootingScenario.repairCableId]
+        : connectionStepCableRules[state.networkCurrentStep] ?? []
       const cable = getNetworkCableConfig(cableId)
       const connection = state.networkConnections.find(
         (item) => item.id === cableId,
@@ -640,9 +962,19 @@ const useNetworkTrainingStore = create((set) => ({
       return {
         ...clearedNetworkHoverState,
         selectedCableId: cableId,
-        selectedSourcePortId: null,
+        selectedSourcePortId:
+          troubleshootingScenario && connection?.sourceConnected
+            ? cable.sourcePortId
+            : null,
         selectedNetworkPortId: null,
         procedureFeedback: `${cable.name} selected. Choose ${getNetworkPortConfig(cable.sourcePortId)?.name}.`,
+        ...(troubleshootingScenario
+          ? {
+              troubleshootingFeedback: connection?.sourceConnected
+                ? `${cable.name} selected. Reconnect the free connector to ${getNetworkPortConfig(cable.destinationPortId)?.name}.`
+                : `${cable.name} selected. Choose ${getNetworkPortConfig(cable.sourcePortId)?.name}.`,
+            }
+          : {}),
       }
     })
   },
@@ -703,6 +1035,9 @@ const useNetworkTrainingStore = create((set) => ({
         activeConnectionId: cable.id,
         isProcedureAnimating: true,
         procedureFeedback: `Connecting ${cable.name}...`,
+        ...(isTroubleshootingActive(state)
+          ? { troubleshootingFeedback: `Connecting ${cable.name}...` }
+          : {}),
       }
     })
   },
@@ -721,8 +1056,12 @@ const useNetworkTrainingStore = create((set) => ({
         return {}
       }
 
+      const troubleshootingUpdate = isTroubleshootingActive(state)
+        ? getTroubleshootingConnectionUpdate(cableId)
+        : getConnectionCompletionUpdate(state, cableId)
+
       return {
-        ...getConnectionCompletionUpdate(state, cableId),
+        ...troubleshootingUpdate,
         networkConnections: updateConnectionList(
           state.networkConnections,
           cableId,
@@ -738,6 +1077,9 @@ const useNetworkTrainingStore = create((set) => ({
         selectedNetworkPortId: null,
         activeConnectionId: null,
         isProcedureAnimating: false,
+        ...(isTroubleshootingActive(state)
+          ? { troubleshootingVerificationResults: null }
+          : {}),
       }
     })
   },
