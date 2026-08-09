@@ -38,6 +38,7 @@ export default function TroubleshootingPanel({
   onOpenTool,
   onRestart,
   onExit,
+  onViewScenarioAssessment,
   onNextScenario,
   onReturnToSelection,
   onReturnToLaboratory,
@@ -47,9 +48,10 @@ export default function TroubleshootingPanel({
     ? Math.max(
         0,
         Math.round(
-          ((metrics.scenarioEndTime ?? metrics.scenarioStartTime) -
-            metrics.scenarioStartTime) /
-            1000,
+          (metrics.scenarioCompleted
+            ? metrics.elapsedTime
+            : (metrics.scenarioEndTime ?? metrics.scenarioStartTime) -
+              metrics.scenarioStartTime) / 1000,
         ),
       )
     : 0
@@ -256,9 +258,14 @@ export default function TroubleshootingPanel({
           </div>
 
           <div className="training-actions procedure-primary-actions troubleshooting-complete-actions">
+            <button type="button" onClick={onViewScenarioAssessment}>
+              View Scenario Assessment
+            </button>
             <button type="button" onClick={onNextScenario}>
               Next Scenario
             </button>
+          </div>
+          <div className="training-actions procedure-primary-actions">
             <button type="button" onClick={onReturnToSelection}>
               Scenario Selection
             </button>

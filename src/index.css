@@ -905,6 +905,44 @@ canvas {
   font-size: 11px;
 }
 
+.network-scenario-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 9px;
+  padding: 7px 9px;
+  color: #9fb4bc;
+  font-size: 9px;
+  text-transform: uppercase;
+  background: rgb(35 69 82 / 28%);
+  border-radius: 5px;
+}
+
+.network-scenario-progress strong {
+  color: #a9e8f8;
+  font-size: 10px;
+}
+
+.network-scenario-list button small {
+  color: #94a8af;
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.network-scenario-list button small.is-complete {
+  color: #86dfa6;
+}
+
+.network-scenario-list button.is-weak {
+  background: rgb(91 68 38 / 62%);
+  border-color: rgb(236 177 77 / 38%);
+}
+
+.network-scenario-list button.is-weak small {
+  color: #ffd28a;
+}
+
 .network-object-tooltip {
   padding: 5px 8px;
   color: #effaff;
@@ -2035,6 +2073,152 @@ canvas {
   width: min(1080px, calc(100vw - 48px));
 }
 
+.network-assessment-panel {
+  width: min(1120px, calc(100vw - 48px));
+}
+
+.network-assessment-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.network-diagnostic-summary ol,
+.network-final-status-list,
+.network-final-scenario-list,
+.network-competency-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.network-diagnostic-summary li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 7px 8px;
+  color: #cbd9dd;
+  font-size: 11px;
+  line-height: 1.4;
+  background: rgb(255 255 255 / 3%);
+  border-radius: 5px;
+}
+
+.network-diagnostic-summary li > span:first-child {
+  color: #78d99a;
+  font-weight: 900;
+}
+
+.network-diagnostic-summary li.is-warning > span:first-child {
+  color: #ffc46f;
+}
+
+.network-diagnostic-summary p,
+.network-root-cause-review p {
+  margin: 0;
+  color: #c9d7dc;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.network-root-cause-review {
+  display: grid;
+  gap: 8px;
+}
+
+.network-root-cause-review h2 {
+  margin-bottom: 2px;
+}
+
+.network-root-cause-review > strong {
+  color: #dff3f8;
+  font-size: 12px;
+}
+
+.network-root-cause-review > span {
+  margin-top: 3px;
+  color: #82dff3;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.network-next-recommendation {
+  display: block;
+  margin-top: 11px;
+  padding: 9px;
+  color: #c8f2d5;
+  font-size: 11px;
+  line-height: 1.4;
+  background: rgb(65 170 113 / 12%);
+  border-radius: 5px;
+}
+
+.network-final-status-list li,
+.network-final-scenario-list li,
+.network-competency-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 9px;
+  color: #b9c9ce;
+  font-size: 11px;
+  background: rgb(255 255 255 / 3%);
+  border-radius: 5px;
+}
+
+.network-final-status-list strong,
+.network-competency-list strong.is-pass {
+  color: #7ee0a1;
+  font-size: 10px;
+}
+
+.network-competency-list strong {
+  color: #ffd186;
+  font-size: 10px;
+}
+
+.network-final-scenario-list li > span {
+  display: grid;
+  gap: 2px;
+}
+
+.network-final-scenario-list small {
+  color: #72cfe9;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.network-final-scenario-list strong {
+  color: #d9f5e2;
+  font-size: 14px;
+}
+
+.network-final-checklist {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.assessment-score-summary em {
+  margin-top: 4px;
+  color: #aabcc3;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.network-assessment-actions {
+  flex-wrap: wrap;
+}
+
+.network-assessment-actions button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
 .fiber-assessment-grid {
   grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
 }
@@ -2404,6 +2588,10 @@ canvas {
     width: calc(100vw - 28px);
   }
 
+  .network-assessment-panel {
+    width: calc(100vw - 28px);
+  }
+
   .assessment-header {
     align-items: stretch;
     flex-direction: column;
@@ -2421,7 +2609,8 @@ canvas {
   }
 
   .fiber-splice-quality dl,
-  .fiber-procedure-review ol {
+  .fiber-procedure-review ol,
+  .network-final-checklist {
     grid-template-columns: 1fr;
   }
 

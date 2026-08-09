@@ -6,6 +6,8 @@ const NETWORK_TROUBLESHOOTING_MODES = Object.freeze({
   SELECTION: 'selection',
   ACTIVE: 'active',
   COMPLETE: 'complete',
+  SCENARIO_ASSESSMENT: 'scenario-assessment',
+  FINAL_ASSESSMENT: 'final-assessment',
 })
 
 const NETWORK_TROUBLESHOOTING_DIAGNOSES = Object.freeze([
@@ -55,6 +57,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Compare the workstation IPv4 address with the 192.168.10.0/24 training network.',
     ]),
     rootCause: 'The workstation used 192.168.20.10, placing it outside the training LAN subnet.',
+    rootCauseExplanation:
+      'The workstation address belonged to a different subnet, so it could not communicate directly with devices on the 192.168.10.0/24 training LAN.',
     repair: `The workstation IPv4 address was restored to ${NETWORK_TOPOLOGY.workstation.ip}.`,
   }),
   Object.freeze({
@@ -76,6 +80,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Inspect GigabitEthernet0/0 for an administratively disabled state.',
     ]),
     rootCause: 'Router GigabitEthernet0/0 was administratively disabled.',
+    rootCauseExplanation:
+      'An administratively disabled router interface cannot forward LAN traffic even when its IPv4 address and physical cable are correct.',
     repair: 'The router LAN interface was enabled with the no shutdown command.',
   }),
   Object.freeze({
@@ -97,6 +103,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Compare the Vlan1 address with the expected 192.168.10.0/24 management subnet.',
     ]),
     rootCause: 'Switch Vlan1 used 192.168.20.2 instead of the expected management address.',
+    rootCauseExplanation:
+      'The switch management interface was outside the training subnet, so the switch could forward frames but could not answer at its expected management address.',
     repair: `Switch Vlan1 was restored to ${NETWORK_TOPOLOGY.switch.managementIp}.`,
   }),
   Object.freeze({
@@ -117,6 +125,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Verify that the workstation default gateway matches the router LAN address.',
     ]),
     rootCause: 'The workstation default gateway was set to 192.168.10.254.',
+    rootCauseExplanation:
+      'Local traffic still worked because it did not require a gateway, but remote traffic failed because the workstation sent it toward the wrong router address.',
     repair: `The default gateway was restored to ${NETWORK_TOPOLOGY.workstation.gateway}.`,
   }),
   Object.freeze({
@@ -139,6 +149,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Inspect the connection between the workstation and Switch Port 2.',
     ]),
     rootCause: 'The Ethernet cable between the workstation and Switch Port 2 was disconnected.',
+    rootCauseExplanation:
+      'The workstation-to-switch physical link was down, so IPv4 configuration could not restore connectivity until the cable was reconnected.',
     repair: 'The workstation Ethernet cable was reconnected to Switch Port 2.',
   }),
   Object.freeze({
@@ -161,6 +173,8 @@ const NETWORK_TROUBLESHOOTING_SCENARIOS = Object.freeze([
       'Inspect the managed switch power connection to the rack PDU.',
     ]),
     rootCause: 'The managed switch lost power because its rack PDU connection was disconnected.',
+    rootCauseExplanation:
+      'Without power, the managed switch could not provide active Ethernet links or management access to connected devices.',
     repair: 'The managed switch power cable was restored and the device completed startup.',
   }),
 ])

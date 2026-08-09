@@ -38,6 +38,14 @@ import {
   createTroubleshootingScenarioState,
   getTroubleshootingVerification,
 } from '../modules/network/troubleshooting/troubleshootingUtils.js'
+import {
+  addTimelineEvent,
+  calculateNetworkScenarioAssessment,
+  getWeakScenarioIds,
+  hasCompletedAllScenarios,
+  recordDiagnosticCommand,
+  recordPhysicalInspection,
+} from '../modules/network/troubleshooting/networkAssessment.js'
 
 const NETWORK_OVERLAYS = Object.freeze({
   PC_SETTINGS: 'pc-settings',
@@ -50,6 +58,17 @@ const clearedNetworkHoverState = Object.freeze({
   hoveredNetworkObjectId: null,
   hoveredNetworkLabel: null,
 })
+
+const TROUBLESHOOTING_ACTION_GUARD_WINDOW_MS = 650
+const troubleshootingRepairFields = Object.freeze([
+  'routerLanIp',
+  'routerLanMask',
+  'routerLanAdminUp',
+  'switchManagementIp',
+  'switchManagementMask',
+  'switchDefaultGateway',
+  'switchVlan1AdminUp',
+])
 
 const deviceSelectionRules = Object.freeze({
   [NETWORK_PROCEDURE_STEPS.SELECT_PATCH_PANEL]: Object.freeze({
@@ -204,6 +223,52 @@ function createInitialNetworkState() {
 
 function isTroubleshootingActive(state) {
   return state.troubleshootingMode === NETWORK_TROUBLESHOOTING_MODES.ACTIVE
+}
+
+function createTroubleshootingSelectionState(
+  state,
+  weakScenarioIds = [],
+) {
+  return {
+    ...createKnownGoodNetworkBaseline(),
+    ...createInitialTroubleshootingState(),
+    troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.SELECTION,
+    scenarioResults: state.scenarioResults,
+    weakTroubleshootingScenarioIds: weakScenarioIds,
+  }
+}
+
+function createScenarioResultRecord(previousRecord, result) {
+  const isBestResult =
+    !previousRecord?.bestResult ||
+    result.finalScore > previousRecord.bestResult.finalScore
+
+  return {
+    scenarioId: result.scenarioId,
+    attempts: (previousRecord?.attempts ?? 0) + 1,
+    latestScore: result.finalScore,
+    bestScore: isBestResult
+      ? result.finalScore
+      : previousRecord.bestResult.finalScore,
+    latestResult: result,
+    bestResult: isBestResult ? result : previousRecord.bestResult,
+  }
+}
+
+function hasSuccessfulCommandResult(result) {
+  const output = String(result.output ?? '')
+
+  return !(
+    output.startsWith('% Invalid') ||
+    output.includes('could not find host')
+  )
+}
+
+function hasNetworkRepairUpdate(state, updates = {}) {
+  return troubleshootingRepairFields.some(
+    (field) =>
+      Object.hasOwn(updates, field) && updates[field] !== state[field],
+  )
 }
 
 function getTroubleshootingConnectionUpdate(cableId) {
@@ -410,16 +475,15 @@ const useNetworkTrainingStore = create((set) => ({
     set((state) =>
       state.networkCurrentStep ===
         NETWORK_PROCEDURE_STEPS.LOGICAL_CONFIGURATION_COMPLETE
-        ? {
-            ...createKnownGoodNetworkBaseline(),
-            ...createInitialTroubleshootingState(),
-            troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.SELECTION,
-          }
+        ? createTroubleshootingSelectionState(state)
         : {},
     )
   },
   startTroubleshootingScenario: (scenarioId) => {
-    set(() => createTroubleshootingScenarioState(scenarioId) ?? {})
+    set(() => ({
+      ...(createTroubleshootingScenarioState(scenarioId) ?? {}),
+      weakTroubleshootingScenarioIds: [],
+    }))
   },
   startRandomTroubleshootingScenario: () => {
     const randomIndex = Math.floor(
@@ -427,7 +491,10 @@ const useNetworkTrainingStore = create((set) => ({
     )
     const scenarioId = NETWORK_TROUBLESHOOTING_SCENARIOS[randomIndex].id
 
-    set(() => createTroubleshootingScenarioState(scenarioId) ?? {})
+    set(() => ({
+      ...(createTroubleshootingScenarioState(scenarioId) ?? {}),
+      weakTroubleshootingScenarioIds: [],
+    }))
   },
   setTroubleshootingDiagnosis: (diagnosisId) => {
     set((state) =>
@@ -439,7 +506,10 @@ const useNetworkTrainingStore = create((set) => ({
   },
   submitTroubleshootingDiagnosis: () => {
     set((state) => {
-      if (!isTroubleshootingActive(state)) {
+      if (
+        !isTroubleshootingActive(state) ||
+        state.troubleshootingDiagnosisConfirmed
+      ) {
         return {}
       }
 
@@ -453,15 +523,41 @@ const useNetworkTrainingStore = create((set) => ({
         }
       }
 
+      const recordedAt = Date.now()
+      const diagnosisSignature = `diagnosis:${state.troubleshootingDiagnosisId}`
+
+      if (
+        state.troubleshootingMetrics.lastDiagnosisSignature ===
+          diagnosisSignature &&
+        recordedAt - state.troubleshootingMetrics.lastDiagnosisRecordedAt <
+          TROUBLESHOOTING_ACTION_GUARD_WINDOW_MS
+      ) {
+        return {}
+      }
+
+      const attemptedMetrics = {
+        ...state.troubleshootingMetrics,
+        diagnosisAttempts: state.troubleshootingMetrics.diagnosisAttempts + 1,
+        lastDiagnosisSignature: diagnosisSignature,
+        lastDiagnosisRecordedAt: recordedAt,
+      }
+
       if (state.troubleshootingDiagnosisId !== scenario?.diagnosisId) {
         return {
           troubleshootingFeedback:
             'Diagnosis incorrect. Continue troubleshooting.',
-          troubleshootingMetrics: {
-            ...state.troubleshootingMetrics,
-            incorrectDiagnosisAttempts:
-              state.troubleshootingMetrics.incorrectDiagnosisAttempts + 1,
-          },
+          troubleshootingMetrics: addTimelineEvent(
+            {
+              ...attemptedMetrics,
+              incorrectDiagnosisAttempts:
+                state.troubleshootingMetrics.incorrectDiagnosisAttempts + 1,
+            },
+            {
+              type: 'diagnosis',
+              label: 'Submitted an incorrect diagnosis',
+              timestamp: recordedAt,
+            },
+          ),
         }
       }
 
@@ -469,6 +565,18 @@ const useNetworkTrainingStore = create((set) => ({
         troubleshootingDiagnosisConfirmed: true,
         troubleshootingFeedback:
           'Diagnosis confirmed. Apply the appropriate repair.',
+        troubleshootingMetrics: addTimelineEvent(
+          {
+            ...attemptedMetrics,
+            rootCauseIdentified: true,
+          },
+          {
+            type: 'diagnosis',
+            label: `Identified root cause: ${scenario.selectionLabel}`,
+            timestamp: recordedAt,
+            uniqueKey: 'diagnosis:confirmed',
+          },
+        ),
       }
     })
   },
@@ -511,18 +619,23 @@ const useNetworkTrainingStore = create((set) => ({
         return {}
       }
 
-      const repairAttempts = state.troubleshootingMetrics.repairAttempts + 1
-
       if (!state.troubleshootingDiagnosisConfirmed) {
         return {
           troubleshootingFeedback:
             'Submit the diagnosis before verifying the repair.',
-          troubleshootingMetrics: {
-            ...state.troubleshootingMetrics,
-            repairAttempts,
-          },
         }
       }
+
+      const recordedAt = Date.now()
+
+      if (
+        recordedAt - state.troubleshootingMetrics.lastRepairAttemptAt <
+        TROUBLESHOOTING_ACTION_GUARD_WINDOW_MS
+      ) {
+        return {}
+      }
+
+      const repairAttempts = state.troubleshootingMetrics.repairAttempts + 1
 
       const verification = getTroubleshootingVerification(state)
 
@@ -531,25 +644,97 @@ const useNetworkTrainingStore = create((set) => ({
           troubleshootingFeedback:
             'Repair verification failed. The network issue is still present.',
           troubleshootingVerificationResults: null,
-          troubleshootingMetrics: {
-            ...state.troubleshootingMetrics,
-            repairAttempts,
-          },
+          troubleshootingMetrics: addTimelineEvent(
+            {
+              ...state.troubleshootingMetrics,
+              repairAttempts,
+              failedRepairAttempts:
+                state.troubleshootingMetrics.failedRepairAttempts + 1,
+              lastRepairAttemptAt: recordedAt,
+            },
+            {
+              type: 'verification',
+              label: 'Repair verification failed',
+              timestamp: recordedAt,
+            },
+          ),
         }
+      }
+
+      const scenario = getTroubleshootingScenario(
+        state.selectedTroubleshootingScenarioId,
+      )
+      let completedMetrics = addTimelineEvent(
+        {
+          ...state.troubleshootingMetrics,
+          scenarioEndTime: recordedAt,
+          elapsedTime: Math.max(
+            0,
+            recordedAt - state.troubleshootingMetrics.scenarioStartTime,
+          ),
+          repairAttempts,
+          scenarioCompleted: true,
+          repairVerified: true,
+          lastRepairAttemptAt: recordedAt,
+        },
+        {
+          type: 'repair',
+          label: scenario.repair,
+          timestamp: recordedAt,
+          uniqueKey: 'repair:verified',
+        },
+      )
+      completedMetrics = addTimelineEvent(completedMetrics, {
+        type: 'verification',
+        label: 'Verified network service restoration',
+        timestamp: recordedAt,
+        uniqueKey: 'verification:passed',
+      })
+      const scenarioResult = calculateNetworkScenarioAssessment({
+        scenario,
+        metrics: completedMetrics,
+        verification,
+      })
+      const scenarioResults = {
+        ...state.scenarioResults,
+        [scenario.id]: createScenarioResultRecord(
+          state.scenarioResults[scenario.id],
+          scenarioResult,
+        ),
       }
 
       return {
         troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.COMPLETE,
         troubleshootingFeedback: 'NETWORK RESTORED',
         troubleshootingVerificationResults: verification,
-        troubleshootingMetrics: {
-          ...state.troubleshootingMetrics,
-          scenarioEndTime: Date.now(),
-          repairAttempts,
-          scenarioCompleted: true,
-        },
+        troubleshootingMetrics: completedMetrics,
+        scenarioResults,
       }
     })
+  },
+  openTroubleshootingScenarioAssessment: () => {
+    set((state) =>
+      state.troubleshootingMode === NETWORK_TROUBLESHOOTING_MODES.COMPLETE &&
+      state.scenarioResults[state.selectedTroubleshootingScenarioId]
+        ? {
+            troubleshootingMode:
+              NETWORK_TROUBLESHOOTING_MODES.SCENARIO_ASSESSMENT,
+          }
+        : {},
+    )
+  },
+  openFinalNetworkAssessment: () => {
+    set((state) =>
+      hasCompletedAllScenarios(state.scenarioResults)
+        ? {
+            ...createKnownGoodNetworkBaseline(),
+            troubleshootingMode:
+              NETWORK_TROUBLESHOOTING_MODES.FINAL_ASSESSMENT,
+            selectedTroubleshootingScenarioId: null,
+            networkOverlay: null,
+          }
+        : {},
+    )
   },
   restartTroubleshootingScenario: () => {
     set((state) =>
@@ -568,17 +753,22 @@ const useNetworkTrainingStore = create((set) => ({
     })
   },
   returnToTroubleshootingSelection: () => {
-    set({
-      ...createKnownGoodNetworkBaseline(),
-      ...createInitialTroubleshootingState(),
-      troubleshootingMode: NETWORK_TROUBLESHOOTING_MODES.SELECTION,
-    })
+    set((state) => createTroubleshootingSelectionState(state))
+  },
+  retryWeakTroubleshootingScenarios: () => {
+    set((state) =>
+      createTroubleshootingSelectionState(
+        state,
+        getWeakScenarioIds(state.scenarioResults),
+      ),
+    )
   },
   exitTroubleshooting: () => {
-    set({
+    set((state) => ({
       ...createKnownGoodNetworkBaseline(),
       ...createInitialTroubleshootingState(),
-    })
+      scenarioResults: state.scenarioResults,
+    }))
   },
   openTroubleshootingTool: (overlay) => {
     set((state) => {
@@ -839,6 +1029,8 @@ const useNetworkTrainingStore = create((set) => ({
       }
 
       if (troubleshootingActive) {
+        const recordedAt = Date.now()
+
         return {
           workstationIp: candidateState.workstationIp,
           workstationMask: candidateState.workstationMask,
@@ -850,6 +1042,14 @@ const useNetworkTrainingStore = create((set) => ({
           troubleshootingVerificationResults: null,
           troubleshootingFeedback:
             'Workstation IPv4 settings applied. Retest connectivity before verification.',
+          troubleshootingMetrics: addTimelineEvent(
+            state.troubleshootingMetrics,
+            {
+              type: 'repair',
+              label: 'Applied workstation IPv4 settings',
+              timestamp: recordedAt,
+            },
+          ),
         }
       }
 
@@ -903,29 +1103,34 @@ const useNetworkTrainingStore = create((set) => ({
       const nextHistory = result.clearHistory
         ? []
         : [...state[historyField], historyEntry]
-      const troubleshootingMetrics = isTroubleshootingActive(state)
-        ? {
-            ...state.troubleshootingMetrics,
-            diagnosticCommandsUsed: [
-              ...state.troubleshootingMetrics.diagnosticCommandsUsed,
-              {
-                terminalType,
-                command: normalizedCommand,
-                timestamp: Date.now(),
-              },
-            ],
-            pingAttempts:
-              state.troubleshootingMetrics.pingAttempts +
-              (/^ping\s+/i.test(normalizedCommand) ? 1 : 0),
-          }
+      const troubleshootingActive = isTroubleshootingActive(state)
+      const recordedAt = Date.now()
+      let troubleshootingMetrics = troubleshootingActive
+        ? recordDiagnosticCommand(state.troubleshootingMetrics, {
+            terminalType,
+            command: normalizedCommand,
+            timestamp: recordedAt,
+            successful: hasSuccessfulCommandResult(result),
+          })
         : state.troubleshootingMetrics
+
+      if (
+        troubleshootingActive &&
+        hasNetworkRepairUpdate(state, result.updates)
+      ) {
+        troubleshootingMetrics = addTimelineEvent(troubleshootingMetrics, {
+          type: 'repair',
+          label: `Applied configuration command: ${normalizedCommand}`,
+          timestamp: recordedAt,
+        })
+      }
 
       return {
         ...result.updates,
         [historyField]: nextHistory,
         terminalSequence,
         troubleshootingMetrics,
-        ...(isTroubleshootingActive(state)
+        ...(troubleshootingActive
           ? { troubleshootingVerificationResults: null }
           : {}),
         ...(result.feedback ? { procedureFeedback: result.feedback } : {}),
@@ -959,6 +1164,15 @@ const useNetworkTrainingStore = create((set) => ({
         }
       }
 
+      const recordedAt = Date.now()
+      const troubleshootingMetrics = troubleshootingScenario
+        ? recordPhysicalInspection(state.troubleshootingMetrics, {
+            id: `cable:${cable.id}`,
+            label: `Inspected ${cable.name}`,
+            timestamp: recordedAt,
+          })
+        : state.troubleshootingMetrics
+
       return {
         ...clearedNetworkHoverState,
         selectedCableId: cableId,
@@ -970,6 +1184,7 @@ const useNetworkTrainingStore = create((set) => ({
         procedureFeedback: `${cable.name} selected. Choose ${getNetworkPortConfig(cable.sourcePortId)?.name}.`,
         ...(troubleshootingScenario
           ? {
+              troubleshootingMetrics,
               troubleshootingFeedback: connection?.sourceConnected
                 ? `${cable.name} selected. Reconnect the free connector to ${getNetworkPortConfig(cable.destinationPortId)?.name}.`
                 : `${cable.name} selected. Choose ${getNetworkPortConfig(cable.sourcePortId)?.name}.`,
@@ -1059,6 +1274,15 @@ const useNetworkTrainingStore = create((set) => ({
       const troubleshootingUpdate = isTroubleshootingActive(state)
         ? getTroubleshootingConnectionUpdate(cableId)
         : getConnectionCompletionUpdate(state, cableId)
+      const recordedAt = Date.now()
+      const troubleshootingMetrics = isTroubleshootingActive(state)
+        ? addTimelineEvent(state.troubleshootingMetrics, {
+            type: 'repair',
+            label: `Connected ${cable.name}`,
+            timestamp: recordedAt,
+            uniqueKey: `repair:cable:${cable.id}`,
+          })
+        : state.troubleshootingMetrics
 
       return {
         ...troubleshootingUpdate,
@@ -1077,6 +1301,7 @@ const useNetworkTrainingStore = create((set) => ({
         selectedNetworkPortId: null,
         activeConnectionId: null,
         isProcedureAnimating: false,
+        troubleshootingMetrics,
         ...(isTroubleshootingActive(state)
           ? { troubleshootingVerificationResults: null }
           : {}),
@@ -1177,12 +1402,25 @@ const useNetworkTrainingStore = create((set) => ({
     )
   },
   requestNetworkInspectionView: (view) => {
-    set((state) => ({
-      inspectionViewRequest: {
-        id: state.inspectionViewRequest.id + 1,
-        view,
-      },
-    }))
+    set((state) => {
+      const recordedAt = Date.now()
+      const troubleshootingMetrics =
+        isTroubleshootingActive(state) && view !== 'reset'
+          ? recordPhysicalInspection(state.troubleshootingMetrics, {
+              id: `rack-view:${view}`,
+              label: `Inspected the rack from the ${view} view`,
+              timestamp: recordedAt,
+            })
+          : state.troubleshootingMetrics
+
+      return {
+        inspectionViewRequest: {
+          id: state.inspectionViewRequest.id + 1,
+          view,
+        },
+        troubleshootingMetrics,
+      }
+    })
   },
   restartNetworkStep: () => {
     set((state) => {

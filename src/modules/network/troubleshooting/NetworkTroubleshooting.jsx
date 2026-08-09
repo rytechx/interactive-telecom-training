@@ -1,6 +1,8 @@
 import useNetworkTrainingStore from '../../../store/useNetworkTrainingStore.js'
 import { getNetworkCableConfig } from '../networkCableConfigs.js'
 import { getNetworkPortConfig } from '../networkDeviceConfigs.js'
+import NetworkAssessment from './NetworkAssessment.jsx'
+import NetworkScenarioAssessment from './NetworkScenarioAssessment.jsx'
 import ScenarioSelection from './ScenarioSelection.jsx'
 import TroubleshootingPanel from './TroubleshootingPanel.jsx'
 import {
@@ -8,7 +10,10 @@ import {
   NETWORK_TROUBLESHOOTING_MODES,
 } from './troubleshootingScenarios.js'
 
-export default function NetworkTroubleshooting({ onReturnToLaboratory }) {
+export default function NetworkTroubleshooting({
+  onRestartNetworkModule,
+  onReturnToLaboratory,
+}) {
   const mode = useNetworkTrainingStore((state) => state.troubleshootingMode)
   const scenarioId = useNetworkTrainingStore(
     (state) => state.selectedTroubleshootingScenarioId,
@@ -33,6 +38,12 @@ export default function NetworkTroubleshooting({ onReturnToLaboratory }) {
   )
   const metrics = useNetworkTrainingStore(
     (state) => state.troubleshootingMetrics,
+  )
+  const scenarioResults = useNetworkTrainingStore(
+    (state) => state.scenarioResults,
+  )
+  const weakScenarioIds = useNetworkTrainingStore(
+    (state) => state.weakTroubleshootingScenarioIds,
   )
   const selectedCableId = useNetworkTrainingStore(
     (state) => state.selectedCableId,
@@ -67,6 +78,15 @@ export default function NetworkTroubleshooting({ onReturnToLaboratory }) {
   const restartScenario = useNetworkTrainingStore(
     (state) => state.restartTroubleshootingScenario,
   )
+  const openScenarioAssessment = useNetworkTrainingStore(
+    (state) => state.openTroubleshootingScenarioAssessment,
+  )
+  const openFinalAssessment = useNetworkTrainingStore(
+    (state) => state.openFinalNetworkAssessment,
+  )
+  const retryWeakScenarios = useNetworkTrainingStore(
+    (state) => state.retryWeakTroubleshootingScenarios,
+  )
   const nextScenario = useNetworkTrainingStore(
     (state) => state.startNextTroubleshootingScenario,
   )
@@ -80,9 +100,37 @@ export default function NetworkTroubleshooting({ onReturnToLaboratory }) {
   if (mode === NETWORK_TROUBLESHOOTING_MODES.SELECTION) {
     return (
       <ScenarioSelection
+        scenarioResults={scenarioResults}
+        weakScenarioIds={weakScenarioIds}
         onSelectScenario={startScenario}
         onSelectRandom={startRandomScenario}
+        onViewFinalAssessment={openFinalAssessment}
         onExit={exitTroubleshooting}
+      />
+    )
+  }
+
+  if (mode === NETWORK_TROUBLESHOOTING_MODES.FINAL_ASSESSMENT) {
+    return (
+      <NetworkAssessment
+        scenarioResults={scenarioResults}
+        onRetryWeakScenarios={retryWeakScenarios}
+        onReturnToSelection={returnToSelection}
+        onRestartNetworkModule={onRestartNetworkModule}
+        onReturnToLaboratory={onReturnToLaboratory}
+      />
+    )
+  }
+
+  if (mode === NETWORK_TROUBLESHOOTING_MODES.SCENARIO_ASSESSMENT) {
+    const result = scenarioResults[scenarioId]?.latestResult
+
+    return (
+      <NetworkScenarioAssessment
+        result={result}
+        onRetry={restartScenario}
+        onNextScenario={nextScenario}
+        onReturnToSelection={returnToSelection}
       />
     )
   }
@@ -118,6 +166,7 @@ export default function NetworkTroubleshooting({ onReturnToLaboratory }) {
       onOpenTool={openTool}
       onRestart={restartScenario}
       onExit={exitTroubleshooting}
+      onViewScenarioAssessment={openScenarioAssessment}
       onNextScenario={nextScenario}
       onReturnToSelection={returnToSelection}
       onReturnToLaboratory={onReturnToLaboratory}

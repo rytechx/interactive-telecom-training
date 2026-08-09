@@ -23,16 +23,33 @@ import {
   NETWORK_TROUBLESHOOTING_MODES,
 } from './troubleshootingScenarios.js'
 
-function createTroubleshootingMetrics(started = false) {
+function createTroubleshootingMetrics(scenario = null, started = false) {
+  const scenarioStartTime = started ? Date.now() : null
+
   return {
-    scenarioStartTime: started ? Date.now() : null,
+    scenarioId: scenario?.id ?? null,
+    scenarioTitle: scenario?.selectionLabel ?? null,
+    scenarioStartTime,
     scenarioEndTime: null,
-    diagnosticCommandsUsed: [],
-    pingAttempts: 0,
+    elapsedTime: 0,
+    diagnosisAttempts: 0,
     incorrectDiagnosisAttempts: 0,
     repairAttempts: 0,
+    failedRepairAttempts: 0,
+    diagnosticCommandsUsed: [],
+    uniqueDiagnosticCommandsUsed: [],
+    pingAttempts: 0,
     hintsUsed: 0,
+    physicalInspections: [],
+    timeline: [],
     scenarioCompleted: false,
+    rootCauseIdentified: false,
+    repairVerified: false,
+    lastDiagnosisSignature: null,
+    lastDiagnosisRecordedAt: 0,
+    lastRepairAttemptAt: 0,
+    lastCommandSignature: null,
+    lastCommandRecordedAt: 0,
   }
 }
 
@@ -47,6 +64,8 @@ function createInitialTroubleshootingState() {
     troubleshootingMethodologyVisible: false,
     troubleshootingVerificationResults: null,
     troubleshootingMetrics: createTroubleshootingMetrics(),
+    scenarioResults: {},
+    weakTroubleshootingScenarioIds: [],
     switchStartupReadyAt: 0,
     switchPowerOnStartedAt: null,
     pcLinkReadyAt: 0,
@@ -203,7 +222,7 @@ function createTroubleshootingScenarioState(scenarioId) {
     troubleshootingHintLevel: 0,
     troubleshootingMethodologyVisible: false,
     troubleshootingVerificationResults: null,
-    troubleshootingMetrics: createTroubleshootingMetrics(true),
+    troubleshootingMetrics: createTroubleshootingMetrics(scenario, true),
   }
 }
 

@@ -159,17 +159,22 @@ export default function NetworkInteractionSystem() {
 
   const troubleshootingOpen =
     troubleshootingMode !== NETWORK_TROUBLESHOOTING_MODES.INACTIVE
+  const assessmentOpen = [
+    NETWORK_TROUBLESHOOTING_MODES.SCENARIO_ASSESSMENT,
+    NETWORK_TROUBLESHOOTING_MODES.FINAL_ASSESSMENT,
+  ].includes(troubleshootingMode)
 
   return workstationPhase === WORKSTATION_PHASES.FOCUSED && isTrainingMode ? (
     <div
       className={`training-overlay network-training-overlay${
         isNetworkCablingStep(networkCurrentStep) ? ' is-cabling-step' : ''
-      }`}
+      }${assessmentOpen ? ' is-assessment' : ''}`}
     >
       {networkTrainingStarted ? (
         <>
           {troubleshootingOpen ? (
             <NetworkTroubleshooting
+              onRestartNetworkModule={handleRestartModule}
               onReturnToLaboratory={handleReturnToLaboratory}
             />
           ) : (
@@ -182,7 +187,7 @@ export default function NetworkInteractionSystem() {
               onExit={handleExit}
             />
           )}
-          {!networkOverlay && (
+          {!networkOverlay && !assessmentOpen && (
             <NetworkInspectionToolbar
               disabled={isProcedureAnimating}
               onSelectView={requestNetworkInspectionView}
