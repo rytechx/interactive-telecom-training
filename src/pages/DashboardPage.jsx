@@ -20,6 +20,9 @@ export default function DashboardPage() {
         completedCount={overview.completedCount}
         overallProgress={overview.overallProgress}
         averageScore={overview.averageScore}
+        isLoading={overview.isLoadingProgress}
+        error={overview.progressError}
+        onRetry={overview.retryProgress}
       />
 
       <section className="dashboard-modules-section" aria-labelledby="dashboard-modules-title">
@@ -33,23 +36,35 @@ export default function DashboardPage() {
           </button>
         </div>
         <div className="training-module-grid">
-          {overview.modules.map((module) => (
-            <ModuleCard
-              key={module.id}
-              module={module}
-              onLaunch={launchTraining}
-              compact
-            />
-          ))}
+          {!overview.hasProgress && overview.isLoadingProgress
+            ? [1, 2, 3].map((item) => (
+                <div key={item} className="module-card-skeleton" aria-hidden="true" />
+              ))
+            : !overview.hasProgress && overview.progressError
+              ? (
+                  <div className="dashboard-inline-error">
+                    Training module progress is temporarily unavailable.
+                  </div>
+                )
+              : overview.modules.map((module) => (
+                  <ModuleCard
+                    key={module.id}
+                    module={module}
+                    onLaunch={launchTraining}
+                    compact
+                  />
+                ))}
         </div>
       </section>
 
       <div className="dashboard-lower-grid">
         <RecentActivity
           recentResults={overview.recentResults}
-          onViewModules={() => navigate('/training')}
+          onStartTraining={() => navigate('/training')}
+          onViewResults={() => navigate('/results')}
+          isLoading={overview.isLoadingProgress && !overview.hasProgress}
         />
-        <SkillsOverview modules={overview.modules} />
+        <SkillsOverview skills={overview.skills} />
       </div>
     </div>
   )

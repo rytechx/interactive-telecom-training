@@ -7,6 +7,7 @@ import useFiberTrainingStore from '../store/useFiberTrainingStore.js'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useTrainingPersistenceStore from '../store/useTrainingPersistenceStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../workstations/workstationConfigs.js'
 
@@ -37,6 +38,15 @@ export default function FiberInteractionSystem() {
   )
   const beginFiberTraining = useFiberTrainingStore(
     (state) => state.beginFiberTraining,
+  )
+  const startAttempt = useTrainingPersistenceStore(
+    (state) => state.startAttempt,
+  )
+  const attemptStartStatus = useTrainingPersistenceStore(
+    (state) => state.startStatus.fiber,
+  )
+  const attemptStartError = useTrainingPersistenceStore(
+    (state) => state.startErrors.fiber,
   )
   const restartFiberStep = useFiberTrainingStore(
     (state) => state.restartFiberStep,
@@ -137,9 +147,13 @@ export default function FiberInteractionSystem() {
     requestWorkstationExit()
   }
 
-  const handleBeginTraining = () => {
+  const handleBeginTraining = async () => {
     resetToolState()
-    beginFiberTraining()
+    const attempt = await startAttempt('fiber')
+
+    if (attempt) {
+      beginFiberTraining()
+    }
   }
 
   const handleRestartStep = () => {
@@ -153,9 +167,13 @@ export default function FiberInteractionSystem() {
     continueFiberProcedure()
   }
 
-  const handleRestartModule = () => {
-    resetToolState()
-    restartFiberTraining()
+  const handleRestartModule = async () => {
+    const attempt = await startAttempt('fiber')
+
+    if (attempt) {
+      resetToolState()
+      restartFiberTraining()
+    }
   }
 
   const handleViewAssessment = () => {
@@ -237,8 +255,14 @@ export default function FiberInteractionSystem() {
                 technician tools.
               </p>
               <div className="training-actions">
-                <button type="button" onClick={handleBeginTraining}>
-                  Begin Training
+                <button
+                  type="button"
+                  onClick={handleBeginTraining}
+                  disabled={attemptStartStatus === 'saving'}
+                >
+                  {attemptStartStatus === 'saving'
+                    ? 'Starting...'
+                    : 'Begin Training'}
                 </button>
                 <button
                   type="button"
@@ -248,6 +272,11 @@ export default function FiberInteractionSystem() {
                   Exit
                 </button>
               </div>
+              {attemptStartError && (
+                <p className="training-persistence-error" role="alert">
+                  {attemptStartError}
+                </p>
+              )}
             </section>
           ) : null}
         </div>

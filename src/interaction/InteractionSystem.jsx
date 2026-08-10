@@ -7,6 +7,7 @@ import { RJ45_PROCEDURE_STEPS } from '../modules/rj45/rj45Procedure.js'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useTrainingPersistenceStore from '../store/useTrainingPersistenceStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import { getToolConfig } from '../tools/toolConfigs.js'
@@ -86,6 +87,15 @@ export default function InteractionSystem() {
   )
   const beginRJ45Training = useTrainingStore(
     (state) => state.beginRJ45Training,
+  )
+  const startAttempt = useTrainingPersistenceStore(
+    (state) => state.startAttempt,
+  )
+  const attemptStartStatus = useTrainingPersistenceStore(
+    (state) => state.startStatus.rj45,
+  )
+  const attemptStartError = useTrainingPersistenceStore(
+    (state) => state.startErrors.rj45,
   )
   const restartRJ45Training = useTrainingStore(
     (state) => state.restartRJ45Training,
@@ -268,14 +278,22 @@ export default function InteractionSystem() {
     requestWorkstationExit()
   }
 
-  const handleBeginTraining = () => {
+  const handleBeginTraining = async () => {
     resetToolState()
-    beginRJ45Training()
+    const attempt = await startAttempt('rj45')
+
+    if (attempt) {
+      beginRJ45Training()
+    }
   }
 
-  const handleRestartModule = () => {
-    resetToolState()
-    restartRJ45Training()
+  const handleRestartModule = async () => {
+    const attempt = await startAttempt('rj45')
+
+    if (attempt) {
+      resetToolState()
+      restartRJ45Training()
+    }
   }
 
   const handleContinueProcedure = () => {
@@ -439,8 +457,14 @@ export default function InteractionSystem() {
               </h1>
 
               <div className="training-actions">
-                <button type="button" onClick={handleBeginTraining}>
-                  Begin Training
+                <button
+                  type="button"
+                  onClick={handleBeginTraining}
+                  disabled={attemptStartStatus === 'saving'}
+                >
+                  {attemptStartStatus === 'saving'
+                    ? 'Starting...'
+                    : 'Begin Training'}
                 </button>
                 <button
                   type="button"
@@ -450,6 +474,11 @@ export default function InteractionSystem() {
                   Exit
                 </button>
               </div>
+              {attemptStartError && (
+                <p className="training-persistence-error" role="alert">
+                  {attemptStartError}
+                </p>
+              )}
             </section>
           ) : null}
         </div>

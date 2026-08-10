@@ -113,6 +113,16 @@ export default function TelecomIcon({ name, size = 20 }) {
     )
   }
 
+  if (name === 'logout') {
+    return (
+      <svg {...sharedProps}>
+        <path d="M10 4H5v16h5" />
+        <path d="m15 8 4 4-4 4" />
+        <path d="M8 12h11" />
+      </svg>
+    )
+  }
+
   return (
     <svg {...sharedProps}>
       <path d="m9 18 6-6-6-6" />

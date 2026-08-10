@@ -4,6 +4,7 @@ import express from 'express'
 import environment from './config/environment.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import authRouter from './routes/authRoutes.js'
+import instructorRouter from './routes/instructorRoutes.js'
 import trainingRouter from './routes/trainingRoutes.js'
 
 const app = express()
@@ -33,6 +34,7 @@ app.get('/api/health', (request, response) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/training', trainingRouter)
+app.use('/api/instructor', instructorRouter)
 app.use(notFound)
 app.use(errorHandler)
 

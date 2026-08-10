@@ -7,6 +7,7 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
 import useNetworkTrainingStore from '../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../store/useSettingsStore.js'
 import useToolStore from '../store/useToolStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
 import TelecomIcon from '../ui/TelecomIcon.jsx'
@@ -47,6 +48,7 @@ export default function TelecomLabPage() {
   const clearTrainingObjective = useAppSessionStore(
     (state) => state.clearTrainingObjective,
   )
+  const showControlGuide = useSettingsStore((state) => state.showControlGuide)
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
   )
@@ -124,15 +126,17 @@ export default function TelecomLabPage() {
           <span aria-hidden="true">←</span>
           Back to Dashboard
         </button>
-        <button
-          type="button"
-          className={helpVisible ? 'is-active' : ''}
-          onClick={() => setHelpVisible((visible) => !visible)}
-          aria-expanded={helpVisible}
-        >
-          <TelecomIcon name="help" size={17} />
-          Help
-        </button>
+        {showControlGuide && (
+          <button
+            type="button"
+            className={helpVisible ? 'is-active' : ''}
+            onClick={() => setHelpVisible((visible) => !visible)}
+            aria-expanded={helpVisible}
+          >
+            <TelecomIcon name="help" size={17} />
+            Help
+          </button>
+        )}
       </nav>
 
       {selectedModule && (
@@ -143,7 +147,7 @@ export default function TelecomLabPage() {
         </aside>
       )}
 
-      {helpVisible && (
+      {showControlGuide && helpVisible && (
         <aside className="lab-help-panel">
           <strong>Laboratory Controls</strong>
           <span>Click the 3D view to enable mouse look.</span>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import useToolStore from '../../store/useToolStore.js'
 import { getToolConfig } from '../../tools/toolConfigs.js'
+import { confirmTrainingRestart } from '../../utils/trainingConfirmations.js'
 import T568BGuide from './T568BGuide.jsx'
 import {
   getRJ45ProcedureStep,
@@ -98,6 +100,7 @@ export default function RJ45ProcedurePanel({
   onExit,
 }) {
   const [isReferenceGuideVisible, setIsReferenceGuideVisible] = useState(true)
+  const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const activeModuleId = useTrainingStore((state) => state.activeModuleId)
   const currentStep = useTrainingStore((state) => state.currentStep)
   const procedureFeedback = useTrainingStore(
@@ -113,6 +116,12 @@ export default function RJ45ProcedurePanel({
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const handleRestartStep = () => {
+    if (confirmTrainingRestart('step', confirmRestart)) onRestartStep()
+  }
+  const handleRestartModule = () => {
+    if (confirmTrainingRestart('module', confirmRestart)) onRestartModule()
+  }
   const connectorAligned = useTrainingStore((state) => state.connectorAligned)
   const insertionValidationResults = useTrainingStore(
     (state) => state.insertionValidationResults,
@@ -613,7 +622,7 @@ export default function RJ45ProcedurePanel({
           <button
             type="button"
             className="secondary"
-            onClick={onRestartStep}
+            onClick={handleRestartStep}
           >
             Restart Step
           </button>
@@ -621,7 +630,7 @@ export default function RJ45ProcedurePanel({
         <button
           type="button"
           className="secondary"
-          onClick={onRestartModule}
+          onClick={handleRestartModule}
         >
           Restart Module
         </button>

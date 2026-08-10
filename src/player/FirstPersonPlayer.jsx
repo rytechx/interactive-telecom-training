@@ -22,6 +22,7 @@ export default function FirstPersonPlayer({
   onLockChange,
   enabled = true,
   playerBodyRef,
+  mouseSensitivity = 1,
 }) {
   const internalRigidBody = useRef(null)
   const rigidBody = playerBodyRef ?? internalRigidBody
@@ -129,6 +130,7 @@ export default function FirstPersonPlayer({
         <PointerLockControls
           ref={pointerLockControls}
           selector=".telecom-lab canvas"
+          pointerSpeed={mouseSensitivity}
           onLock={() => onLockChange?.(true)}
           onUnlock={() => onLockChange?.(false)}
           makeDefault

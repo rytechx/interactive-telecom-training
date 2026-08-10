@@ -13,6 +13,7 @@ import useInteractionStore, {
 import useNetworkTrainingStore, {
   NETWORK_OVERLAYS,
 } from '../store/useNetworkTrainingStore.js'
+import useTrainingPersistenceStore from '../store/useTrainingPersistenceStore.js'
 import { NETWORK_WORKSTATION } from '../workstations/workstationConfigs.js'
 
 function releasePointerLock() {
@@ -51,6 +52,15 @@ export default function NetworkInteractionSystem() {
   )
   const beginNetworkTraining = useNetworkTrainingStore(
     (state) => state.beginNetworkTraining,
+  )
+  const startAttempt = useTrainingPersistenceStore(
+    (state) => state.startAttempt,
+  )
+  const attemptStartStatus = useTrainingPersistenceStore(
+    (state) => state.startStatus.network,
+  )
+  const attemptStartError = useTrainingPersistenceStore(
+    (state) => state.startErrors.network,
   )
   const continueNetworkProcedure = useNetworkTrainingStore(
     (state) => state.continueNetworkProcedure,
@@ -133,6 +143,14 @@ export default function NetworkInteractionSystem() {
     requestWorkstationExit()
   }
 
+  const handleBeginTraining = async () => {
+    const attempt = await startAttempt('network')
+
+    if (attempt) {
+      beginNetworkTraining()
+    }
+  }
+
   const handleStartTroubleshooting = () => {
     releasePointerLock()
     openTroubleshootingSelection()
@@ -148,9 +166,13 @@ export default function NetworkInteractionSystem() {
     requestNetworkInspectionView('reset')
   }
 
-  const handleRestartModule = () => {
-    restartNetworkTraining()
-    requestNetworkInspectionView('reset')
+  const handleRestartModule = async () => {
+    const attempt = await startAttempt('network')
+
+    if (attempt) {
+      restartNetworkTraining()
+      requestNetworkInspectionView('reset')
+    }
   }
 
   if (!isNetworkWorkstation) {
@@ -233,13 +255,24 @@ export default function NetworkInteractionSystem() {
             configure and verify the logical IPv4 network.
           </p>
           <div className="training-actions">
-            <button type="button" onClick={beginNetworkTraining}>
-              Begin Training
+            <button
+              type="button"
+              onClick={handleBeginTraining}
+              disabled={attemptStartStatus === 'saving'}
+            >
+              {attemptStartStatus === 'saving'
+                ? 'Starting...'
+                : 'Begin Training'}
             </button>
             <button type="button" className="secondary" onClick={handleExit}>
               Exit
             </button>
           </div>
+          {attemptStartError && (
+            <p className="training-persistence-error" role="alert">
+              {attemptStartError}
+            </p>
+          )}
         </section>
       )}
     </div>

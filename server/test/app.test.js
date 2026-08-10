@@ -107,6 +107,15 @@ test('training attempt endpoint requires an authenticated session', async () => 
   assert.equal(payload.code, 'AUTH_REQUIRED')
 })
 
+test('instructor analytics require an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/instructor/overview`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
 test('logout endpoint clears the HTTP-only session cookie', async () => {
   const response = await fetch(`${apiBaseUrl}/auth/logout`, { method: 'POST' })
   const setCookieHeader = response.headers.get('set-cookie')

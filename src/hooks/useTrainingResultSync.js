@@ -1,74 +1,163 @@
 import { useEffect } from 'react'
-import { TRAINING_MODULE_IDS } from '../app/trainingModules.js'
 import { calculateFinalNetworkAssessment } from '../modules/network/troubleshooting/networkAssessment.js'
-import useAppSessionStore from '../store/useAppSessionStore.js'
+import { NETWORK_TROUBLESHOOTING_MODES } from '../modules/network/troubleshooting/troubleshootingScenarios.js'
 import useFiberTrainingStore from '../store/useFiberTrainingStore.js'
 import useNetworkTrainingStore from '../store/useNetworkTrainingStore.js'
+import useTrainingPersistenceStore from '../store/useTrainingPersistenceStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
 
-function captureRJ45Result(state) {
-  if (!state.assessmentEndTime || !Number.isFinite(state.finalScore)) {
-    return
-  }
+const observedCompletions = new Set()
+const observedScenarios = new Set()
 
-  useAppSessionStore.getState().recordModuleResult({
-    moduleId: TRAINING_MODULE_IDS.RJ45,
+function toDurationSeconds(elapsedTimeMs) {
+  return Math.max(0, Math.round((elapsedTimeMs ?? 0) / 1000))
+}
+
+function captureRJ45Result(state) {
+  if (!state.assessmentEndTime || !Number.isFinite(state.finalScore)) return
+
+  const persistenceState = useTrainingPersistenceStore.getState()
+  const attemptId = persistenceState.activeAttemptIds.rj45
+  const completionKey = `rj45:${attemptId}:${state.assessmentEndTime}`
+
+  if (!attemptId || observedCompletions.has(completionKey)) return
+  observedCompletions.add(completionKey)
+  void persistenceState.completeAttempt('rj45', {
+    moduleKey: 'rj45',
     score: state.finalScore,
     performanceRating: state.performanceRating,
-    completionId: `rj45:${state.assessmentEndTime}`,
-    completedAt: state.assessmentEndTime,
-    details: {
-      procedureAccuracy: state.procedureAccuracy,
+    procedureAccuracy: state.procedureAccuracy,
+    durationSeconds: toDurationSeconds(state.elapsedTimeMs),
+    metrics: {
       mistakes: state.mistakeCount,
-      elapsedTimeMs: state.elapsedTimeMs,
-      result: state.finalTestResult,
+      wrongToolSelections: state.wrongToolCount,
+      incorrectT568BAttempts: state.t568bValidationAttempts,
+      restartStepCount: state.restartStepCount,
+      procedureRetryCount: state.procedureRetryCount,
+      hintCount: state.hintCount,
+      cableTest: state.finalTestResult,
+      terminationStandard: 'T568B',
+      t568bVerified: state.crimpVerification?.t568bVerified ?? false,
+      completedProcedureStages: state.completedProcedureSteps,
     },
   })
 }
 
 function captureFiberResult(state) {
-  if (!state.assessmentEndTime || !Number.isFinite(state.finalScore)) {
-    return
-  }
+  if (!state.assessmentEndTime || !Number.isFinite(state.finalScore)) return
 
-  useAppSessionStore.getState().recordModuleResult({
-    moduleId: TRAINING_MODULE_IDS.FIBER,
+  const persistenceState = useTrainingPersistenceStore.getState()
+  const attemptId = persistenceState.activeAttemptIds.fiber
+  const completionKey = `fiber:${attemptId}:${state.assessmentEndTime}`
+
+  if (!attemptId || observedCompletions.has(completionKey)) return
+  observedCompletions.add(completionKey)
+  void persistenceState.completeAttempt('fiber', {
+    moduleKey: 'fiber',
     score: state.finalScore,
     performanceRating: state.performanceRating,
-    completionId: `fiber:${state.assessmentEndTime}`,
-    completedAt: state.assessmentEndTime,
-    details: {
-      procedureAccuracy: state.procedureAccuracy,
+    procedureAccuracy: state.procedureAccuracy,
+    durationSeconds: toDurationSeconds(state.elapsedTimeMs),
+    metrics: {
       mistakes: state.mistakeCount,
-      elapsedTimeMs: state.elapsedTimeMs,
+      wrongToolSelections: state.wrongToolCount,
+      sequenceErrors: state.sequenceErrorCount,
+      preparationErrors: state.preparationErrorCount,
+      incorrectActions: state.incorrectActionCount,
+      restartStepCount: state.restartStepCount,
       spliceLossDb: state.spliceLossDb,
-      result: state.assessmentOverallResult,
+      alignment: state.assessmentAlignmentResult,
+      fusion: state.assessmentFusionResult,
+      protection: state.assessmentProtectionResult,
+      heater: state.assessmentHeaterResult,
+      finalInspection: state.assessmentFinalInspectionResult,
+      overallResult: state.assessmentOverallResult,
+      completedProcedureStages: state.completedProcedureStages,
     },
   })
 }
 
+function captureNetworkScenarios(state, persistenceState, attemptId) {
+  Object.values(state.scenarioResults).forEach((record) => {
+    const result = record.latestResult
+
+    if (!result) return
+    const scenarioSaveKey = `${attemptId}:${result.scenarioId}`
+
+    if (observedScenarios.has(scenarioSaveKey)) return
+    observedScenarios.add(scenarioSaveKey)
+    const metrics = result.metrics
+    void persistenceState.saveScenarioResult({
+      scenarioKey: result.scenarioId,
+      scenarioTitle: result.scenarioTitle,
+      score: result.finalScore,
+      performanceRating: result.performanceRating,
+      durationSeconds: toDurationSeconds(metrics.elapsedTime),
+      diagnosisAttempts: metrics.diagnosisAttempts,
+      incorrectDiagnosisAttempts: metrics.incorrectDiagnosisAttempts,
+      repairAttempts: metrics.repairAttempts,
+      failedRepairAttempts: metrics.failedRepairAttempts,
+      hintsUsed: metrics.hintsUsed,
+      diagnosticCommands: metrics.diagnosticCommandsUsed,
+      metrics: {
+        rootCauseIdentified: metrics.rootCauseIdentified,
+        scenarioCompleted: metrics.scenarioCompleted,
+        repairVerified: metrics.repairVerified,
+        verificationPassed: result.verification?.passed ?? false,
+        scoreBreakdown: result.scoreBreakdown,
+        hintDeduction: result.hintDeduction,
+        timeline: metrics.timeline,
+        verification: result.verification,
+      },
+    })
+  })
+}
+
 function captureNetworkResult(state) {
+  const persistenceState = useTrainingPersistenceStore.getState()
+  const attemptId = persistenceState.activeAttemptIds.network
+
+  if (!attemptId) return
+  captureNetworkScenarios(state, persistenceState, attemptId)
   const assessment = calculateFinalNetworkAssessment(state.scenarioResults)
 
-  if (!assessment) {
+  if (
+    !assessment ||
+    state.troubleshootingMode !==
+      NETWORK_TROUBLESHOOTING_MODES.FINAL_ASSESSMENT
+  ) {
     return
   }
 
   const completedAt = Math.max(
     ...Object.values(state.scenarioResults).map(
-      (result) => result.latestResult?.completedAt ?? 0,
+      (record) => record.latestResult?.completedAt ?? 0,
     ),
   )
+  const completionKey = `network:${attemptId}:${completedAt}`
 
-  useAppSessionStore.getState().recordModuleResult({
-    moduleId: TRAINING_MODULE_IDS.NETWORK,
+  if (observedCompletions.has(completionKey)) return
+  observedCompletions.add(completionKey)
+  const durationSeconds = Object.values(state.scenarioResults).reduce(
+    (total, record) =>
+      total + toDurationSeconds(record.latestResult?.metrics?.elapsedTime),
+    0,
+  )
+
+  void persistenceState.completeAttempt('network', {
+    moduleKey: 'network',
     score: assessment.finalScore,
     performanceRating: assessment.performanceRating,
-    completionId: `network:${completedAt}`,
-    completedAt,
-    details: {
+    procedureAccuracy: null,
+    durationSeconds,
+    metrics: {
+      physicalInstallation: state.physicalLinksVerified ? 'PASS' : 'FAIL',
+      routerConfiguration: state.routerLanConfigured ? 'PASS' : 'FAIL',
+      switchConfiguration: state.switchManagementConfigured ? 'PASS' : 'FAIL',
+      pcToRouter: state.routerPingPassed ? 'PASS' : 'FAIL',
+      pcToSwitch: state.switchPingPassed ? 'PASS' : 'FAIL',
+      troubleshootingCompleted: assessment.scenarioScores.length,
       averageScore: assessment.averageScore,
-      scenariosCompleted: assessment.scenarioScores.length,
       scenarioScores: assessment.scenarioScores,
       competencies: assessment.competencies,
     },
@@ -83,8 +172,9 @@ export default function useTrainingResultSync() {
 
     const unsubscribeRJ45 = useTrainingStore.subscribe(captureRJ45Result)
     const unsubscribeFiber = useFiberTrainingStore.subscribe(captureFiberResult)
-    const unsubscribeNetwork =
-      useNetworkTrainingStore.subscribe(captureNetworkResult)
+    const unsubscribeNetwork = useNetworkTrainingStore.subscribe(
+      captureNetworkResult,
+    )
 
     return () => {
       unsubscribeRJ45()

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PersistenceStatus from '../../components/training/PersistenceStatus.jsx'
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
 import {
   FIBER_ASSESSMENT_STAGES,
@@ -322,6 +323,7 @@ export default function FiberAssessment({ onRetry, onReturnToLaboratory }) {
           Return to Laboratory
         </button>
       </footer>
+      <PersistenceStatus moduleKey="fiber" />
     </section>
   )
 }

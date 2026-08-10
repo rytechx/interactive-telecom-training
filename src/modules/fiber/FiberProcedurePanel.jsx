@@ -1,5 +1,7 @@
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore from '../../store/useToolStore.js'
+import { confirmTrainingRestart } from '../../utils/trainingConfirmations.js'
 import {
   FIBER_MODULE_ID,
   FIBER_PROCEDURE_STEPS,
@@ -20,6 +22,7 @@ export default function FiberProcedurePanel({
   onViewAssessment,
   onExit,
 }) {
+  const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const activeModuleId = useFiberTrainingStore(
     (state) => state.activeModuleId,
   )
@@ -30,6 +33,12 @@ export default function FiberProcedurePanel({
   const isProcedureAnimating = useFiberTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const handleRestartStep = () => {
+    if (confirmTrainingRestart('step', confirmRestart)) onRestartStep()
+  }
+  const handleRestartModule = () => {
+    if (confirmTrainingRestart('module', confirmRestart)) onRestartModule()
+  }
   const outerJacketRemoved = useFiberTrainingStore(
     (state) => state.outerJacketRemoved,
   )
@@ -275,7 +284,7 @@ export default function FiberProcedurePanel({
           <button
             type="button"
             className="secondary"
-            onClick={onRestartStep}
+            onClick={handleRestartStep}
             disabled={isProcedureAnimating}
           >
             Restart Step
@@ -284,7 +293,7 @@ export default function FiberProcedurePanel({
         <button
           type="button"
           className="secondary"
-          onClick={onRestartModule}
+          onClick={handleRestartModule}
           disabled={isProcedureAnimating}
         >
           Restart Module

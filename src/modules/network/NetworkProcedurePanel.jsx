@@ -1,4 +1,6 @@
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
+import { confirmTrainingRestart } from '../../utils/trainingConfirmations.js'
 import LogicalNetworkStatus from './LogicalNetworkStatus.jsx'
 import { getNetworkCableConfig } from './networkCableConfigs.js'
 import {
@@ -24,6 +26,7 @@ export default function NetworkProcedurePanel({
   onStartTroubleshooting,
   onExit,
 }) {
+  const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const networkCurrentStep = useNetworkTrainingStore(
     (state) => state.networkCurrentStep,
   )
@@ -33,6 +36,12 @@ export default function NetworkProcedurePanel({
   const isProcedureAnimating = useNetworkTrainingStore(
     (state) => state.isProcedureAnimating,
   )
+  const handleRestartStep = () => {
+    if (confirmTrainingRestart('step', confirmRestart)) onRestartStep()
+  }
+  const handleRestartModule = () => {
+    if (confirmTrainingRestart('module', confirmRestart)) onRestartModule()
+  }
   const selectedNetworkDeviceId = useNetworkTrainingStore(
     (state) => state.selectedNetworkDeviceId,
   )
@@ -352,7 +361,7 @@ export default function NetworkProcedurePanel({
           <button
             type="button"
             className="secondary"
-            onClick={onRestartStep}
+            onClick={handleRestartStep}
             disabled={isProcedureAnimating}
           >
             Restart Step
@@ -361,7 +370,7 @@ export default function NetworkProcedurePanel({
         <button
           type="button"
           className="secondary"
-          onClick={onRestartModule}
+          onClick={handleRestartModule}
           disabled={isProcedureAnimating}
         >
           Restart Module

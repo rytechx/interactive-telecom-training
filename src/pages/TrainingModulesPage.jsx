@@ -17,18 +17,33 @@ export default function TrainingModulesPage() {
 
       <div className="training-catalog-summary">
         <span>3 practical modules</span>
-        <span>{overview.completedCount} completed this session</span>
-        <span>No database persistence yet</span>
+        <span>
+          {overview.completedCount === null
+            ? 'Loading completed modules'
+            : `${overview.completedCount} completed`}
+        </span>
+        <span>Progress saved to your account</span>
       </div>
 
       <section className="training-module-grid training-catalog-grid" aria-label="Available training modules">
-        {overview.modules.map((module) => (
-          <ModuleCard
-            key={module.id}
-            module={module}
-            onLaunch={launchTraining}
-          />
-        ))}
+        {!overview.hasProgress && overview.isLoadingProgress
+          ? [1, 2, 3].map((item) => (
+              <div key={item} className="module-card-skeleton" aria-hidden="true" />
+            ))
+          : !overview.hasProgress && overview.progressError
+            ? (
+                <div className="dashboard-inline-error">
+                  <span>Unable to load training progress.</span>
+                  <button type="button" onClick={overview.retryProgress}>Retry</button>
+                </div>
+              )
+            : overview.modules.map((module) => (
+                <ModuleCard
+                  key={module.id}
+                  module={module}
+                  onLaunch={launchTraining}
+                />
+              ))}
       </section>
     </div>
   )

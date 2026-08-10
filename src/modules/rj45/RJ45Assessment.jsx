@@ -1,3 +1,4 @@
+import PersistenceStatus from '../../components/training/PersistenceStatus.jsx'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import {
   ASSESSMENT_STAGES,
@@ -191,6 +192,7 @@ export default function RJ45Assessment({ onRetry, onReturnToLaboratory }) {
           Return to Laboratory
         </button>
       </footer>
+      <PersistenceStatus moduleKey="rj45" />
     </section>
   )
 }

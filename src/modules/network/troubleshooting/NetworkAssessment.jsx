@@ -1,3 +1,6 @@
+import PersistenceStatus from '../../../components/training/PersistenceStatus.jsx'
+import useSettingsStore from '../../../store/useSettingsStore.js'
+import { confirmTrainingRestart } from '../../../utils/trainingConfirmations.js'
 import { calculateFinalNetworkAssessment } from './networkAssessment.js'
 
 const completionSummary = Object.freeze([
@@ -29,7 +32,13 @@ export default function NetworkAssessment({
   onRestartNetworkModule,
   onReturnToLaboratory,
 }) {
+  const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const assessment = calculateFinalNetworkAssessment(scenarioResults)
+  const handleRestartNetworkModule = () => {
+    if (confirmTrainingRestart('module', confirmRestart)) {
+      onRestartNetworkModule()
+    }
+  }
 
   if (!assessment) {
     return null
@@ -134,13 +143,14 @@ export default function NetworkAssessment({
         <button type="button" className="secondary" onClick={onReturnToSelection}>
           Scenario Selection
         </button>
-        <button type="button" className="secondary" onClick={onRestartNetworkModule}>
+        <button type="button" className="secondary" onClick={handleRestartNetworkModule}>
           Restart Network Module
         </button>
         <button type="button" className="secondary" onClick={onReturnToLaboratory}>
           Return to Laboratory
         </button>
       </footer>
+      <PersistenceStatus moduleKey="network" />
     </section>
   )
 }

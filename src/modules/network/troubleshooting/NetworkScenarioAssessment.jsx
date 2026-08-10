@@ -1,3 +1,4 @@
+import PersistenceStatus from '../../../components/training/PersistenceStatus.jsx'
 import {
   formatNetworkAssessmentTime,
   NETWORK_SCENARIO_SCORE_WEIGHTS,
@@ -191,6 +192,10 @@ export default function NetworkScenarioAssessment({
           Scenario Selection
         </button>
       </footer>
+      <PersistenceStatus
+        moduleKey="network"
+        scenarioKey={result.scenarioId}
+      />
     </section>
   )
 }

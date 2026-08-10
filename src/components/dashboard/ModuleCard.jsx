@@ -10,7 +10,11 @@ const statusLabels = Object.freeze({
 export default function ModuleCard({ module, onLaunch, compact = false }) {
   const completed = module.status === TRAINING_MODULE_STATUS.COMPLETED
   const inProgress = module.status === TRAINING_MODULE_STATUS.IN_PROGRESS
-  const actionLabel = completed ? 'Retry' : inProgress ? 'Continue' : 'Start Training'
+  const actionLabel = completed
+    ? 'Retry Training'
+    : inProgress
+      ? 'Start New Attempt'
+      : 'Start Training'
 
   return (
     <article className={`training-module-card module-${module.id}${compact ? ' is-compact' : ''}`}>
@@ -33,10 +37,11 @@ export default function ModuleCard({ module, onLaunch, compact = false }) {
         {module.result && (
           <span>
             Latest <strong>{module.result.latestScore}%</strong>
-            {module.result.bestScore !== module.result.latestScore && (
-              <small>Best {module.result.bestScore}%</small>
-            )}
+            <small>Best {module.result.bestScore}%</small>
           </span>
+        )}
+        {module.attemptCount > 0 && (
+          <span>Attempts <strong>{module.attemptCount}</strong></span>
         )}
         {inProgress && (
           <span>Current Stage <strong>{module.progressLabel}</strong></span>

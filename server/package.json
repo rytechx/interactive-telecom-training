@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "create:staff": "node scripts/createStaffUser.js",
     "dev": "node --watch server.js",
     "migrate": "node scripts/runMigration.js",
     "start": "node server.js",

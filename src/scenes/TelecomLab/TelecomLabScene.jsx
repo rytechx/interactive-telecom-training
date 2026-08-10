@@ -12,6 +12,7 @@ import useInteractionStore, {
 } from '../../store/useInteractionStore.js'
 import useToolStore from '../../store/useToolStore.js'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import { NETWORK_TROUBLESHOOTING_MODES } from '../../modules/network/troubleshooting/troubleshootingScenarios.js'
 import ToolFocusController from '../../tools/ToolFocusController.jsx'
 import WorkstationFocusController from '../../workstations/WorkstationFocusController.jsx'
@@ -44,6 +45,8 @@ export default function TelecomLabScene() {
   const networkTroubleshootingMode = useNetworkTrainingStore(
     (state) => state.troubleshootingMode,
   )
+  const mouseSensitivity = useSettingsStore((state) => state.mouseSensitivity)
+  const showControlGuide = useSettingsStore((state) => state.showControlGuide)
   const setPointerLocked = useInteractionStore(
     (state) => state.setPointerLocked,
   )
@@ -78,6 +81,7 @@ export default function TelecomLabScene() {
               onLockChange={handleLockChange}
               enabled={playerControlsEnabled}
               playerBodyRef={playerBodyRef}
+              mouseSensitivity={mouseSensitivity}
             />
             <WorkstationFocusController playerBodyRef={playerBodyRef} />
           </Physics>
@@ -102,18 +106,20 @@ export default function TelecomLabScene() {
         className={`player-crosshair${playerControlsEnabled ? '' : ' is-hidden'}`}
         aria-hidden="true"
       />
-      <div
-        className={`player-instructions${
-          isPointerLocked || !playerControlsEnabled ? ' is-hidden' : ''
-        }`}
-        aria-hidden={isPointerLocked || !playerControlsEnabled}
-      >
-        <strong>Click to start</strong>
-        <span>WASD to move</span>
-        <span>Mouse to look</span>
-        <span>Shift to run</span>
-        <span>ESC to release</span>
-      </div>
+      {showControlGuide && (
+        <div
+          className={`player-instructions${
+            isPointerLocked || !playerControlsEnabled ? ' is-hidden' : ''
+          }`}
+          aria-hidden={isPointerLocked || !playerControlsEnabled}
+        >
+          <strong>Click to start</strong>
+          <span>WASD to move</span>
+          <span>Mouse to look</span>
+          <span>Shift to run</span>
+          <span>ESC to release</span>
+        </div>
+      )}
       <InteractionSystem />
     </div>
   )

@@ -1,4 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import useAuthStore from '../../store/useAuthStore.js'
 import TelecomIcon from '../../ui/TelecomIcon.jsx'
 
 const navigationItems = Object.freeze([
@@ -9,6 +11,55 @@ const navigationItems = Object.freeze([
 ])
 
 export default function ApplicationShell() {
+  const navigate = useNavigate()
+  const profileMenuRef = useRef(null)
+  const profileButtonRef = useRef(null)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
+  const fullName = user
+    ? `${user.firstName} ${user.lastName}`.trim()
+    : 'Student Profile'
+  const profileMeta = user
+    ? `${(user.role ?? 'student').toUpperCase()} / ${
+        user.studentNumber ?? 'Number unavailable'
+      }`
+    : 'STUDENT'
+
+  useEffect(() => {
+    if (!profileMenuOpen) {
+      return undefined
+    }
+
+    const closeProfileMenu = (event) => {
+      if (event.type === 'keydown') {
+        if (event.key !== 'Escape') return
+
+        setProfileMenuOpen(false)
+        profileButtonRef.current?.focus()
+        return
+      }
+
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', closeProfileMenu)
+    document.addEventListener('keydown', closeProfileMenu)
+
+    return () => {
+      document.removeEventListener('pointerdown', closeProfileMenu)
+      document.removeEventListener('keydown', closeProfileMenu)
+    }
+  }, [profileMenuOpen])
+
+  const signOut = async () => {
+    setProfileMenuOpen(false)
+    await logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="application-shell">
       <aside className="application-sidebar">
@@ -39,16 +90,67 @@ export default function ApplicationShell() {
         </nav>
 
         <div className="application-sidebar-footer">
-          <button type="button" aria-label="Settings placeholder" disabled>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `application-settings-link${isActive ? ' is-active' : ''}`
+            }
+          >
             <TelecomIcon name="settings" />
             <span>Settings</span>
-          </button>
-          <div className="application-profile-placeholder">
-            <TelecomIcon name="user" />
-            <span>
-              <strong>Student Profile</strong>
-              <small>Session mode</small>
-            </span>
+          </NavLink>
+          <div className="application-profile-menu" ref={profileMenuRef}>
+            <button
+              ref={profileButtonRef}
+              type="button"
+              className="application-profile-placeholder"
+              onClick={() => setProfileMenuOpen((open) => !open)}
+              aria-expanded={profileMenuOpen}
+              aria-haspopup="menu"
+              aria-controls="authenticated-student-menu"
+            >
+              <TelecomIcon name="user" />
+              <span>
+                <strong>{fullName}</strong>
+                <small>{profileMeta}</small>
+              </span>
+            </button>
+            {profileMenuOpen && (
+              <div
+                id="authenticated-student-menu"
+                className="application-profile-popover"
+                role="menu"
+              >
+                <div className="application-profile-identity" role="presentation">
+                  <strong>{fullName}</strong>
+                  <span>{user?.studentNumber ?? 'Student number unavailable'}</span>
+                  <small>{user?.role?.toUpperCase() ?? 'STUDENT'}</small>
+                </div>
+                <NavLink
+                  to="/profile"
+                  role="menuitem"
+                  onClick={() => setProfileMenuOpen(false)}
+                >
+                  Profile
+                </NavLink>
+                <NavLink
+                  to="/settings"
+                  role="menuitem"
+                  onClick={() => setProfileMenuOpen(false)}
+                >
+                  Settings
+                </NavLink>
+                <div className="application-profile-menu-divider" role="separator" />
+                <button
+                  type="button"
+                  className="is-danger"
+                  role="menuitem"
+                  onClick={signOut}
+                >
+                  Log Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>
