@@ -242,7 +242,43 @@ function WorkstationDesk() {
   )
 }
 
+function WorkstationCableRaceway() {
+  const {
+    workstationDeskRacewayDimensions,
+    workstationDeskRacewayPosition,
+    workstationRacewayClipPositions,
+    workstationRacewayDimensions,
+    workstationRacewayPosition,
+  } = NETWORK_WORKSTATION_LAYOUT
+
+  return (
+    <group>
+      <mesh position={workstationDeskRacewayPosition} receiveShadow>
+        <boxGeometry args={workstationDeskRacewayDimensions} />
+        <meshStandardMaterial color="#47545a" metalness={0.46} roughness={0.54} />
+      </mesh>
+      <mesh position={workstationRacewayPosition} receiveShadow>
+        <boxGeometry args={workstationRacewayDimensions} />
+        <meshStandardMaterial color="#47545a" metalness={0.46} roughness={0.54} />
+      </mesh>
+      {workstationRacewayClipPositions.map((clipPosition) => (
+        <mesh key={clipPosition.join('-')} position={clipPosition}>
+          <boxGeometry args={[0.06, 0.035, 0.22]} />
+          <meshStandardMaterial color="#77858b" metalness={0.58} roughness={0.46} />
+        </mesh>
+      ))}
+      {[0.25, 0.85, 1.45].map((positionZ) => (
+        <mesh key={positionZ} position={[-4.33, 0.12, positionZ]}>
+          <boxGeometry args={[0.22, 0.035, 0.06]} />
+          <meshStandardMaterial color="#77858b" metalness={0.58} roughness={0.46} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 function RackPdu({
+  networkPowered,
   interactivePortIds,
   hoveredObjectId,
   selectedPortId,
@@ -290,6 +326,30 @@ function RackPdu({
       >
         <boxGeometry args={[0.22, 0.012, 0.012]} />
         <meshStandardMaterial color="#39464c" metalness={0.45} roughness={0.58} />
+      </mesh>
+      <mesh position={[1.55, 1.19, 0.35]} rotation={NETWORK_PDU_CONFIG.rotation}>
+        <boxGeometry args={[0.105, 0.08, 0.028]} />
+        <meshStandardMaterial
+          color="#2a3439"
+          emissive={networkPowered ? '#1b6546' : '#000000'}
+          emissiveIntensity={networkPowered ? 0.36 : 0}
+          roughness={0.58}
+        />
+      </mesh>
+      <mesh position={[1.5, 1.19, 0.37]} rotation={NETWORK_PDU_CONFIG.rotation}>
+        <circleGeometry args={[0.014, 12]} />
+        <meshBasicMaterial
+          color={networkPowered ? '#68e0a3' : '#5c666a'}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh
+        position={[1.55, 0.18, 0.22]}
+        rotation={[Math.PI / 2, 0, 0.18]}
+        castShadow
+      >
+        <cylinderGeometry args={[0.055, 0.065, 0.12, 12]} />
+        <meshStandardMaterial color="#20282c" roughness={0.8} />
       </mesh>
       <Html position={NETWORK_PDU_CONFIG.labelPosition} center zIndexRange={[2, 0]}>
         <span className="network-port-marking is-pdu-title">RACK PDU</span>
@@ -585,6 +645,7 @@ export default function NetworkRackWorkstation({
         />
 
         <RackPdu
+          networkPowered={networkPowered || isPoweringOn}
           interactivePortIds={interactivePortIds}
           hoveredObjectId={hoveredObjectId}
           selectedPortId={selectedNetworkPortId}
@@ -724,6 +785,7 @@ export default function NetworkRackWorkstation({
 
       <PreparationBench showLabels={networkTrainingStarted} />
       <WorkstationDesk />
+      <WorkstationCableRaceway />
 
       <pointLight
         position={NETWORK_WORKSTATION_LAYOUT.stationLightPosition}
@@ -744,6 +806,13 @@ export default function NetworkRackWorkstation({
         color="#eef7fa"
         intensity={networkTrainingStarted ? 0.9 : 0}
         distance={3.8}
+        decay={2}
+      />
+      <pointLight
+        position={NETWORK_WORKSTATION_LAYOUT.workstationLightPosition}
+        color="#eef8fb"
+        intensity={networkTrainingStarted ? 1.1 : 0}
+        distance={3.6}
         decay={2}
       />
     </group>

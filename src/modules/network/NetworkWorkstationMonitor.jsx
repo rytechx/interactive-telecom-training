@@ -55,6 +55,25 @@ export default function NetworkWorkstationMonitor({
           roughness={0.72}
         />
       </mesh>
+      <mesh position={[-0.2, 0.08, 0.074]}>
+        <boxGeometry args={[0.34, 0.035, 0.012]} />
+        <meshBasicMaterial color="#65b9cf" toneMapped={false} />
+      </mesh>
+      <mesh position={[-0.29, 0, 0.074]}>
+        <boxGeometry args={[0.18, 0.025, 0.012]} />
+        <meshBasicMaterial color="#7b8f97" toneMapped={false} />
+      </mesh>
+      <mesh position={[-0.14, -0.08, 0.074]}>
+        <boxGeometry args={[0.48, 0.022, 0.012]} />
+        <meshBasicMaterial color="#416570" toneMapped={false} />
+      </mesh>
+      <mesh position={[0.43, -0.22, 0.076]}>
+        <circleGeometry args={[0.018, 12]} />
+        <meshBasicMaterial
+          color={canConfigure ? '#5fdb9b' : '#526067'}
+          toneMapped={false}
+        />
+      </mesh>
       <mesh position={[0, -0.42, 0]} castShadow>
         <boxGeometry args={[0.1, 0.24, 0.09]} />
         <meshStandardMaterial
@@ -70,6 +89,20 @@ export default function NetworkWorkstationMonitor({
           metalness={0.46}
           roughness={0.52}
         />
+      </mesh>
+      <mesh position={[0, -0.58, 0.46]} rotation={[-0.06, 0, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.78, 0.045, 0.28]} />
+        <meshStandardMaterial color="#252f34" roughness={0.76} />
+      </mesh>
+      {[-0.28, -0.14, 0, 0.14, 0.28].map((positionX) => (
+        <mesh key={positionX} position={[positionX, -0.552, 0.46]}>
+          <boxGeometry args={[0.09, 0.012, 0.16]} />
+          <meshStandardMaterial color="#48545a" roughness={0.72} />
+        </mesh>
+      ))}
+      <mesh position={[0.56, -0.565, 0.45]} castShadow receiveShadow>
+        <sphereGeometry args={[0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#2d383d" roughness={0.78} />
       </mesh>
 
       <mesh

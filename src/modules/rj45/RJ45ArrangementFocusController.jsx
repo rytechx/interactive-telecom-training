@@ -6,6 +6,7 @@ import useInteractionStore, {
 } from '../../store/useInteractionStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import { RJ45_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import { RJ45_PROCEDURE_STEPS } from './rj45Procedure.js'
 
@@ -156,6 +157,7 @@ const procedureCameraConfigs = Object.freeze({
 
 export default function RJ45ArrangementFocusController() {
   const camera = useThree((state) => state.camera)
+  const reducedMotion = useSettingsStore((state) => state.reducedMotion)
   const workLight = useRef(null)
   const workLightTarget = useRef(null)
   const transition = useRef(null)
@@ -204,7 +206,9 @@ export default function RJ45ArrangementFocusController() {
 
         transition.current = {
           elapsed: 0,
-          duration: RJ45_WORKSTATION.trimmingTransitionDuration,
+          duration: reducedMotion
+            ? Math.min(RJ45_WORKSTATION.trimmingTransitionDuration, 0.2)
+            : RJ45_WORKSTATION.trimmingTransitionDuration,
           startPosition: camera.position.clone(),
           endPosition: cameraPosition,
           startQuaternion: camera.quaternion.clone(),
@@ -243,7 +247,9 @@ export default function RJ45ArrangementFocusController() {
 
     transition.current = {
       elapsed: 0,
-      duration: procedureCameraConfig.transitionDuration,
+      duration: reducedMotion
+        ? Math.min(procedureCameraConfig.transitionDuration, 0.2)
+        : procedureCameraConfig.transitionDuration,
       startPosition: camera.position.clone(),
       endPosition: cameraPosition,
       startQuaternion: camera.quaternion.clone(),
@@ -260,6 +266,7 @@ export default function RJ45ArrangementFocusController() {
     canUseProcedureView,
     procedureCameraConfig,
     procedureView,
+    reducedMotion,
     workstationPhase,
   ])
 

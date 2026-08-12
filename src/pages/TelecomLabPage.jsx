@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LabErrorBoundary from '../components/layout/LabErrorBoundary.jsx'
+import LabModuleControls from '../components/layout/LabModuleControls.jsx'
 import useAppSessionStore from '../store/useAppSessionStore.js'
 import useFiberTrainingStore from '../store/useFiberTrainingStore.js'
 import useInteractionStore, {
@@ -114,30 +115,23 @@ export default function TelecomLabPage() {
   )
 
   return (
-    <div className="telecom-lab-page">
+    <div
+      className={`telecom-lab-page${
+        workstationActive ? ' is-workstation-active' : ''
+      }`}
+    >
       <LabErrorBoundary resetKey={retryKey} fallback={errorFallback}>
         <Suspense fallback={<LabLoadingState />}>
           <TelecomLabScene key={retryKey} />
         </Suspense>
       </LabErrorBoundary>
 
-      <nav className="lab-page-controls" aria-label="Laboratory navigation">
-        <button type="button" onClick={returnToDashboard}>
-          <span aria-hidden="true">←</span>
-          Back to Dashboard
-        </button>
-        {showControlGuide && (
-          <button
-            type="button"
-            className={helpVisible ? 'is-active' : ''}
-            onClick={() => setHelpVisible((visible) => !visible)}
-            aria-expanded={helpVisible}
-          >
-            <TelecomIcon name="help" size={17} />
-            Help
-          </button>
-        )}
-      </nav>
+      <LabModuleControls
+        helpVisible={helpVisible}
+        showHelp={showControlGuide}
+        onBack={returnToDashboard}
+        onToggleHelp={() => setHelpVisible((visible) => !visible)}
+      />
 
       {selectedModule && (
         <aside className="lab-objective-panel" aria-live="polite">
@@ -148,7 +142,7 @@ export default function TelecomLabPage() {
       )}
 
       {showControlGuide && helpVisible && (
-        <aside className="lab-help-panel">
+        <aside id="lab-help-panel" className="lab-help-panel">
           <strong>Laboratory Controls</strong>
           <span>Click the 3D view to enable mouse look.</span>
           <span>Use WASD to move and Shift to run.</span>

@@ -30,6 +30,11 @@ const orangeGripMaterial = new MeshStandardMaterial({
   color: '#d06a35',
   roughness: 0.7,
 })
+const rubberFootMaterial = new MeshStandardMaterial({
+  color: '#12191c',
+  metalness: 0,
+  roughness: 0.9,
+})
 const softWhiteMaterial = new MeshStandardMaterial({
   color: '#e8ece8',
   roughness: 0.88,
@@ -380,6 +385,12 @@ function FiberCleaver({
         material={bladeMaterial}
         castShadow={false}
       />
+      <BoxPart
+        position={[-0.17, 0.153, 0]}
+        scale={[0.022, 0.012, 0.34]}
+        material={softWhiteMaterial}
+        castShadow={false}
+      />
       {[-0.16, -0.08, 0.08, 0.16].map((zPosition) => (
         <BoxPart
           key={zPosition}
@@ -426,6 +437,23 @@ function FiberCleaver({
           castShadow={false}
         />
       </group>
+      <CylinderPart
+        position={[0, 0.18, 0.17]}
+        rotation={[0, 0, Math.PI / 2]}
+        scale={[0.025, 0.23, 0.025]}
+        material={bladeMaterial}
+      />
+      {[-1, 1].flatMap((sideX) =>
+        [-1, 1].map((sideZ) => (
+          <CylinderPart
+            key={`${sideX}-${sideZ}`}
+            position={[sideX * 0.21, -0.005, sideZ * 0.14]}
+            scale={[0.025, 0.02, 0.025]}
+            material={rubberFootMaterial}
+            castShadow={false}
+          />
+        )),
+      )}
     </group>
   )
 }
@@ -457,6 +485,12 @@ function FusionSplicer({
         position={[0, 0.34, -0.08]}
         scale={[0.48, 0.08, 0.3]}
         material={metalMaterial}
+      />
+      <BoxPart
+        position={[0, 0.395, -0.08]}
+        scale={[0.42, 0.012, 0.045]}
+        material={heaterChannelMaterial}
+        castShadow={false}
       />
       {[-1, 1].map((side) => (
         <group key={side}>
@@ -530,6 +564,12 @@ function FusionSplicer({
           castShadow={false}
         />
       </group>
+      <CylinderPart
+        position={[0, 0.405, -0.34]}
+        rotation={[0, 0, Math.PI / 2]}
+        scale={[0.045, 0.58, 0.045]}
+        material={darkMetalMaterial}
+      />
       <BoxPart
         position={[0, 0.29, 0.41]}
         rotation={[-0.38, 0, 0]}
@@ -549,6 +589,16 @@ function FusionSplicer({
         scale={[0.055, 0.018, 0.055]}
         material={indicatorMaterial}
       />
+      {[-0.46, 0.36, 0.46].map((positionX, index) => (
+        <CylinderPart
+          key={positionX}
+          position={[positionX, 0.36, 0.46]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[0.025, 0.012, 0.025]}
+          material={index === 0 ? orangeGripMaterial : indicatorMaterial}
+          castShadow={false}
+        />
+      ))}
       <BoxPart
         position={[0, 0.292, -0.425]}
         scale={[1.02, 0.055, 0.27]}
@@ -600,6 +650,17 @@ function FusionSplicer({
         material={orangeGripMaterial}
         castShadow={false}
       />
+      {[-1, 1].flatMap((sideX) =>
+        [-1, 1].map((sideZ) => (
+          <CylinderPart
+            key={`${sideX}-${sideZ}`}
+            position={[sideX * 0.58, -0.025, sideZ * 0.26]}
+            scale={[0.055, 0.035, 0.055]}
+            material={rubberFootMaterial}
+            castShadow={false}
+          />
+        )),
+      )}
     </group>
   )
 }

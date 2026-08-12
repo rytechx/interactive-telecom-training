@@ -83,9 +83,25 @@ function CablePlug({
           emissive={highlightColor}
           emissiveIntensity={highlighted ? 0.22 : 0}
           transparent
-          opacity={muted ? 0.42 : 1}
-          roughness={0.55}
+          opacity={muted ? 0.42 : isPower ? 1 : 0.76}
+          metalness={isPower ? 0.08 : 0.02}
+          roughness={isPower ? 0.55 : 0.28}
+          depthWrite={isPower}
         />
+      </mesh>
+      <mesh
+        position={[0, 0, isPower ? -0.125 : -0.105]}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
+        <cylinderGeometry
+          args={[
+            isPower ? 0.055 : 0.04,
+            isPower ? 0.068 : 0.052,
+            isPower ? 0.16 : 0.13,
+            12,
+          ]}
+        />
+        <meshStandardMaterial color={plugColor} roughness={0.72} />
       </mesh>
       {isPower && (
         <mesh position={[0, 0, 0.105]}>
@@ -112,10 +128,33 @@ function CablePlug({
           </mesh>
         ))}
       {!isPower && (
-        <mesh position={[0, 0.028, 0.072]}>
-          <boxGeometry args={[0.075, 0.012, 0.026]} />
-          <meshStandardMaterial color="#c7b067" metalness={0.52} roughness={0.4} />
-        </mesh>
+        <>
+          {[-0.035, -0.025, -0.015, -0.005, 0.005, 0.015, 0.025, 0.035].map(
+            (positionX) => (
+              <mesh key={positionX} position={[positionX, 0.028, 0.072]}>
+                <boxGeometry args={[0.007, 0.012, 0.026]} />
+                <meshStandardMaterial
+                  color="#c7b067"
+                  metalness={0.52}
+                  roughness={0.4}
+                />
+              </mesh>
+            ),
+          )}
+          <mesh
+            position={[0, 0.055, 0.01]}
+            rotation={[-0.16, 0, 0]}
+          >
+            <boxGeometry args={[0.058, 0.012, 0.12]} />
+            <meshStandardMaterial
+              color={plugColor}
+              transparent
+              opacity={muted ? 0.42 : 0.72}
+              roughness={0.42}
+              depthWrite={false}
+            />
+          </mesh>
+        </>
       )}
     </group>
   )
@@ -143,6 +182,7 @@ export default function NetworkCable({
   const destinationPlugRef = useRef(null)
   const animatedGeometryRef = useRef(null)
   const animationElapsed = useRef(0)
+  const lastGeometryProgress = useRef(-1)
   const animationCompleted = useRef(false)
   const isHovered = hoveredObjectId === config.id
   const canInteract = canSelect || canReject
@@ -226,6 +266,7 @@ export default function NetworkCable({
 
   useEffect(() => {
     animationElapsed.current = 0
+    lastGeometryProgress.current = -1
     animationCompleted.current = false
 
     if (animatedGeometryRef.current) {
@@ -319,6 +360,21 @@ export default function NetworkCable({
 
     if (partiallyConnected) {
       const insertionProgress = smoothStep(progress)
+      sourcePlugRef.current.position.copy(connectedSource)
+      destinationPlugRef.current.position.lerpVectors(
+        partialDestination,
+        connectedDestination,
+        insertionProgress,
+      )
+
+      if (
+        progress < 1 &&
+        progress - lastGeometryProgress.current < 1 / 24
+      ) {
+        return
+      }
+
+      lastGeometryProgress.current = progress
       const animatedPoints = Array.from({ length: 19 }, (_, index) => {
         const curveProgress = index / 18
 
@@ -342,12 +398,6 @@ export default function NetworkCable({
       animatedGeometryRef.current?.dispose()
       animatedGeometryRef.current = animatedGeometry
       cableMeshRef.current.geometry = animatedGeometry
-      sourcePlugRef.current.position.copy(connectedSource)
-      destinationPlugRef.current.position.lerpVectors(
-        partialDestination,
-        connectedDestination,
-        insertionProgress,
-      )
 
       if (progress === 1) {
         animationCompleted.current = true
@@ -372,6 +422,20 @@ export default function NetworkCable({
     }
 
     const visibleRouteProgress = Math.max(routeProgress, 0.015)
+    destinationPlugRef.current.visible = true
+    destinationPlugRef.current.position.copy(
+      connectedCurve.getPoint(routeProgress),
+    )
+
+    if (
+      progress < 1 &&
+      progress - lastGeometryProgress.current < 1 / 24
+    ) {
+      return
+    }
+
+    lastGeometryProgress.current = progress
+
     const animatedPoints = Array.from({ length: 19 }, (_, index) =>
       connectedCurve.getPoint((index / 18) * visibleRouteProgress),
     )
@@ -391,10 +455,6 @@ export default function NetworkCable({
     animatedGeometryRef.current?.dispose()
     animatedGeometryRef.current = animatedGeometry
     cableMeshRef.current.geometry = animatedGeometry
-    destinationPlugRef.current.visible = true
-    destinationPlugRef.current.position.copy(
-      connectedCurve.getPoint(routeProgress),
-    )
 
     if (progress < 1) {
       return

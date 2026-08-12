@@ -42,13 +42,13 @@ const conductorGeometry = new CylinderGeometry(
   1,
   10,
 )
-const stripeGeometry = new CylinderGeometry(0.0048, 0.0048, 1, 7)
+const stripeGeometry = new CylinderGeometry(0.0055, 0.0055, 1, 7)
 const wireHitGeometries = [
-  new CylinderGeometry(0.016, 0.016, 1, 7),
   new CylinderGeometry(0.024, 0.024, 1, 7),
-  new CylinderGeometry(0.035, 0.035, 1, 7),
+  new CylinderGeometry(0.032, 0.032, 1, 7),
+  new CylinderGeometry(0.04, 0.04, 1, 7),
 ]
-const wireTipHitGeometry = new SphereGeometry(0.039, 8, 6)
+const wireTipHitGeometry = new SphereGeometry(0.052, 8, 6)
 const guideBoxGeometry = new BoxGeometry(1, 1, 1)
 const guideFrameMaterial = new MeshStandardMaterial({
   color: '#68777e',
@@ -146,9 +146,6 @@ export default function RJ45WireArrangement({
   const pairsSeparated = useTrainingStore((state) => state.pairsSeparated)
   const selectedWireId = useTrainingStore((state) => state.selectedWireId)
   const wirePlacements = useTrainingStore((state) => state.wirePlacements)
-  const wireValidationResults = useTrainingStore(
-    (state) => state.wireValidationResults,
-  )
   const isProcedureAnimating = useTrainingStore(
     (state) => state.isProcedureAnimating,
   )
@@ -168,9 +165,6 @@ export default function RJ45WireArrangement({
   const selectWire = useTrainingStore((state) => state.selectWire)
   const placeSelectedWire = useTrainingStore(
     (state) => state.placeSelectedWire,
-  )
-  const removeWireFromSlot = useTrainingStore(
-    (state) => state.removeWireFromSlot,
   )
   const hasStrippedJacket = completedSteps.includes(
     RJ45_PROCEDURE_STEPS.STRIP_JACKET,
@@ -193,7 +187,6 @@ export default function RJ45WireArrangement({
     pairsSeparated &&
     isArrangementStep(currentStep) &&
     !isProcedureAnimating
-  const hasIncorrectValidation = wireValidationResults.includes('incorrect')
   const showGuide = isGuideVisible(currentStep, pairsSeparated)
   const isConnectorWorkspace = isConnectorWorkspaceStep(currentStep)
 
@@ -380,10 +373,7 @@ export default function RJ45WireArrangement({
   }
 
   const handleWirePointerEnter = (event, wireId) => {
-    const placedSlot = getPlacedSlot(wirePlacements, wireId)
-    const canUseWire = !placedSlot || hasIncorrectValidation
-
-    if (!canSeparate && (!canArrange || !canUseWire)) {
+    if (!canSeparate && !canArrange) {
       return
     }
 
@@ -410,29 +400,18 @@ export default function RJ45WireArrangement({
       return
     }
 
-    const placedSlot = getPlacedSlot(wirePlacements, wireId)
-
-    if (!placedSlot) {
-      event.stopPropagation()
-      onHoveredObjectChange?.(null)
-      selectWire(wireId)
-      return
-    }
-
-    if (hasIncorrectValidation) {
-      event.stopPropagation()
-      onHoveredObjectChange?.(null)
-      removeWireFromSlot(placedSlot)
-    }
+    event.stopPropagation()
+    onHoveredObjectChange?.(null)
+    selectWire(wireId)
   }
 
   const handleSlotPointerEnter = (event, slotNumber) => {
     const slotIndex = slotNumber - 1
-    const canPlaceWire = selectedWireId && !wirePlacements[slotIndex]
-    const canRemoveWire =
-      hasIncorrectValidation && Boolean(wirePlacements[slotIndex])
+    const placedWireId = wirePlacements[slotIndex]
+    const canPlaceWire = selectedWireId && selectedWireId !== placedWireId
+    const canSelectPlacedWire = !selectedWireId && Boolean(placedWireId)
 
-    if (!canArrange || (!canPlaceWire && !canRemoveWire)) {
+    if (!canArrange || (!canPlaceWire && !canSelectPlacedWire)) {
       return
     }
 
@@ -453,17 +432,17 @@ export default function RJ45WireArrangement({
     const slotIndex = slotNumber - 1
     const placedWireId = wirePlacements[slotIndex]
 
-    if (placedWireId && hasIncorrectValidation) {
-      event.stopPropagation()
-      onHoveredObjectChange?.(null)
-      removeWireFromSlot(slotNumber)
-      return
-    }
-
-    if (selectedWireId && !placedWireId) {
+    if (selectedWireId && selectedWireId !== placedWireId) {
       event.stopPropagation()
       onHoveredObjectChange?.(null)
       placeSelectedWire(slotNumber)
+      return
+    }
+
+    if (!selectedWireId && placedWireId) {
+      event.stopPropagation()
+      onHoveredObjectChange?.(null)
+      selectWire(placedWireId)
     }
   }
 
@@ -483,24 +462,15 @@ export default function RJ45WireArrangement({
   return (
     <group visible={visible}>
       {wireDefinitions.map((wire) => {
-        const placedSlot = getPlacedSlot(wirePlacements, wire.id)
-        const validationResult = placedSlot
-          ? wireValidationResults[placedSlot - 1]
-          : null
         const isSelected = selectedWireId === wire.id
         const isHovered =
           hoveredObjectId === `${WIRE_HOVER_PREFIX}${wire.id}` ||
           hoveredObjectId === BUNDLE_HOVER_ID
-        const emissive =
-          validationResult === 'incorrect'
-            ? '#a43f3f'
-            : validationResult === 'correct'
-              ? '#2f8f57'
-              : isSelected
-                ? '#72ccff'
-                : isHovered
-                  ? '#65bff0'
-                  : '#000000'
+        const emissive = isSelected
+          ? '#72ccff'
+          : isHovered
+            ? '#65bff0'
+            : '#000000'
         const emissiveIntensity = isSelected
           ? 1
           : isHovered
@@ -632,23 +602,19 @@ export default function RJ45WireArrangement({
             const slotNumber = index + 1
             const slotPosition = getWireSlotPosition(slotNumber)
             const placedWireId = wirePlacements[index]
-            const validationResult = wireValidationResults[index]
-            const canPlaceWire = selectedWireId && !placedWireId
-            const canRemoveWire =
-              hasIncorrectValidation && Boolean(placedWireId)
-            const isSlotInteractive = Boolean(canPlaceWire || canRemoveWire)
+            const canPlaceWire =
+              selectedWireId && selectedWireId !== placedWireId
+            const canSelectPlacedWire = !selectedWireId && placedWireId
+            const isSlotInteractive = Boolean(
+              canPlaceWire || canSelectPlacedWire,
+            )
             const isHovered =
               hoveredObjectId === `${SLOT_HOVER_PREFIX}${slotNumber}`
-            const slotColor =
-              validationResult === 'correct'
-                ? '#2f8f57'
-                : validationResult === 'incorrect'
-                  ? '#a84949'
-                  : isHovered || canPlaceWire
-                    ? '#4f9fb8'
-                    : placedWireId
-                      ? '#486475'
-                      : '#222a2f'
+            const slotColor = isHovered
+              ? '#4f9fb8'
+              : placedWireId
+                ? '#486475'
+                : '#222a2f'
             return (
               <group key={wire.id}>
                 <mesh
@@ -662,10 +628,8 @@ export default function RJ45WireArrangement({
                 >
                   <meshStandardMaterial
                     color={slotColor}
-                    emissive={
-                      isHovered || canPlaceWire ? '#3f9fbd' : '#000000'
-                    }
-                    emissiveIntensity={isHovered ? 0.42 : canPlaceWire ? 0.2 : 0}
+                    emissive={isHovered ? '#3f9fbd' : '#000000'}
+                    emissiveIntensity={isHovered ? 0.42 : 0}
                     roughness={0.6}
                   />
                 </mesh>
@@ -699,9 +663,7 @@ export default function RJ45WireArrangement({
                   center
                 >
                   <span
-                    className={`wire-slot-number${
-                      validationResult ? ` is-${validationResult}` : ''
-                    }`}
+                    className="wire-slot-number"
                   >
                     {slotNumber}
                   </span>

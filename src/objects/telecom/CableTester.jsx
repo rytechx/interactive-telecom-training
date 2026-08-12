@@ -43,6 +43,16 @@ const highlightedButtonMaterial = new MeshStandardMaterial({
   emissiveIntensity: 0.78,
   roughness: 0.42,
 })
+const remoteBodyMaterial = new MeshStandardMaterial({
+  color: '#32454e',
+  metalness: 0.12,
+  roughness: 0.68,
+})
+const inactiveIndicatorMaterial = new MeshStandardMaterial({
+  color: '#344046',
+  metalness: 0.08,
+  roughness: 0.62,
+})
 
 export default function CableTester({
   position = [0, 0, 0],
@@ -90,6 +100,35 @@ export default function CableTester({
           castShadow
         />
       ))}
+
+      <group position={[0.34, 0.075, 0.08]}>
+        <mesh
+          geometry={unitBoxGeometry}
+          material={remoteBodyMaterial}
+          scale={[0.17, 0.15, 0.48]}
+          castShadow
+          receiveShadow
+        />
+        <mesh
+          geometry={unitBoxGeometry}
+          material={bodyTrimMaterial}
+          position={[0, 0.083, 0]}
+          scale={[0.14, 0.018, 0.42]}
+        />
+        {Array.from({ length: 8 }, (_, index) => (
+          <mesh
+            key={index}
+            geometry={unitBoxGeometry}
+            material={inactiveIndicatorMaterial}
+            position={[
+              (index % 2 - 0.5) * 0.05,
+              0.095,
+              (Math.floor(index / 2) - 1.5) * 0.075,
+            ]}
+            scale={[0.025, 0.012, 0.026]}
+          />
+        ))}
+      </group>
 
       <group position={[0, 0.228, -0.075]}>
         <CableTesterDisplay

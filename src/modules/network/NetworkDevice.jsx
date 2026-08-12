@@ -1,9 +1,170 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { Vector3 } from 'three'
+import { BoxGeometry, CylinderGeometry, MeshStandardMaterial, Vector3 } from 'three'
 import NetworkLinkIndicator from './NetworkLinkIndicator.jsx'
 import NetworkPort from './NetworkPort.jsx'
+
+const detailBoxGeometry = new BoxGeometry(1, 1, 1)
+const detailCylinderGeometry = new CylinderGeometry(1, 1, 1, 10)
+const ventMaterial = new MeshStandardMaterial({
+  color: '#11181c',
+  metalness: 0.18,
+  roughness: 0.76,
+})
+const screwMaterial = new MeshStandardMaterial({
+  color: '#99a4a9',
+  metalness: 0.76,
+  roughness: 0.3,
+})
+const bezelMaterial = new MeshStandardMaterial({
+  color: '#59666d',
+  metalness: 0.52,
+  roughness: 0.5,
+})
+const amberLedMaterial = new MeshStandardMaterial({
+  color: '#d3a64a',
+  emissive: '#9d6821',
+  emissiveIntensity: 0.34,
+  roughness: 0.38,
+  toneMapped: false,
+})
+
+function MountingHardware({ width, height, frontZ }) {
+  return (
+    <>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * (width / 2 + 0.055), 0, frontZ]}>
+          <mesh
+            geometry={detailBoxGeometry}
+            material={bezelMaterial}
+            scale={[0.11, height * 0.92, 0.035]}
+            castShadow
+          />
+          {[-1, 1].map((verticalSide) => (
+            <mesh
+              key={verticalSide}
+              geometry={detailCylinderGeometry}
+              material={screwMaterial}
+              position={[0, verticalSide * height * 0.28, 0.024]}
+              rotation={[Math.PI / 2, 0, 0]}
+              scale={[0.018, 0.012, 0.018]}
+            />
+          ))}
+        </group>
+      ))}
+    </>
+  )
+}
+
+function DeviceFaceDetails({ deviceId, dimensions, frontZ }) {
+  const detailZ = frontZ + 0.02
+
+  if (deviceId === 'patch-panel') {
+    return (
+      <>
+        {[-0.74, -0.66, 0.66, 0.74].map((positionX) => (
+          <mesh
+            key={positionX}
+            geometry={detailBoxGeometry}
+            material={ventMaterial}
+            position={[positionX, 0, detailZ]}
+            scale={[0.04, 0.07, 0.02]}
+          />
+        ))}
+        <mesh
+          geometry={detailBoxGeometry}
+          material={bezelMaterial}
+          position={[0, dimensions[1] * 0.32, detailZ]}
+          scale={[1.18, 0.022, 0.018]}
+        />
+      </>
+    )
+  }
+
+  if (deviceId === 'managed-switch') {
+    return (
+      <>
+        {[-0.77, -0.71, -0.65, -0.59].map((positionX) => (
+          <mesh
+            key={positionX}
+            geometry={detailBoxGeometry}
+            material={ventMaterial}
+            position={[positionX, dimensions[1] * 0.3, detailZ]}
+            scale={[0.035, 0.032, 0.02]}
+          />
+        ))}
+        {[0.56, 0.61, 0.66].map((positionX, index) => (
+          <mesh
+            key={positionX}
+            geometry={detailCylinderGeometry}
+            material={index === 0 ? amberLedMaterial : screwMaterial}
+            position={[positionX, dimensions[1] * 0.3, detailZ]}
+            rotation={[Math.PI / 2, 0, 0]}
+            scale={[0.014, 0.008, 0.014]}
+          />
+        ))}
+      </>
+    )
+  }
+
+  if (deviceId === 'router') {
+    return (
+      <>
+        {[-0.73, -0.67, 0.55, 0.61, 0.67].map((positionX) => (
+          <mesh
+            key={positionX}
+            geometry={detailBoxGeometry}
+            material={ventMaterial}
+            position={[positionX, -dimensions[1] * 0.28, detailZ]}
+            scale={[0.038, 0.028, 0.02]}
+          />
+        ))}
+        <mesh
+          geometry={detailBoxGeometry}
+          material={bezelMaterial}
+          position={[0.36, dimensions[1] * 0.28, detailZ]}
+          scale={[0.3, 0.035, 0.02]}
+        />
+        {[-0.08, 0, 0.08].map((positionX) => (
+          <mesh
+            key={positionX}
+            geometry={detailCylinderGeometry}
+            material={amberLedMaterial}
+            position={[0.36 + positionX, dimensions[1] * 0.28, detailZ + 0.014]}
+            rotation={[Math.PI / 2, 0, 0]}
+            scale={[0.012, 0.007, 0.012]}
+          />
+        ))}
+      </>
+    )
+  }
+
+  if (deviceId === 'workstation-pc') {
+    return (
+      <>
+        {[-0.13, -0.065, 0, 0.065, 0.13].map((positionX) => (
+          <mesh
+            key={positionX}
+            geometry={detailBoxGeometry}
+            material={ventMaterial}
+            position={[positionX, dimensions[1] * 0.28, detailZ]}
+            scale={[0.035, 0.12, 0.02]}
+          />
+        ))}
+        <mesh
+          geometry={detailCylinderGeometry}
+          material={bezelMaterial}
+          position={[0.14, -dimensions[1] * 0.32, detailZ]}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[0.035, 0.012, 0.035]}
+        />
+      </>
+    )
+  }
+
+  return null
+}
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
@@ -164,6 +325,19 @@ export default function NetworkDevice({
           roughness={0.6}
         />
       </mesh>
+
+      {isRackDevice && (
+        <MountingHardware
+          width={bodyDimensions[0]}
+          height={bodyDimensions[1]}
+          frontZ={frontZ}
+        />
+      )}
+      <DeviceFaceDetails
+        deviceId={config.id}
+        dimensions={bodyDimensions}
+        frontZ={frontZ}
+      />
 
       {config.id !== 'patch-panel' && (
         <NetworkLinkIndicator

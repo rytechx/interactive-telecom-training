@@ -548,8 +548,7 @@ const useTrainingStore = create((set) => ({
         !isArrangementStep(state.currentStep) ||
         !state.pairsSeparated ||
         state.isProcedureAnimating ||
-        !isValidWireId(wireId) ||
-        state.wirePlacements.includes(wireId)
+        !isValidWireId(wireId)
       ) {
         return {}
       }
@@ -564,22 +563,33 @@ const useTrainingStore = create((set) => ({
     set((state) => {
       const slotIndex = slotNumber - 1
       const wireId = state.selectedWireId
+      const sourceSlotIndex = state.wirePlacements.indexOf(wireId)
 
       if (
         !isArrangementStep(state.currentStep) ||
         state.isProcedureAnimating ||
         !isValidSlotNumber(slotNumber) ||
-        !isValidWireId(wireId) ||
-        state.wirePlacements[slotIndex] ||
-        state.wirePlacements.includes(wireId)
+        !isValidWireId(wireId)
       ) {
         return {}
       }
 
+      if (sourceSlotIndex === slotIndex) {
+        return {
+          selectedWireId: null,
+          procedureFeedback: null,
+        }
+      }
+
+      const previousWirePlacements = [...state.wirePlacements]
       const wirePlacements = [...state.wirePlacements]
-      const wireValidationResults = [...state.wireValidationResults]
+      const displacedWireId = wirePlacements[slotIndex]
+
+      if (sourceSlotIndex >= 0) {
+        wirePlacements[sourceSlotIndex] = displacedWireId ?? null
+      }
+
       wirePlacements[slotIndex] = wireId
-      wireValidationResults[slotIndex] = null
       const placedWireCount = wirePlacements.filter(Boolean).length
 
       return {
@@ -587,13 +597,16 @@ const useTrainingStore = create((set) => ({
           placedWireCount === WIRE_COUNT
             ? RJ45_PROCEDURE_STEPS.VALIDATE_T568B
             : RJ45_PROCEDURE_STEPS.ARRANGE_T568B,
-        selectedWireId: null,
+        selectedWireId:
+          sourceSlotIndex === -1 && displacedWireId
+            ? displacedWireId
+            : null,
         wirePlacements,
         placementHistory: [
           ...state.placementHistory,
-          { wireId, slotNumber },
+          { wireId, slotNumber, previousWirePlacements },
         ],
-        wireValidationResults,
+        wireValidationResults: emptyValidationResults(),
         placedWireCount,
         procedureFeedback: null,
       }
@@ -649,6 +662,25 @@ const useTrainingStore = create((set) => ({
 
       const placementHistory = [...state.placementHistory]
       const lastPlacement = placementHistory.pop()
+
+      if (lastPlacement.previousWirePlacements) {
+        const wirePlacements = [...lastPlacement.previousWirePlacements]
+        const placedWireCount = wirePlacements.filter(Boolean).length
+
+        return {
+          currentStep:
+            placedWireCount === WIRE_COUNT
+              ? RJ45_PROCEDURE_STEPS.VALIDATE_T568B
+              : RJ45_PROCEDURE_STEPS.ARRANGE_T568B,
+          selectedWireId: null,
+          wirePlacements,
+          placementHistory,
+          wireValidationResults: emptyValidationResults(),
+          placedWireCount,
+          procedureFeedback: null,
+        }
+      }
+
       const slotIndex = lastPlacement.slotNumber - 1
       const wirePlacements = [...state.wirePlacements]
       const wireValidationResults = [...state.wireValidationResults]
@@ -720,11 +752,9 @@ const useTrainingStore = create((set) => ({
           currentStep: RJ45_PROCEDURE_STEPS.VALIDATE_T568B,
           selectedWireId: null,
           wireValidationResults,
-          t568bValidationAttempts:
-            state.t568bValidationAttempts +
-            (Object.hasOwn(mistakeUpdate, 'mistakeCount') ? 1 : 0),
+          t568bValidationAttempts: state.t568bValidationAttempts + 1,
           procedureFeedback:
-            'The wire order is incorrect. Review the T568B guide.',
+            'Arrangement does not match T568B. Review the conductor order and try again.',
         }
       }
 
@@ -732,7 +762,7 @@ const useTrainingStore = create((set) => ({
         currentStep: RJ45_PROCEDURE_STEPS.WIRES_ARRANGED,
         selectedWireId: null,
         wireValidationResults,
-        procedureFeedback: null,
+        procedureFeedback: 'T568B arrangement correct.',
         t568bValidationAttempts: state.t568bValidationAttempts + 1,
         completedProcedureSteps: addCompletedProcedureSteps(
           state.completedProcedureSteps,

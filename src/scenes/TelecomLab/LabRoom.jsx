@@ -8,8 +8,10 @@ import CeilingLights from './CeilingLights.jsx'
 import Door from './Door.jsx'
 import Floor from './Floor.jsx'
 import LabColliders from './LabColliders.jsx'
+import LabEnvironmentProps from './LabEnvironmentProps.jsx'
 import LabFurniture from './LabFurniture.jsx'
 import TelecomEquipment from './TelecomEquipment.jsx'
+import WorkbenchAccessories from './WorkbenchAccessories.jsx'
 import Walls from './Walls.jsx'
 import Windows from './Windows.jsx'
 
@@ -35,6 +37,7 @@ export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
       <Door roomDepth={depth} wallThickness={wallThickness} />
       <Windows roomWidth={width} wallThickness={wallThickness} />
       <CeilingLights roomHeight={height} />
+      <LabEnvironmentProps depth={depth} />
       <LabFurniture
         rj45WorkbenchPosition={rj45WorkbenchPosition}
         fiberWorkbenchPosition={fiberWorkbenchPosition}
@@ -42,6 +45,10 @@ export default function LabRoom({ width = 20, depth = 20, height = 4 }) {
       />
       <TelecomEquipment
         rj45WorkbenchPosition={rj45WorkbenchPosition}
+      />
+      <WorkbenchAccessories
+        rj45WorkbenchPosition={rj45WorkbenchPosition}
+        fiberWorkbenchPosition={fiberWorkbenchPosition}
       />
       <LabColliders
         width={width}

@@ -11,6 +11,7 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
+import useSettingsStore from '../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import {
   JACKET_STRIPPING_DURATION,
@@ -144,6 +145,7 @@ export default function ToolFocusController() {
   const workstationPhase = useInteractionStore(
     (state) => state.workstationPhase,
   )
+  const reducedMotion = useSettingsStore((state) => state.reducedMotion)
   const activeWorkstationId = useInteractionStore(
     (state) => state.activeInteractable?.id ?? null,
   )
@@ -296,7 +298,8 @@ export default function ToolFocusController() {
       activeTransition.elapsed += delta
 
       const progress = Math.min(
-        activeTransition.elapsed / TOOL_INSPECTION_DURATION,
+        activeTransition.elapsed /
+          (reducedMotion ? 0.18 : TOOL_INSPECTION_DURATION),
         1,
       )
       const easedProgress = smoothStep(progress)

@@ -29,17 +29,19 @@ import {
 import { CABLE_LENGTH, WIRE_LENGTH } from './wireDefinitions.js'
 
 const EXPOSED_LENGTH = WIRE_LENGTH
-const workspaceMatGeometry = new BoxGeometry(1.45, 0.018, 2.72)
-const workspaceMatBorderGeometry = new BoxGeometry(1.49, 0.012, 2.76)
+const workspaceMatGeometry = new BoxGeometry(2.28, 0.018, 1.04)
+const workspaceMatBorderGeometry = new BoxGeometry(2.34, 0.012, 1.1)
+const workspaceMatPosition = Object.freeze([0.15, -0.056, -0.02])
+const workspaceMatBorderPosition = Object.freeze([0.15, -0.066, -0.02])
 const workspaceMatMaterial = new MeshStandardMaterial({
-  color: '#1d2a30',
-  metalness: 0.04,
-  roughness: 0.94,
+  color: '#26343a',
+  metalness: 0.02,
+  roughness: 0.96,
 })
 const workspaceMatBorderMaterial = new MeshStandardMaterial({
-  color: '#11191e',
-  metalness: 0.08,
-  roughness: 0.86,
+  color: '#172126',
+  metalness: 0.03,
+  roughness: 0.9,
 })
 const cableTailGeometry = new CylinderGeometry(0.055, 0.055, 1, 12)
 const cableTailMaterial = new MeshStandardMaterial({
@@ -49,8 +51,8 @@ const cableTailMaterial = new MeshStandardMaterial({
 })
 const cableTailPoints = Object.freeze([
   Object.freeze([0, 0, CABLE_LENGTH / 2]),
-  Object.freeze([0.06, 0, 1.16]),
-  Object.freeze([0.18, 0, 1.28]),
+  Object.freeze([0.08, 0, 0.68]),
+  Object.freeze([0.22, 0, 0.78]),
 ])
 const cableAxis = new Vector3(0, 1, 0)
 const cableTailSegments = cableTailPoints.slice(0, -1).map((start, index) => {
@@ -288,13 +290,13 @@ export default function RJ45Cable({
       <mesh
         geometry={workspaceMatBorderGeometry}
         material={workspaceMatBorderMaterial}
-        position={[0, -0.066, 0]}
+        position={workspaceMatBorderPosition}
         receiveShadow
       />
       <mesh
         geometry={workspaceMatGeometry}
         material={workspaceMatMaterial}
-        position={[0, -0.056, 0]}
+        position={workspaceMatPosition}
         receiveShadow
       />
 
@@ -367,7 +369,7 @@ export default function RJ45Cable({
       />
 
       {isHovered && canInteract && (
-        <Html position={[0, 0.22, 0.55]} center>
+        <Html position={[0, 0.22, 0.3]} center>
           <div className="tool-tooltip" role="tooltip">
             Ethernet Cable
           </div>

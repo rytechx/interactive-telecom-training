@@ -37,6 +37,10 @@ function getHighlightScale(toolId) {
     return [0.62, 0.62, 1]
   }
 
+  if (toolId === TOOL_IDS.WIRE_STRIPPER) {
+    return [1.15, 2.2, 1]
+  }
+
   return [1, 1, 1]
 }
 
@@ -274,6 +278,19 @@ export default function InteractiveTool({
         />
       )}
       {children}
+      {tool.hitboxDimensions && (
+        <mesh
+          position={[
+            workbenchPosition[0] + (tool.hitboxOffset?.[0] ?? 0),
+            workbenchPosition[1] + (tool.hitboxOffset?.[1] ?? 0),
+            workbenchPosition[2] + (tool.hitboxOffset?.[2] ?? 0),
+          ]}
+          rotation={tool.restRotation}
+        >
+          <boxGeometry args={tool.hitboxDimensions} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
       {isHovered && (
         <Html
           position={[

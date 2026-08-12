@@ -23,9 +23,9 @@ const gripMaterial = new MeshStandardMaterial({
   roughness: 0.8,
 })
 const stripperGripMaterial = new MeshStandardMaterial({
-  color: '#b85b45',
+  color: '#d36a4f',
   metalness: 0.04,
-  roughness: 0.68,
+  roughness: 0.64,
 })
 const stripperHeadMaterial = new MeshStandardMaterial({
   color: '#30373c',

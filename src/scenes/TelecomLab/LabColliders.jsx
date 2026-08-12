@@ -16,7 +16,7 @@ export default function LabColliders({
   wallThickness = 0.2,
   rj45WorkbenchPosition = [-5, 0, -2.5],
   fiberWorkbenchPosition = [5, 0, -2.5],
-  networkRackPosition = [-5, 0, 8.05],
+  networkRackPosition = [0, 0, 7.7],
   networkRackRotation = [0, Math.PI, 0],
   storageCabinetPosition = [4.8, 0, -9.4],
 }) {

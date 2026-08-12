@@ -13,11 +13,22 @@ const DEFAULT_SETTINGS = Object.freeze({
   highContrast: false,
   alwaysShowLabels: false,
   theme: 'dark',
+  masterVolume: 0.75,
+  effectsVolume: 0.65,
+  ambientVolume: 0.22,
+  muteAll: false,
 })
 
 const CONTROL_DEFAULTS = Object.freeze({
   mouseSensitivity: DEFAULT_SETTINGS.mouseSensitivity,
   showControlGuide: DEFAULT_SETTINGS.showControlGuide,
+})
+
+const AUDIO_DEFAULTS = Object.freeze({
+  masterVolume: DEFAULT_SETTINGS.masterVolume,
+  effectsVolume: DEFAULT_SETTINGS.effectsVolume,
+  ambientVolume: DEFAULT_SETTINGS.ambientVolume,
+  muteAll: DEFAULT_SETTINGS.muteAll,
 })
 
 const settingKeys = Object.freeze(Object.keys(DEFAULT_SETTINGS))
@@ -32,12 +43,17 @@ const useSettingsStore = create(
         }
       },
       resetControlPreferences: () => set(CONTROL_DEFAULTS),
+      resetAudioPreferences: () => set(AUDIO_DEFAULTS),
       resetSettings: () => set(DEFAULT_SETTINGS),
     }),
     {
       name: 'telesim-ui-preferences',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persistedSettings) => ({
+        ...DEFAULT_SETTINGS,
+        ...persistedSettings,
+      }),
       partialize: (state) =>
         Object.fromEntries(settingKeys.map((setting) => [setting, state[setting]])),
     },

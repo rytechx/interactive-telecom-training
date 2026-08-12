@@ -1,16 +1,16 @@
-const CABLE_LENGTH = 2.08
-const WIRE_LENGTH = 1.08
+const CABLE_LENGTH = 1.2
+const WIRE_LENGTH = 0.62
 const WIRE_RADIUS = 0.0125
 const CABLE_EXIT_Z = WIRE_LENGTH - CABLE_LENGTH / 2
 const GUIDE_FIRST_SLOT_X = -0.315
 const GUIDE_SLOT_SPACING = 0.09
 const GUIDE_CENTER_X = GUIDE_FIRST_SLOT_X + (GUIDE_SLOT_SPACING * 7) / 2
-const GUIDE_CENTER_Z = -1.02
+const GUIDE_CENTER_Z = -0.55
 const GUIDE_WIDTH = GUIDE_SLOT_SPACING * 7 + 0.06
 const GUIDE_DEPTH = 0.1
-const PRE_TRIM_TIP_Z = -1.03
-const TRIMMED_TIP_Z = -0.965
-const CONNECTOR_CHANNEL_SPACING = 0.026
+const PRE_TRIM_TIP_Z = -0.56
+const TRIMMED_TIP_Z = -0.505
+const CONNECTOR_CHANNEL_SPACING = 0.021
 const CONNECTOR_WIRE_CENTER_X = GUIDE_CENTER_X
 const ROOT_X_SPACING = 0.014
 const FAN_SHOULDER_X_SPACING = 0.032
@@ -34,13 +34,13 @@ const wireColors = [
 ]
 
 const wireNames = [
-  ['white-orange', 'whiteOrange', 'White-Orange'],
+  ['white-orange', 'whiteOrange', 'White / Orange'],
   ['orange', 'orange', 'Orange'],
-  ['white-green', 'whiteGreen', 'White-Green'],
+  ['white-green', 'whiteGreen', 'White / Green'],
   ['blue', 'blue', 'Blue'],
-  ['white-blue', 'whiteBlue', 'White-Blue'],
+  ['white-blue', 'whiteBlue', 'White / Blue'],
   ['green', 'green', 'Green'],
-  ['white-brown', 'whiteBrown', 'White-Brown'],
+  ['white-brown', 'whiteBrown', 'White / Brown'],
   ['brown', 'brown', 'Brown'],
 ]
 
@@ -65,14 +65,14 @@ const wireDefinitions = Object.freeze(
     )
     const separatedPoints = freezePoints([
       [bundleX, bundleY, CABLE_EXIT_Z],
-      [fanShoulderX, 0.022, -0.22],
-      [fanMidX, 0.028, -0.56],
-      [fanEndX, 0.028, -0.89],
+      [fanShoulderX, 0.022, -0.12],
+      [fanMidX, 0.028, -0.32],
+      [fanEndX, 0.028, -0.49],
     ])
     const slotPoints = freezePoints([
       [bundleX, bundleY, CABLE_EXIT_Z],
-      [(index - 3.5) * 0.022, 0.022, -0.25],
-      [slotX, 0.027, -0.64],
+      [(index - 3.5) * 0.022, 0.022, -0.14],
+      [slotX, 0.027, -0.35],
       [slotX, 0.028, PRE_TRIM_TIP_Z],
     ])
     const connectorChannelX =
@@ -83,8 +83,8 @@ const wireDefinitions = Object.freeze(
       CONNECTOR_WIRE_CENTER_X + (index - 3.5) * 0.02
     const connectorPoints = freezePoints([
       [connectorBundleX, 0.05, CABLE_EXIT_Z],
-      [connectorFanX, 0.05, -0.35],
-      [connectorChannelX, 0.05, -0.72],
+      [connectorFanX, 0.05, -0.2],
+      [connectorChannelX, 0.05, -0.38],
       [connectorChannelX, 0.05, TRIMMED_TIP_Z],
     ])
 

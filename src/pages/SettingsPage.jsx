@@ -2,11 +2,36 @@ import SettingToggle from '../components/settings/SettingToggle.jsx'
 import PageHeader from '../components/layout/PageHeader.jsx'
 import useSettingsStore from '../store/useSettingsStore.js'
 
+function VolumeRange({ id, label, description, value, disabled, onChange }) {
+  return (
+    <label className="settings-range-row" htmlFor={id}>
+      <span>
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </span>
+      <output htmlFor={id}>{Math.round(value * 100)}%</output>
+      <input
+        id={id}
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </label>
+  )
+}
+
 export default function SettingsPage() {
   const settings = useSettingsStore()
   const updateSetting = useSettingsStore((state) => state.updateSetting)
   const resetControlPreferences = useSettingsStore(
     (state) => state.resetControlPreferences,
+  )
+  const resetAudioPreferences = useSettingsStore(
+    (state) => state.resetAudioPreferences,
   )
   const resetSettings = useSettingsStore((state) => state.resetSettings)
 
@@ -133,6 +158,51 @@ export default function SettingsPage() {
             checked={settings.alwaysShowLabels}
             disabled
           />
+        </section>
+
+        <section className="settings-card" aria-labelledby="audio-settings-title">
+          <header>
+            <span>Laboratory Sound</span>
+            <h2 id="audio-settings-title">Audio</h2>
+          </header>
+          <SettingToggle
+            id="mute-all-audio"
+            label="Mute All"
+            description="Disable all interface, training, and ambient laboratory sound."
+            checked={settings.muteAll}
+            onChange={(value) => updateSetting('muteAll', value)}
+          />
+          <VolumeRange
+            id="master-volume"
+            label="Master Volume"
+            description="Set the overall TeleSim audio level."
+            value={settings.masterVolume}
+            disabled={settings.muteAll}
+            onChange={(value) => updateSetting('masterVolume', value)}
+          />
+          <VolumeRange
+            id="effects-volume"
+            label="Effects Volume"
+            description="Control interface, tools, equipment, and confirmation cues."
+            value={settings.effectsVolume}
+            disabled={settings.muteAll}
+            onChange={(value) => updateSetting('effectsVolume', value)}
+          />
+          <VolumeRange
+            id="ambient-volume"
+            label="Ambient Volume"
+            description="Control the subtle HVAC and electronics room tone."
+            value={settings.ambientVolume}
+            disabled={settings.muteAll}
+            onChange={(value) => updateSetting('ambientVolume', value)}
+          />
+          <button
+            type="button"
+            className="settings-reset-button"
+            onClick={resetAudioPreferences}
+          >
+            Reset Audio Preferences
+          </button>
         </section>
 
         <section className="settings-card appearance-settings-card" aria-labelledby="appearance-settings-title">

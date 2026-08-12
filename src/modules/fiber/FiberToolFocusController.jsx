@@ -5,6 +5,7 @@ import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import {
@@ -109,6 +110,7 @@ function getProcedureCamera(view) {
 
 export default function FiberToolFocusController() {
   const camera = useThree((state) => state.camera)
+  const reducedMotion = useSettingsStore((state) => state.reducedMotion)
   const transition = useRef(null)
   const currentView = useRef(null)
   const activeWorkstationId = useInteractionStore(
@@ -194,7 +196,7 @@ export default function FiberToolFocusController() {
       phase,
       destinationView,
       elapsed: 0,
-      duration,
+      duration: reducedMotion ? Math.min(duration, 0.2) : duration,
       startPosition: camera.position.clone(),
       endPosition: destinationPosition,
       startQuaternion: camera.quaternion.clone(),
@@ -209,6 +211,7 @@ export default function FiberToolFocusController() {
     currentStep,
     isFiberFocused,
     procedureView,
+    reducedMotion,
     selectedTool,
     toolViewState,
     trainingStarted,

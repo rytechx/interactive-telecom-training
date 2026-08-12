@@ -1,3 +1,12 @@
+import { BoxGeometry } from 'three'
+import {
+  laminatedBenchMaterial,
+  powderCoatedMetalMaterial,
+  rubberMaterial,
+} from '../../scenes/TelecomLab/labMaterials.js'
+
+const boxGeometry = new BoxGeometry(1, 1, 1)
+
 export default function Workbench({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
@@ -6,8 +15,6 @@ export default function Workbench({
   depth = 1.4,
   height = 0.9,
   topThickness = 0.12,
-  topColor = '#9b7147',
-  frameColor = '#343a40',
 }) {
   const legHeight = height - topThickness
   const legY = legHeight / 2
@@ -22,27 +29,61 @@ export default function Workbench({
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh position={[0, topY, 0]} castShadow receiveShadow>
-        <boxGeometry args={[width, topThickness, depth]} />
-        <meshStandardMaterial color={topColor} roughness={0.78} />
-      </mesh>
+      <mesh
+        geometry={boxGeometry}
+        material={laminatedBenchMaterial}
+        position={[0, topY, 0]}
+        scale={[width, topThickness, depth]}
+        castShadow
+        receiveShadow
+      />
+      <mesh
+        geometry={boxGeometry}
+        material={powderCoatedMetalMaterial}
+        position={[0, topY - topThickness / 2 - 0.035, 0]}
+        scale={[width - 0.12, 0.07, depth - 0.1]}
+        castShadow
+        receiveShadow
+      />
 
       {legPositions.map((legPosition) => (
-        <mesh
-          key={legPosition.join('-')}
-          position={legPosition}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[0.12, legHeight, 0.12]} />
-          <meshStandardMaterial color={frameColor} metalness={0.35} roughness={0.6} />
-        </mesh>
+        <group key={legPosition.join('-')} position={legPosition}>
+          <mesh
+            geometry={boxGeometry}
+            material={powderCoatedMetalMaterial}
+            scale={[0.12, legHeight, 0.12]}
+            castShadow
+            receiveShadow
+          />
+          <mesh
+            geometry={boxGeometry}
+            material={rubberMaterial}
+            position={[0, -legHeight / 2 + 0.025, 0]}
+            scale={[0.17, 0.05, 0.17]}
+            receiveShadow
+          />
+        </group>
       ))}
 
-      <mesh position={[0, 0.28, -depth / 2 + legInset]} castShadow receiveShadow>
-        <boxGeometry args={[width - legInset * 2, 0.1, 0.1]} />
-        <meshStandardMaterial color={frameColor} metalness={0.35} roughness={0.6} />
-      </mesh>
+      <mesh
+        geometry={boxGeometry}
+        material={powderCoatedMetalMaterial}
+        position={[0, 0.28, -depth / 2 + legInset]}
+        scale={[width - legInset * 2, 0.1, 0.1]}
+        castShadow
+        receiveShadow
+      />
+      {[-1, 1].map((side) => (
+        <mesh
+          key={side}
+          geometry={boxGeometry}
+          material={powderCoatedMetalMaterial}
+          position={[side * (width / 2 - legInset), 0.42, 0]}
+          scale={[0.08, 0.08, depth - legInset * 2]}
+          castShadow
+          receiveShadow
+        />
+      ))}
     </group>
   )
 }

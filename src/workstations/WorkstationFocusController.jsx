@@ -4,6 +4,7 @@ import { Matrix4, Quaternion, Vector3 } from 'three'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useSettingsStore from '../store/useSettingsStore.js'
 import { getWorkstationConfig } from './workstationConfigs.js'
 
 const lookAtMatrix = new Matrix4()
@@ -42,6 +43,7 @@ export default function WorkstationFocusController({ playerBodyRef }) {
   const activeWorkstationId = useInteractionStore(
     (state) => state.activeInteractable?.id ?? null,
   )
+  const reducedMotion = useSettingsStore((state) => state.reducedMotion)
   const completeWorkstationFocus = useInteractionStore(
     (state) => state.completeWorkstationFocus,
   )
@@ -86,7 +88,9 @@ export default function WorkstationFocusController({ playerBodyRef }) {
       transition.current = {
         phase: WORKSTATION_PHASES.ENTERING,
         elapsed: 0,
-        duration: workstation.transitionDuration,
+        duration: reducedMotion
+          ? Math.min(workstation.transitionDuration, 0.22)
+          : workstation.transitionDuration,
         startPosition: camera.position.clone(),
         endPosition: focusCameraPosition,
         startQuaternion: camera.quaternion.clone(),
@@ -112,7 +116,9 @@ export default function WorkstationFocusController({ playerBodyRef }) {
       transition.current = {
         phase: WORKSTATION_PHASES.EXITING,
         elapsed: 0,
-        duration: workstation?.transitionDuration ?? 1,
+        duration: reducedMotion
+          ? Math.min(workstation?.transitionDuration ?? 1, 0.22)
+          : workstation?.transitionDuration ?? 1,
         startPosition: camera.position.clone(),
         endPosition: savedState.cameraPosition,
         startQuaternion: camera.quaternion.clone(),
@@ -124,6 +130,7 @@ export default function WorkstationFocusController({ playerBodyRef }) {
     camera,
     completeWorkstationExit,
     playerBodyRef,
+    reducedMotion,
     workstationPhase,
   ])
 

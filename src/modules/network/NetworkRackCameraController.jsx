@@ -6,6 +6,7 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import { NETWORK_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import { NETWORK_CABLE_IDS } from './networkCableConfigs.js'
 import { NETWORK_PROCEDURE_STEPS } from './networkProcedure.js'
@@ -265,20 +266,20 @@ function getInspectionCameraView(viewId, requestId) {
   const target = NETWORK_WORKSTATION.rackInspectionTarget
   const views = {
     front: {
-      position: [-5, 2.55, 4.35],
+      position: [0, 2.55, 4],
       fov: 46,
     },
     left: {
-      position: [-8.2, 2.2, 7.82],
+      position: [-2.15, 2.2, 7.9],
       fov: 47,
     },
     right: {
-      position: [-1.8, 2.2, 7.82],
+      position: [2.3, 2.2, 7.9],
       fov: 47,
     },
     rear: {
-      position: [-8.25, 2.55, 9.15],
-      fov: 54,
+      position: [0, 2.55, 9.2],
+      fov: 50,
     },
   }
   const view = views[viewId]
@@ -315,6 +316,7 @@ function clampCameraToRoom(camera) {
 export default function NetworkRackCameraController() {
   const camera = useThree((state) => state.camera)
   const cameraRef = useRef(camera)
+  const reducedMotion = useSettingsStore((state) => state.reducedMotion)
   const controlsRef = useRef(null)
   const transition = useRef(null)
   const currentViewId = useRef(null)
@@ -432,8 +434,14 @@ export default function NetworkRackCameraController() {
     transition.current = {
       destinationViewId: destination.id,
       elapsed: 0,
-      duration:
-        destination.duration ?? NETWORK_WORKSTATION.procedureTransitionDuration,
+      duration: reducedMotion
+        ? Math.min(
+            destination.duration ??
+              NETWORK_WORKSTATION.procedureTransitionDuration,
+            0.2,
+          )
+        : destination.duration ??
+          NETWORK_WORKSTATION.procedureTransitionDuration,
       startPosition: activeCamera.position.clone(),
       endPosition: destinationPosition,
       endTarget: destinationTarget,
@@ -447,6 +455,7 @@ export default function NetworkRackCameraController() {
     isNetworkFocused,
     networkCurrentStep,
     networkTrainingStarted,
+    reducedMotion,
     selectedCableId,
     selectedSourcePortId,
     troubleshootingMode,

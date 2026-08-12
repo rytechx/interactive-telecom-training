@@ -32,9 +32,18 @@ const canvasStyle = {
   height: '100vh',
 }
 
+function LabWorldReady({ onReady }) {
+  useEffect(() => {
+    onReady()
+  }, [onReady])
+
+  return null
+}
+
 export default function TelecomLabScene() {
   const playerBodyRef = useRef(null)
   const [hoveredTrainingObjectId, setHoveredTrainingObjectId] = useState(null)
+  const [isWorldReady, setIsWorldReady] = useState(false)
   const isPointerLocked = useInteractionStore(
     (state) => state.isPointerLocked,
   )
@@ -53,6 +62,9 @@ export default function TelecomLabScene() {
   const handleLockChange = useCallback((isLocked) => {
     setPointerLocked(isLocked)
   }, [setPointerLocked])
+  const handleWorldReady = useCallback(() => {
+    setIsWorldReady(true)
+  }, [])
   const isExploring = workstationPhase === WORKSTATION_PHASES.EXPLORATION
   const isNetworkTroubleshooting =
     networkTroubleshootingMode !== NETWORK_TROUBLESHOOTING_MODES.INACTIVE
@@ -70,7 +82,13 @@ export default function TelecomLabScene() {
         isExploring ? '' : ' is-workstation-active'
       }${hoveredToolId || hoveredTrainingObjectId ? ' is-tool-hovered' : ''}`}
     >
-      <Canvas camera={cameraSettings} shadows style={canvasStyle}>
+      <Canvas
+        camera={cameraSettings}
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        shadows
+        style={canvasStyle}
+      >
         <Environment />
         <Lighting />
         <Suspense fallback={null}>
@@ -84,6 +102,7 @@ export default function TelecomLabScene() {
               mouseSensitivity={mouseSensitivity}
             />
             <WorkstationFocusController playerBodyRef={playerBodyRef} />
+            <LabWorldReady onReady={handleWorldReady} />
           </Physics>
         </Suspense>
         <ToolFocusController />
@@ -121,6 +140,13 @@ export default function TelecomLabScene() {
         </div>
       )}
       <InteractionSystem />
+      {!isWorldReady && (
+        <div className="lab-world-loading" role="status" aria-live="polite">
+          <span className="lab-world-loading-spinner" aria-hidden="true" />
+          <strong>Preparing Telecom Laboratory...</strong>
+          <small>Loading the interactive training environment</small>
+        </div>
+      )}
     </div>
   )
 }

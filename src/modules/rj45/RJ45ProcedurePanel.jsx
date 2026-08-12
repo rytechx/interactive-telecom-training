@@ -99,7 +99,7 @@ export default function RJ45ProcedurePanel({
   onReturnTool,
   onExit,
 }) {
-  const [isReferenceGuideVisible, setIsReferenceGuideVisible] = useState(true)
+  const [isReferenceGuideVisible, setIsReferenceGuideVisible] = useState(false)
   const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const activeModuleId = useTrainingStore((state) => state.activeModuleId)
   const currentStep = useTrainingStore((state) => state.currentStep)
@@ -317,7 +317,8 @@ export default function RJ45ProcedurePanel({
             </span>
           </div>
           <p className="arrangement-hint">
-            Select a conductor, then choose its matching comb slot.
+            Select a conductor, then choose a slot. Select a placed conductor
+            to move or swap it before checking.
           </p>
           <button
             type="button"
@@ -522,7 +523,7 @@ export default function RJ45ProcedurePanel({
                   placedWireCount !== WIRE_COUNT || isProcedureAnimating
                 }
               >
-                Validate T568B
+                Check Arrangement
               </button>
             </>
           )}

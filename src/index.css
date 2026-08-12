@@ -30,6 +30,45 @@ canvas {
   cursor: pointer;
 }
 
+.lab-world-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: #eaf7f9;
+  font-family: system-ui, sans-serif;
+  background:
+    radial-gradient(circle at center, rgb(34 79 88 / 32%), transparent 42%),
+    #0b171b;
+}
+
+.lab-world-loading strong {
+  font-size: 15px;
+}
+
+.lab-world-loading small {
+  color: #819ba3;
+  font-size: 10px;
+}
+
+.lab-world-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgb(114 209 230 / 18%);
+  border-top-color: #72d1e6;
+  border-radius: 50%;
+  animation: lab-world-spin 700ms linear infinite;
+}
+
+@keyframes lab-world-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .player-crosshair {
   position: absolute;
   top: 50%;
@@ -3866,6 +3905,9 @@ summary:focus-visible {
 }
 
 .telecom-lab-page {
+  --lab-page-edge: 18px;
+  --lab-control-row-height: 34px;
+  --lab-content-top: 68px;
   position: relative;
   width: 100%;
   height: 100dvh;
@@ -3873,13 +3915,21 @@ summary:focus-visible {
   background: #071015;
 }
 
-.lab-page-controls {
+.lab-module-header {
   position: absolute;
-  top: 18px;
-  left: 18px;
+  top: var(--lab-page-edge);
+  right: var(--lab-page-edge);
+  left: var(--lab-page-edge);
   z-index: 12;
+  pointer-events: none;
+}
+
+.lab-page-controls {
   display: flex;
+  align-items: center;
   gap: 7px;
+  min-height: var(--lab-control-row-height);
+  pointer-events: auto;
 }
 
 .lab-page-controls button {
@@ -3906,6 +3956,31 @@ summary:focus-visible {
   border-color: rgb(104 204 232 / 32%);
 }
 
+.lab-page-controls button:focus-visible {
+  outline: 2px solid #79d8ef;
+  outline-offset: 2px;
+}
+
+.lab-page-controls .lab-back-button {
+  min-width: 132px;
+  justify-content: center;
+}
+
+.lab-page-controls .lab-help-button {
+  padding-inline: 10px;
+}
+
+.telecom-lab-page.is-workstation-active
+  .training-overlay:not(.is-assessment) {
+  padding-top: var(--lab-content-top);
+}
+
+.telecom-lab-page.is-workstation-active
+  .training-overlay:not(.is-assessment)
+  .procedure-panel {
+  max-height: calc(100dvh - var(--lab-content-top) - var(--lab-page-edge));
+}
+
 .lab-objective-panel,
 .lab-help-panel {
   position: absolute;
@@ -3920,8 +3995,8 @@ summary:focus-visible {
 }
 
 .lab-objective-panel {
-  top: 62px;
-  left: 18px;
+  top: var(--lab-content-top);
+  left: var(--lab-page-edge);
   width: min(290px, calc(100vw - 36px));
   padding: 12px 14px;
   pointer-events: none;
@@ -3948,8 +4023,8 @@ summary:focus-visible {
 }
 
 .lab-help-panel {
-  top: 62px;
-  right: 18px;
+  top: var(--lab-content-top);
+  right: var(--lab-page-edge);
   gap: 5px;
   width: min(270px, calc(100vw - 36px));
   padding: 13px;
@@ -4253,19 +4328,19 @@ summary:focus-visible {
     flex-direction: column;
   }
 
-  .lab-page-controls {
-    top: 12px;
-    left: 12px;
+  .telecom-lab-page {
+    --lab-page-edge: 12px;
+    --lab-content-top: 60px;
   }
 
   .lab-objective-panel {
-    top: 56px;
-    left: 12px;
+    top: var(--lab-content-top);
+    left: var(--lab-page-edge);
   }
 
   .lab-help-panel {
-    top: 56px;
-    right: 12px;
+    top: var(--lab-content-top);
+    right: var(--lab-page-edge);
   }
 }
 
