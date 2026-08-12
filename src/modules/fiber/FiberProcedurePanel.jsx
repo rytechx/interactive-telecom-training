@@ -123,6 +123,9 @@ export default function FiberProcedurePanel({
         : heaterClosed
           ? 'READY'
           : 'IDLE'
+  const formattedSpliceLoss = Number.isFinite(spliceLossDb)
+    ? spliceLossDb.toFixed(2)
+    : '--.--'
 
   if (activeModuleId !== FIBER_MODULE_ID) {
     return null
@@ -191,7 +194,7 @@ export default function FiberProcedurePanel({
         <div className="fiber-splice-result" role="status">
           <span>Fusion splice completed successfully.</span>
           <strong>SPLICE RESULT: {spliceResult}</strong>
-          <span>Estimated Loss: {(spliceLossDb ?? 0.03).toFixed(2)} dB</span>
+          <span>Estimated Loss: {formattedSpliceLoss} dB</span>
           <span>Alignment: PASS · Fusion: COMPLETE</span>
         </div>
       )}
@@ -225,7 +228,7 @@ export default function FiberProcedurePanel({
           <strong>Fiber Optic Fusion Splicing Completed</strong>
           <strong>FINAL SPLICE INSPECTION</strong>
           <span>Fusion Joint: PASS</span>
-          <span>Estimated Loss: {(spliceLossDb ?? 0.03).toFixed(2)} dB</span>
+          <span>Estimated Loss: {formattedSpliceLoss} dB</span>
           <span>Protection Sleeve: INSTALLED</span>
           <span>Sleeve Alignment: PASS</span>
           <span>Heat Shrink: COMPLETE</span>
@@ -240,7 +243,7 @@ export default function FiberProcedurePanel({
             The fiber was prepared, cleaned, cleaved, aligned, fused,
             protected, and inspected correctly.
           </span>
-          <b>Estimated splice loss: {(spliceLossDb ?? 0.03).toFixed(2)} dB</b>
+          <b>Estimated splice loss: {formattedSpliceLoss} dB</b>
         </div>
       )}
 

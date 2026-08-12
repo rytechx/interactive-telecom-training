@@ -278,7 +278,7 @@ function getActionConfig(currentStep) {
     },
     [FIBER_PROCEDURE_STEPS.CLOSE_CLAMPS]: {
       id: SPLICER_ACTION_ID,
-      label: 'Secure Fibers',
+      label: 'Left Clamp + Right Clamp',
       position: [0, 1.31, FIBER_AXIS_Z],
       size: [1.15, 0.28, 0.38],
     },
@@ -308,7 +308,7 @@ function getActionConfig(currentStep) {
     },
     [FIBER_PROCEDURE_STEPS.RELEASE_CLAMPS]: {
       id: SPLICER_ACTION_ID,
-      label: 'Release Clamps',
+      label: 'Release Left + Right Clamps',
       position: [0, 1.31, FIBER_AXIS_Z],
       size: [1.15, 0.28, 0.38],
     },
@@ -387,45 +387,48 @@ function SplicerDisplay({
   coolingComplete,
   finalInspectionPassed,
 }) {
-  let title = 'READY'
-  let status = `${fiberALoaded ? 'A LOADED' : 'A READY'}  →  ←  ${
+  const formattedLoss = Number.isFinite(spliceLossDb)
+    ? `${spliceLossDb.toFixed(2)} dB`
+    : '--.-- dB'
+  let title = fiberALoaded && fiberBLoaded ? 'FIBERS LOADED' : 'LOAD FIBERS'
+  let status = `${fiberALoaded ? 'A LOADED' : 'A READY'}  >  <  ${
     fiberBLoaded ? 'B LOADED' : 'B READY'
   }`
-  let detail = 'FIBER ALIGNMENT'
+  let detail = 'READY'
 
   if (currentStep === FIBER_PROCEDURE_STEPS.HEATING_PROTECTION_SLEEVE) {
-    title = 'HEATER'
-    status = heaterActive ? 'HEATING' : 'READY'
+    title = heaterActive ? 'HEATING...' : 'HEATER READY'
+    status = 'PROTECTION SLEEVE'
     detail = 'SHRINK CYCLE ACTIVE'
   } else if (
     currentStep === FIBER_PROCEDURE_STEPS.COOLING_PROTECTION_SLEEVE
   ) {
-    title = 'HEATER'
-    status = 'COOLING'
+    title = 'COOLING...'
+    status = 'PROTECTION SLEEVE'
     detail = 'SETTING PROTECTION SLEEVE'
   } else if (
     isFiberProtectionStep(currentStep) &&
     heatingComplete &&
     coolingComplete
   ) {
-    title = finalInspectionPassed ? 'INSPECTION PASS' : 'HEATER COMPLETE'
-    status = finalInspectionPassed ? 'PROTECTED SPLICE: PASS' : 'COMPLETE'
-    detail = `LOSS: ${(spliceLossDb ?? 0.03).toFixed(2)} dB`
+    title = finalInspectionPassed ? 'COMPLETE' : 'HEATER COMPLETE'
+    status = finalInspectionPassed ? 'INSPECTION PASS' : 'SLEEVE SET'
+    detail = `SPLICE LOSS ${formattedLoss}`
   } else if (
     currentStep === FIBER_PROCEDURE_STEPS.READY_TO_HEAT ||
     (isFiberProtectionStep(currentStep) && heaterClosed)
   ) {
-    title = 'HEATER'
-    status = 'READY'
-    detail = 'PROTECTED SPLICE POSITIONED'
+    title = 'HEATER READY'
+    status = 'SPLICE POSITIONED'
+    detail = 'START HEAT CYCLE'
   } else if (isFiberProtectionStep(currentStep)) {
     title = 'SPLICE PROTECTION'
     status = 'SLEEVE INSTALLATION'
-    detail = 'FUSION JOINT PASS'
+    detail = `SPLICE LOSS ${formattedLoss}`
   } else if (currentStep === FIBER_PROCEDURE_STEPS.ALIGNING) {
-    title = 'ALIGNING'
-    status = 'ANALYZING FIBER CORES...'
-    detail = 'A  →     ←  B'
+    title = 'ALIGNING...'
+    status = 'ANALYZING FIBER CORES'
+    detail = 'A  >     <  B'
   } else if (
     alignmentComplete &&
     !fusionComplete &&
@@ -435,18 +438,20 @@ function SplicerDisplay({
     status = 'READY FOR FUSION'
     detail = 'CORE CENTERLINES ALIGNED'
   } else if (currentStep === FIBER_PROCEDURE_STEPS.FUSING) {
-    title = 'FUSING'
-    status = 'CONTROLLED ARC ACTIVE'
+    title = 'ARC FUSION'
+    status = 'FUSION IN PROGRESS'
     detail = 'HOLDING FIBERS STEADY'
   } else if (fusionComplete) {
     title = 'SPLICE COMPLETE'
-    status = `LOSS: ${(spliceLossDb ?? 0.03).toFixed(2)} dB`
-    detail = spliceResult ?? 'PASS'
+    status = 'SPLICE LOSS'
+    detail = `${formattedLoss}  ${spliceResult ?? 'RESULT READY'}`
   }
 
-  const displayPosition = isFiberProtectionStep(currentStep)
-    ? [0.64, 1.52, -0.35]
-    : [0, 1.61, -0.44]
+  const displayPosition =
+    finalInspectionPassed ||
+    currentStep === FIBER_PROCEDURE_STEPS.FINAL_INSPECTION
+      ? [0, 1.12, -0.045]
+      : [0, 1.335, -0.045]
 
   return (
     <Html position={displayPosition} center>
@@ -930,8 +935,8 @@ export default function FiberSplicingStation({
 
     if (animationType === ANIMATION_TYPES.FUSE) {
       const joinProgress = smoothStep((progress - 0.3) / 0.42)
-      const arcIn = smoothStep((progress - 0.12) / 0.16)
-      const arcOut = smoothStep((progress - 0.74) / 0.18)
+      const arcIn = smoothStep((progress - 0.34) / 0.1)
+      const arcOut = smoothStep((progress - 0.6) / 0.12)
       const arcStrength = arcIn * (1 - arcOut)
 
       interpolatePosition(
@@ -949,10 +954,10 @@ export default function FiberSplicingStation({
 
       if (arcRef.current) {
         arcRef.current.visible = arcStrength > 0.01
-        arcMaterial.opacity = arcStrength * 0.9
+        arcMaterial.opacity = arcStrength * 0.72
       }
       if (arcLightRef.current) {
-        arcLightRef.current.intensity = arcStrength * 1.8
+        arcLightRef.current.intensity = arcStrength * 1.2
       }
       if (fusedJointRef.current) {
         fusedJointRef.current.visible = progress > 0.58
@@ -1051,7 +1056,7 @@ export default function FiberSplicingStation({
       }
       if (heaterIndicatorRef.current) {
         heaterIndicatorRef.current.material.emissiveIntensity =
-          0.82 + Math.sin(progress * Math.PI * 8) * 0.16
+          0.62 + Math.sin(progress * Math.PI * 6) * 0.08
       }
 
       if (progress >= 1) {
@@ -1064,7 +1069,7 @@ export default function FiberSplicingStation({
     if (animationType === ANIMATION_TYPES.COOL_SLEEVE) {
       if (heaterIndicatorRef.current) {
         heaterIndicatorRef.current.material.emissiveIntensity =
-          0.56 + (1 - easedProgress) * 0.18
+          0.42 + (1 - easedProgress) * 0.12
       }
 
       if (progress >= 1) {
