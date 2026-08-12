@@ -8,10 +8,11 @@ export default function NetworkLinkIndicator({
   delay = 0,
   color = '#55d486',
   size = [0.045, 0.026, 0.018],
+  pulse = false,
 }) {
   const materialRef = useRef(null)
 
-  useFrame(() => {
+  useFrame((state) => {
     const material = materialRef.current
 
     if (!material) {
@@ -22,8 +23,12 @@ export default function NetworkLinkIndicator({
       !powerOnStartedAt || Date.now() - powerOnStartedAt >= delay * 1000
     const isLit = active && delayComplete
 
-    material.emissiveIntensity = isLit ? 1.15 : 0.03
-    material.opacity = isLit ? 1 : 0.4
+    const activeIntensity = pulse
+      ? 0.78 + Math.sin(state.clock.elapsedTime * 7) * 0.2
+      : 1
+
+    material.emissiveIntensity = isLit ? activeIntensity : 0.025
+    material.opacity = isLit ? 0.96 : 0.38
   })
 
   return (

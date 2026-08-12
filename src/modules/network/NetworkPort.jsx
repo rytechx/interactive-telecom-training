@@ -5,7 +5,7 @@ import {
   NETWORK_PORT_TYPES,
 } from './networkDeviceConfigs.js'
 
-const contactPositions = [-0.034, -0.011, 0.011, 0.034]
+const contactPositions = [-0.038, -0.027, -0.016, -0.005, 0.005, 0.016, 0.027, 0.038]
 
 export default function NetworkPort({
   port,
@@ -113,10 +113,24 @@ export default function NetworkPort({
           ))}
         </>
       ) : (
-        <mesh position={[0, 0, 0.016]}>
-          <boxGeometry args={[portWidth, portHeight, 0.018]} />
-          <meshStandardMaterial color={highlightColor} roughness={0.82} />
-        </mesh>
+        <>
+          <mesh position={[0, 0, 0.016]}>
+            <boxGeometry args={[portWidth, portHeight, 0.018]} />
+            <meshStandardMaterial color={highlightColor} roughness={0.82} />
+          </mesh>
+          <mesh position={[0, portHeight * 0.31, 0.029]}>
+            <boxGeometry args={[portWidth * 0.42, 0.014, 0.009]} />
+            <meshStandardMaterial color="#151d21" roughness={0.88} />
+          </mesh>
+          <mesh position={[0, -portHeight * 0.34, 0.029]}>
+            <boxGeometry args={[portWidth * 0.84, 0.012, 0.009]} />
+            <meshStandardMaterial
+              color="#4d5a60"
+              metalness={0.28}
+              roughness={0.58}
+            />
+          </mesh>
+        </>
       )}
 
       {!isPowerPort &&
@@ -158,7 +172,7 @@ export default function NetworkPort({
         <Html position={tooltipPosition} center zIndexRange={[4, 0]}>
           <div
             className={`network-object-tooltip${
-              isSelected ? ' is-selected' : ''
+              isSelected ? ' is-selected' : isTarget ? ' is-target' : ''
             }`}
             role="tooltip"
           >
@@ -168,12 +182,12 @@ export default function NetworkPort({
         </Html>
       )}
 
-      {isPowerPort && port.physicalLabel && (
+      {port.physicalLabel && (
         <Html position={physicalLabelPosition} center zIndexRange={[2, 0]}>
           <span
             className={`network-port-marking${
               isPduOutlet ? ' is-pdu-number' : ''
-            }`}
+            }${isPowerPort ? '' : ' is-data-label'}`}
           >
             {port.physicalLabel}
           </span>

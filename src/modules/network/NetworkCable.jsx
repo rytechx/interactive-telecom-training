@@ -129,6 +129,21 @@ function CablePlug({
         ))}
       {!isPower && (
         <>
+          {[-0.142, -0.17, -0.198].map((positionZ) => (
+            <mesh
+              key={positionZ}
+              position={[0, 0, positionZ]}
+              rotation={[Math.PI / 2, 0, 0]}
+            >
+              <cylinderGeometry args={[0.047, 0.047, 0.012, 12]} />
+              <meshStandardMaterial
+                color={plugColor}
+                transparent
+                opacity={muted ? 0.42 : 0.9}
+                roughness={0.62}
+              />
+            </mesh>
+          ))}
           {[-0.035, -0.025, -0.015, -0.005, 0.005, 0.015, 0.025, 0.035].map(
             (positionX) => (
               <mesh key={positionX} position={[positionX, 0.028, 0.072]}>
@@ -200,9 +215,9 @@ export default function NetworkCable({
     const connectedPath = config.connectedPath
     const destination = connectedPath.at(-1)
     const freeConnectorPosition = [
-      destination[0],
-      destination[1] - 0.16,
-      destination[2] + 0.46,
+      destination[0] - 0.06,
+      destination[1] - 0.24,
+      destination[2] + 0.38,
     ]
 
     return [...connectedPath.slice(0, -1), freeConnectorPosition]

@@ -1036,6 +1036,15 @@ canvas {
   border-radius: 2px;
 }
 
+.network-device-face-label.is-physical {
+  padding: 1px 3px;
+  color: #d5e1e5;
+  font-size: 6px;
+  letter-spacing: 0.07em;
+  background: rgb(30 39 44 / 92%);
+  border-color: rgb(210 230 236 / 16%);
+}
+
 .network-bench-zone-label {
   display: inline-block;
   padding: 2px 5px;
@@ -1082,6 +1091,12 @@ canvas {
   color: #e4eef1;
   font-size: 7px;
   letter-spacing: 0.08em;
+}
+
+.network-port-marking.is-data-label {
+  color: #b9c9ce;
+  font-size: 5px;
+  letter-spacing: 0.02em;
 }
 
 .network-power-tray-label {

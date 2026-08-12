@@ -22,12 +22,10 @@ const bezelMaterial = new MeshStandardMaterial({
   metalness: 0.52,
   roughness: 0.5,
 })
-const amberLedMaterial = new MeshStandardMaterial({
-  color: '#d3a64a',
-  emissive: '#9d6821',
-  emissiveIntensity: 0.34,
-  roughness: 0.38,
-  toneMapped: false,
+const faceLabelByDeviceId = Object.freeze({
+  'patch-panel': 'CAT6 PATCH PANEL',
+  'managed-switch': '8-PORT MANAGED SWITCH',
+  router: 'GIGABIT ROUTER',
 })
 
 function MountingHardware({ width, height, frontZ }) {
@@ -57,26 +55,33 @@ function MountingHardware({ width, height, frontZ }) {
   )
 }
 
-function DeviceFaceDetails({ deviceId, dimensions, frontZ }) {
+function DeviceFaceDetails({
+  deviceId,
+  dimensions,
+  frontZ,
+  networkPowered,
+  powerOnStartedAt,
+  powered,
+}) {
   const detailZ = frontZ + 0.02
 
   if (deviceId === 'patch-panel') {
     return (
       <>
-        {[-0.74, -0.66, 0.66, 0.74].map((positionX) => (
+        {[-0.75, -0.69, 0.69, 0.75].map((positionX) => (
           <mesh
             key={positionX}
             geometry={detailBoxGeometry}
             material={ventMaterial}
             position={[positionX, 0, detailZ]}
-            scale={[0.04, 0.07, 0.02]}
+            scale={[0.035, 0.085, 0.02]}
           />
         ))}
         <mesh
           geometry={detailBoxGeometry}
           material={bezelMaterial}
-          position={[0, dimensions[1] * 0.32, detailZ]}
-          scale={[1.18, 0.022, 0.018]}
+          position={[0, dimensions[1] * 0.34, detailZ]}
+          scale={[1.3, 0.018, 0.018]}
         />
       </>
     )
@@ -85,25 +90,38 @@ function DeviceFaceDetails({ deviceId, dimensions, frontZ }) {
   if (deviceId === 'managed-switch') {
     return (
       <>
-        {[-0.77, -0.71, -0.65, -0.59].map((positionX) => (
+        {[-0.77, -0.72, -0.67, -0.62].map((positionX) => (
           <mesh
             key={positionX}
             geometry={detailBoxGeometry}
             material={ventMaterial}
-            position={[positionX, dimensions[1] * 0.3, detailZ]}
-            scale={[0.035, 0.032, 0.02]}
+            position={[positionX, dimensions[1] * 0.31, detailZ]}
+            scale={[0.028, 0.05, 0.02]}
           />
         ))}
-        {[0.56, 0.61, 0.66].map((positionX, index) => (
-          <mesh
-            key={positionX}
-            geometry={detailCylinderGeometry}
-            material={index === 0 ? amberLedMaterial : screwMaterial}
-            position={[positionX, dimensions[1] * 0.3, detailZ]}
-            rotation={[Math.PI / 2, 0, 0]}
-            scale={[0.014, 0.008, 0.014]}
-          />
-        ))}
+        <mesh
+          geometry={detailBoxGeometry}
+          material={bezelMaterial}
+          position={[0.61, dimensions[1] * 0.31, detailZ]}
+          scale={[0.22, 0.05, 0.018]}
+        />
+        <NetworkLinkIndicator
+          position={[0.56, dimensions[1] * 0.31, detailZ + 0.018]}
+          active={powered}
+          powerOnStartedAt={powerOnStartedAt}
+          delay={0.45}
+          color="#6dc5eb"
+          size={[0.025, 0.017, 0.012]}
+        />
+        <NetworkLinkIndicator
+          position={[0.63, dimensions[1] * 0.31, detailZ + 0.018]}
+          active={networkPowered}
+          powerOnStartedAt={powerOnStartedAt}
+          delay={1.1}
+          color="#efbc55"
+          size={[0.025, 0.017, 0.012]}
+          pulse
+        />
       </>
     )
   }
@@ -111,31 +129,37 @@ function DeviceFaceDetails({ deviceId, dimensions, frontZ }) {
   if (deviceId === 'router') {
     return (
       <>
-        {[-0.73, -0.67, 0.55, 0.61, 0.67].map((positionX) => (
+        {[0.45, 0.51, 0.57, 0.63, 0.69].map((positionX) => (
           <mesh
             key={positionX}
             geometry={detailBoxGeometry}
             material={ventMaterial}
             position={[positionX, -dimensions[1] * 0.28, detailZ]}
-            scale={[0.038, 0.028, 0.02]}
+            scale={[0.038, 0.035, 0.02]}
           />
         ))}
         <mesh
           geometry={detailBoxGeometry}
           material={bezelMaterial}
-          position={[0.36, dimensions[1] * 0.28, detailZ]}
-          scale={[0.3, 0.035, 0.02]}
+          position={[-0.3, dimensions[1] * 0.31, detailZ]}
+          scale={[0.48, 0.03, 0.02]}
         />
-        {[-0.08, 0, 0.08].map((positionX) => (
-          <mesh
-            key={positionX}
-            geometry={detailCylinderGeometry}
-            material={amberLedMaterial}
-            position={[0.36 + positionX, dimensions[1] * 0.28, detailZ + 0.014]}
-            rotation={[Math.PI / 2, 0, 0]}
-            scale={[0.012, 0.007, 0.012]}
-          />
-        ))}
+        <NetworkLinkIndicator
+          position={[0.32, dimensions[1] * 0.31, detailZ + 0.018]}
+          active={powered}
+          powerOnStartedAt={powerOnStartedAt}
+          delay={0.9}
+          color="#6ab8dd"
+          size={[0.026, 0.017, 0.012]}
+        />
+        <NetworkLinkIndicator
+          position={[0.39, dimensions[1] * 0.31, detailZ + 0.018]}
+          active={networkPowered}
+          powerOnStartedAt={powerOnStartedAt}
+          delay={1.45}
+          color="#62d58b"
+          size={[0.026, 0.017, 0.012]}
+        />
       </>
     )
   }
@@ -337,6 +361,9 @@ export default function NetworkDevice({
         deviceId={config.id}
         dimensions={bodyDimensions}
         frontZ={frontZ}
+        powered={powered}
+        networkPowered={networkPowered}
+        powerOnStartedAt={powerOnStartedAt}
       />
 
       {config.id !== 'patch-panel' && (
@@ -379,6 +406,18 @@ export default function NetworkDevice({
           zIndexRange={[3, 0]}
         >
           <span className="network-device-face-label">{config.shortName}</span>
+        </Html>
+      )}
+
+      {installed && isRackDevice && (
+        <Html
+          position={[0, bodyDimensions[1] / 2 - 0.025, frontZ + 0.045]}
+          center
+          zIndexRange={[2, 0]}
+        >
+          <span className="network-device-face-label is-physical">
+            {faceLabelByDeviceId[config.id] ?? config.shortName}
+          </span>
         </Html>
       )}
 

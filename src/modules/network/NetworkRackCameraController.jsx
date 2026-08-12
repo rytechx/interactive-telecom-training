@@ -266,20 +266,20 @@ function getInspectionCameraView(viewId, requestId) {
   const target = NETWORK_WORKSTATION.rackInspectionTarget
   const views = {
     front: {
-      position: [0, 2.55, 4],
+      position: [0, 2.45, 4.1],
       fov: 46,
     },
     left: {
-      position: [-2.15, 2.2, 7.9],
-      fov: 47,
+      position: [-2.65, 2.15, 7.55],
+      fov: 50,
     },
     right: {
-      position: [2.3, 2.2, 7.9],
-      fov: 47,
+      position: [2.65, 2.15, 7.55],
+      fov: 50,
     },
     rear: {
-      position: [0, 2.55, 9.2],
-      fov: 50,
+      position: [-3.4, 2.55, 9.25],
+      fov: 55,
     },
   }
   const view = views[viewId]
@@ -290,7 +290,7 @@ function getInspectionCameraView(viewId, requestId) {
         position: view.position,
         target,
         fov: view.fov,
-        duration: 0.62,
+        duration: 0.72,
       }
     : null
 }
@@ -529,8 +529,10 @@ export default function NetworkRackCameraController() {
       ref={controlsRef}
       enabled={inspectionEnabled}
       enableDamping
-      dampingFactor={0.08}
+      dampingFactor={0.07}
       enablePan={false}
+      rotateSpeed={0.72}
+      zoomSpeed={0.78}
       minDistance={NETWORK_INSPECTION_LIMITS.minDistance}
       maxDistance={NETWORK_INSPECTION_LIMITS.maxDistance}
       minPolarAngle={NETWORK_INSPECTION_LIMITS.minPolarAngle}

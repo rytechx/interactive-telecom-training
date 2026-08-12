@@ -49,11 +49,15 @@ export default function NetworkWorkstationMonitor({
       <mesh position={[0, 0, 0.058]}>
         <boxGeometry args={[0.91, 0.49, 0.026]} />
         <meshStandardMaterial
-          color={canConfigure ? '#153746' : '#111a20'}
-          emissive={canConfigure ? '#1f7898' : '#071015'}
-          emissiveIntensity={canConfigure ? 0.28 : 0.08}
+          color={canConfigure ? '#163d4c' : '#111a20'}
+          emissive={canConfigure ? '#1c708d' : '#071015'}
+          emissiveIntensity={canConfigure ? 0.24 : 0.07}
           roughness={0.72}
         />
+      </mesh>
+      <mesh position={[0, 0.31, -0.052]}>
+        <boxGeometry args={[0.62, 0.035, 0.018]} />
+        <meshStandardMaterial color="#222c31" roughness={0.76} />
       </mesh>
       <mesh position={[-0.2, 0.08, 0.074]}>
         <boxGeometry args={[0.34, 0.035, 0.012]} />
@@ -94,15 +98,26 @@ export default function NetworkWorkstationMonitor({
         <boxGeometry args={[0.78, 0.045, 0.28]} />
         <meshStandardMaterial color="#252f34" roughness={0.76} />
       </mesh>
-      {[-0.28, -0.14, 0, 0.14, 0.28].map((positionX) => (
-        <mesh key={positionX} position={[positionX, -0.552, 0.46]}>
-          <boxGeometry args={[0.09, 0.012, 0.16]} />
-          <meshStandardMaterial color="#48545a" roughness={0.72} />
-        </mesh>
-      ))}
+      {[-0.2, -0.12, -0.04].flatMap((positionZ, rowIndex) =>
+        [-0.29, -0.195, -0.1, -0.005, 0.09, 0.185, 0.28].map(
+          (positionX) => (
+            <mesh
+              key={`${rowIndex}-${positionX}`}
+              position={[positionX, -0.548, 0.46 + positionZ]}
+            >
+              <boxGeometry args={[0.072, 0.012, 0.04]} />
+              <meshStandardMaterial color="#4b585e" roughness={0.72} />
+            </mesh>
+          ),
+        ),
+      )}
       <mesh position={[0.56, -0.565, 0.45]} castShadow receiveShadow>
-        <sphereGeometry args={[0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.078, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#2d383d" roughness={0.78} />
+      </mesh>
+      <mesh position={[0.56, -0.49, 0.435]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.022, 10]} />
+        <meshStandardMaterial color="#718087" metalness={0.42} roughness={0.5} />
       </mesh>
 
       <mesh

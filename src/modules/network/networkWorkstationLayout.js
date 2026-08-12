@@ -65,8 +65,8 @@ const NETWORK_WORKSTATION_LAYOUT = Object.freeze({
 })
 
 const NETWORK_INSPECTION_LIMITS = Object.freeze({
-  minDistance: 1.35,
-  maxDistance: 5.8,
+  minDistance: 1.65,
+  maxDistance: 5.6,
   minPolarAngle: (35 * Math.PI) / 180,
   maxPolarAngle: (85 * Math.PI) / 180,
   roomBounds: Object.freeze({

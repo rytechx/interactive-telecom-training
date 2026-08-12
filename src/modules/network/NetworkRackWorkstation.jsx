@@ -88,6 +88,51 @@ const cableSelectionStepIds = Object.freeze({
   ]),
 })
 
+function PreparationAccessories() {
+  return (
+    <group>
+      <mesh position={[-2.14, 0.945, -0.53]} castShadow receiveShadow>
+        <boxGeometry args={[0.3, 0.09, 0.2]} />
+        <meshStandardMaterial color="#39484e" metalness={0.18} roughness={0.66} />
+      </mesh>
+      <mesh position={[-2.14, 0.995, -0.545]} rotation={[-Math.PI / 2, 0, 0]}>
+        <boxGeometry args={[0.17, 0.08, 0.012]} />
+        <meshStandardMaterial
+          color="#375866"
+          emissive="#164554"
+          emissiveIntensity={0.18}
+          roughness={0.58}
+        />
+      </mesh>
+      {[-0.06, 0.06].map((positionX) => (
+        <mesh key={positionX} position={[-2.14 + positionX, 0.986, -0.435]}>
+          <boxGeometry args={[0.055, 0.035, 0.018]} />
+          <meshStandardMaterial color="#172126" roughness={0.82} />
+        </mesh>
+      ))}
+      <mesh
+        position={[-2.12, 0.93, 0.57]}
+        rotation={[0, 0, Math.PI / 2]}
+        castShadow
+      >
+        <cylinderGeometry args={[0.025, 0.025, 0.34, 12]} />
+        <meshStandardMaterial color="#d49a3b" roughness={0.6} />
+      </mesh>
+      <mesh
+        position={[-1.93, 0.93, 0.57]}
+        rotation={[0, 0, Math.PI / 2]}
+      >
+        <cylinderGeometry args={[0.018, 0.018, 0.1, 10]} />
+        <meshStandardMaterial
+          color="#8d999e"
+          metalness={0.64}
+          roughness={0.34}
+        />
+      </mesh>
+    </group>
+  )
+}
+
 function PreparationBench({ showLabels = false }) {
   const {
     preparationBenchDepth,
@@ -159,6 +204,7 @@ function PreparationBench({ showLabels = false }) {
           <span className="network-bench-zone-label">{zone.label}</span>
         </Html>
       ))}
+      <PreparationAccessories />
     </group>
   )
 }
@@ -167,16 +213,28 @@ function RackCableManagement() {
   return (
     <group>
       <mesh position={NETWORK_WORKSTATION_LAYOUT.rackCableGuidePosition} receiveShadow>
-        <boxGeometry args={[0.13, 2.18, 0.1]} />
-        <meshStandardMaterial color="#56636a" metalness={0.62} roughness={0.46} />
+        <boxGeometry args={[0.1, 2.18, 0.08]} />
+        <meshStandardMaterial color="#4b585e" metalness={0.66} roughness={0.42} />
       </mesh>
+      {[0.48, 0.78, 1.08, 1.38, 1.68, 1.98, 2.28].map((positionY) => (
+        <mesh key={positionY} position={[-0.8, positionY, 0.615]}>
+          <boxGeometry args={[0.18, 0.045, 0.07]} />
+          <meshStandardMaterial color="#738087" metalness={0.62} roughness={0.4} />
+        </mesh>
+      ))}
       <mesh
         position={NETWORK_WORKSTATION_LAYOUT.rackHorizontalManagerPosition}
         receiveShadow
       >
-        <boxGeometry args={[1.5, 0.09, 0.11]} />
+        <boxGeometry args={[1.5, 0.08, 0.095]} />
         <meshStandardMaterial color="#4b585f" metalness={0.58} roughness={0.5} />
       </mesh>
+      {[-0.57, -0.38, -0.19, 0, 0.19, 0.38, 0.57].map((positionX) => (
+        <mesh key={positionX} position={[positionX, 1.31, 0.612]}>
+          <boxGeometry args={[0.075, 0.13, 0.055]} />
+          <meshStandardMaterial color="#647178" metalness={0.58} roughness={0.44} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -238,6 +296,14 @@ function WorkstationDesk() {
           </mesh>
         )),
       )}
+      <mesh position={[0, 0.39, -legOffsetZ]} castShadow receiveShadow>
+        <boxGeometry args={[workstationDeskWidth - 0.16, 0.07, 0.06]} />
+        <meshStandardMaterial color="#465158" metalness={0.48} roughness={0.52} />
+      </mesh>
+      <mesh position={[0, 0.67, -0.38]} receiveShadow>
+        <boxGeometry args={[1.38, 0.055, 0.18]} />
+        <meshStandardMaterial color="#38454b" metalness={0.42} roughness={0.58} />
+      </mesh>
     </group>
   )
 }
@@ -311,15 +377,25 @@ function RackPdu({
         receiveShadow
       >
         <boxGeometry args={NETWORK_PDU_CONFIG.dimensions} />
-        <meshStandardMaterial color="#59666d" metalness={0.58} roughness={0.48} />
+        <meshStandardMaterial color="#3e4a50" metalness={0.64} roughness={0.42} />
       </mesh>
       <mesh
         position={NETWORK_PDU_CONFIG.facePosition}
         rotation={NETWORK_PDU_CONFIG.rotation}
       >
         <boxGeometry args={NETWORK_PDU_CONFIG.faceDimensions} />
-        <meshStandardMaterial color="#738188" metalness={0.38} roughness={0.56} />
+        <meshStandardMaterial color="#65737a" metalness={0.42} roughness={0.5} />
       </mesh>
+      {[-0.105, 0.105].map((positionX) => (
+        <mesh
+          key={positionX}
+          position={[1.55 + positionX, 0.72, 0.325]}
+          rotation={NETWORK_PDU_CONFIG.rotation}
+        >
+          <boxGeometry args={[0.018, 1.03, 0.028]} />
+          <meshStandardMaterial color="#303b40" metalness={0.68} roughness={0.4} />
+        </mesh>
+      ))}
       <mesh
         position={NETWORK_PDU_CONFIG.accentPosition}
         rotation={NETWORK_PDU_CONFIG.rotation}
@@ -343,6 +419,25 @@ function RackPdu({
           toneMapped={false}
         />
       </mesh>
+      <mesh position={[1.58, 1.19, 0.372]} rotation={NETWORK_PDU_CONFIG.rotation}>
+        <boxGeometry args={[0.055, 0.045, 0.025]} />
+        <meshStandardMaterial
+          color={networkPowered ? '#40525a' : '#283238'}
+          emissive={networkPowered ? '#1d4655' : '#000000'}
+          emissiveIntensity={networkPowered ? 0.2 : 0}
+          roughness={0.62}
+        />
+      </mesh>
+      {[0.28, 1.15].map((positionY) => (
+        <mesh
+          key={positionY}
+          position={[1.55, positionY, 0.355]}
+          rotation={[Math.PI / 2, 0, -0.18]}
+        >
+          <cylinderGeometry args={[0.018, 0.018, 0.012, 10]} />
+          <meshStandardMaterial color="#aeb8bc" metalness={0.76} roughness={0.3} />
+        </mesh>
+      ))}
       <mesh
         position={[1.55, 0.18, 0.22]}
         rotation={[Math.PI / 2, 0, 0.18]}
@@ -790,28 +885,28 @@ export default function NetworkRackWorkstation({
       <pointLight
         position={NETWORK_WORKSTATION_LAYOUT.stationLightPosition}
         color="#edf9ff"
-        intensity={networkTrainingStarted ? 2.35 : 0}
+        intensity={networkTrainingStarted ? 1.75 : 0}
         distance={7.2}
         decay={2}
       />
       <pointLight
         position={NETWORK_WORKSTATION_LAYOUT.rackLightPosition}
         color="#f4fbff"
-        intensity={networkTrainingStarted ? 1.25 : 0}
+        intensity={networkTrainingStarted ? 1.45 : 0}
         distance={4.4}
         decay={2}
       />
       <pointLight
         position={NETWORK_WORKSTATION_LAYOUT.rackRearLightPosition}
         color="#eef7fa"
-        intensity={networkTrainingStarted ? 0.9 : 0}
+        intensity={networkTrainingStarted ? 0.72 : 0}
         distance={3.8}
         decay={2}
       />
       <pointLight
         position={NETWORK_WORKSTATION_LAYOUT.workstationLightPosition}
         color="#eef8fb"
-        intensity={networkTrainingStarted ? 1.1 : 0}
+        intensity={networkTrainingStarted ? 0.95 : 0}
         distance={3.6}
         decay={2}
       />
