@@ -83,6 +83,29 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  staffLogin: async (credentials) => {
+    set({ isLoading: true, authError: null })
+
+    try {
+      const response = await authApi.staffLogin(credentials)
+      const user = response.data.user
+
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        sessionChecked: true,
+        authError: null,
+      })
+      return { success: true, user }
+    } catch (error) {
+      const failure = getAuthFailure(error)
+
+      set({ isLoading: false, authError: failure.message })
+      return { success: false, ...failure }
+    }
+  },
+
   register: async (registration) => {
     set({ isLoading: true, authError: null })
 

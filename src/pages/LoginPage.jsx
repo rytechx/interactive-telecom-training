@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
 import PasswordField from '../components/auth/PasswordField.jsx'
 import useAuthStore from '../store/useAuthStore.js'
-import { getHomeRouteForRole } from '../utils/roleRoutes.js'
 
 function validateLoginForm(values) {
   const errors = {}
@@ -67,23 +66,19 @@ export default function LoginPage() {
       return
     }
 
-    const requestedLocation = location.state?.from
-    const destination = requestedLocation
-      ? `${requestedLocation.pathname}${requestedLocation.search}${requestedLocation.hash}`
-      : getHomeRouteForRole(result.user.role)
-
-    navigate(destination, { replace: true })
+    navigate('/', { replace: true })
   }
 
   return (
     <AuthLayout
-      eyebrow="Secure Access"
+      eyebrow="Student Login"
       title="Sign in to TeleSim"
-      description="Continue to your role-protected TeleSim workspace."
+      description="Continue to your student dashboard and practical training modules."
       footer={
-        <p>
-          New to TeleSim? <Link to="/register">Create Student Account</Link>
-        </p>
+        <div className="student-login-links">
+          <p>New to TeleSim? <Link to="/register">Create Student Account</Link></p>
+          <p className="auth-staff-link">Instructor or Administrator? <Link to="/staff/login">Staff Login</Link></p>
+        </div>
       }
     >
       {location.state?.message && (

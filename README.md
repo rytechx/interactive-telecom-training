@@ -57,7 +57,7 @@ For an existing database with registered students, do not delete or reimport the
 npm run migrate
 ```
 
-This applies `server/sql/002_training_results.sql`, preserves existing users and attempts, and can be run again safely.
+This applies the numbered migrations in `server/sql/`, including the training-result tables and the nullable staff `student_number` refinement. The migrations preserve existing users and attempts and can be run again safely.
 
 ### 4. Configure the API environment
 
@@ -124,20 +124,15 @@ Use the exact Vite origin configured in `CLIENT_ORIGIN`. Authentication cookies 
 
 ### Create a development staff account
 
-Public registration always creates a `student`. Instructor and administrator accounts must be created through a controlled server-side process. From `server/`, set one-time environment variables and run the staff utility:
+Public registration always creates a `student`. Bootstrap the first administrator through the controlled server-side utility. From `server/`, keep the password in a temporary environment variable and pass non-secret identity fields as command options:
 
 ```powershell
-$env:STAFF_ROLE = 'instructor'
-$env:STAFF_IDENTIFIER = 'your-staff-id'
-$env:STAFF_FIRST_NAME = 'Your'
-$env:STAFF_LAST_NAME = 'Name'
-$env:STAFF_EMAIL = 'your-address@example.test'
 $env:STAFF_PASSWORD = 'use-a-unique-long-password'
-npm run create:staff
-Remove-Item Env:STAFF_ROLE, Env:STAFF_IDENTIFIER, Env:STAFF_FIRST_NAME, Env:STAFF_LAST_NAME, Env:STAFF_EMAIL, Env:STAFF_PASSWORD
+npm run create-staff -- --role=admin --first-name=Your --last-name=Name --email=your-address@example.test
+Remove-Item Env:STAFF_PASSWORD
 ```
 
-The utility accepts only `instructor` or `admin`, requires a password of at least 12 characters, hashes it with bcrypt, uses parameterized SQL, and refuses to replace an existing account. Values above are placeholders, not application credentials. Do not add staff passwords to `.env`, source code, or version control.
+The utility also accepts `STAFF_FIRST_NAME`, `STAFF_LAST_NAME`, `STAFF_EMAIL`, and `STAFF_ROLE` environment values when command options are not supplied. It accepts only `instructor` or `admin`, requires a password of at least 12 characters, hashes it with the shared bcrypt service, creates no fake student number, and refuses to replace an existing account. Values above are placeholders, not application credentials. Do not add staff passwords to `.env`, command history, source code, or version control. After the first administrator signs in at `/staff/login`, additional staff accounts can be created from User Management.
 
 ## Development Commands
 
@@ -158,8 +153,9 @@ Run these commands from `server/`:
 | --- | --- |
 | `npm run dev` | Start the API with Node watch mode |
 | `npm start` | Start the API normally |
-| `npm run migrate` | Apply the persistent training-results migration |
-| `npm run create:staff` | Create one controlled instructor/admin account from environment values |
+| `npm run migrate` | Apply all numbered non-destructive database migrations |
+| `npm run create-staff` | Bootstrap one controlled instructor/admin account |
+| `npm run create:staff` | Backward-compatible alias for `create-staff` |
 | `npm test` | Run backend validation tests |
 
 ## Authentication API
@@ -170,19 +166,22 @@ All API responses use a consistent `success` field. Authentication requests that
 | --- | --- | --- | --- |
 | `GET` | `/api/health` | Public | Check API availability |
 | `POST` | `/api/auth/register` | Public | Create a student account |
-| `POST` | `/api/auth/login` | Public | Sign in by email or student number |
+| `POST` | `/api/auth/login` | Public | Sign in a student by email or student number |
+| `POST` | `/api/auth/staff/login` | Public | Sign in an instructor or administrator by email |
 | `GET` | `/api/auth/me` | Authenticated | Return the safe current-user profile |
 | `POST` | `/api/auth/logout` | Public | Clear the authentication cookie |
 
-Passwords are hashed with bcrypt and are never returned through the API. The server assigns the `student` role during public registration; client-provided role values are ignored.
+Passwords are hashed with bcrypt and are never returned through the API. The server assigns the `student` role during public registration; client-provided role values are ignored. The staff endpoint rejects student accounts, while the student endpoint directs valid staff accounts to the Staff Portal.
 
 ## Role Architecture
 
 - `student` accounts use the existing Dashboard, Training, Laboratory, Results, Profile, and Settings routes. Student training APIs remain self-only.
 - `instructor` accounts can read student educational records and aggregate training analytics.
-- `admin` accounts share the instructor analytics portal and are reserved for future account administration.
+- `admin` accounts share the instructor analytics portal and can manage account roles and active status from User Management.
+- Administrators can create instructor or administrator accounts; there is no public staff registration route.
 - Every instructor endpoint runs both `authenticate` and `authorize('instructor', 'admin')`. The React role guard improves navigation only; it is not the security boundary.
-- Instructor analytics are read-only. This sprint does not add account mutation, role promotion, result editing, or public staff registration.
+- Instructor analytics remain read-only. Admin mutations affect only `users.role` and `users.is_active`; they never edit training results or delete history.
+- Admin mutations run an additional `authorize('admin')` check. Administrators cannot change their own role or deactivate their current account.
 
 ## Training Results API
 
@@ -213,6 +212,10 @@ All endpoints require an active `instructor` or `admin` session. List endpoints 
 | `GET` | `/api/instructor/modules` | Module participation, score distribution, duration, and diagnostic metrics |
 | `GET` | `/api/instructor/results` | Filtered completed attempts across students |
 | `GET` | `/api/instructor/troubleshooting` | Six-scenario performance and difficulty ranking |
+| `GET` | `/api/instructor/users` | Admin-only paginated account list with search, role, and status filters |
+| `POST` | `/api/instructor/users/staff` | Admin-only instructor or administrator account creation |
+| `PATCH` | `/api/instructor/users/:userId/role` | Admin-only validated role change |
+| `PATCH` | `/api/instructor/users/:userId/status` | Admin-only account activation or deactivation |
 
 Student status uses an intentionally small policy: no attempts is **Not Started**; activity without all modules is **In Progress**; all active modules completed is **Completed**; and any completed module whose best score is below 70 is **Needs Practice**. Needs Practice takes precedence over Completed in the status breakdown. Average Overall Score is calculated from each student's average of best completed module scores.
 
@@ -237,20 +240,22 @@ Instructor/admin routes:
 - `/instructor/modules` - Module analytics
 - `/instructor/results` - Cross-student result history
 - `/instructor/troubleshooting` - Scenario analytics
+- `/instructor/users` - Admin-only user management
 - `/instructor/profile` - Staff profile
 
 Public routes:
 
-- `/login`
-- `/register`
+- `/login` - Student login
+- `/staff/login` - Instructor and administrator login
+- `/register` - Student registration only
 
-Unauthenticated visits to protected routes redirect to `/login`. Authenticated visits to public authentication routes redirect by role: students to `/`, and instructors/admins to `/instructor`. Role-mismatched visits show the Access Restricted route or redirect to the correct role home.
+Unauthenticated student-route visits redirect to `/login`; unauthenticated management-route visits redirect to `/staff/login`. Authenticated visits to public authentication routes redirect by role: students to `/`, and instructors/admins to `/instructor`. Role-mismatched visits show the Access Restricted route or redirect to the correct role home. Student logout returns to `/login`, while staff logout returns to `/staff/login`.
 
 ## Database Structure
 
 ### `users`
 
-Stores account identity, a bcrypt password hash, a server-controlled role, active status, and timestamps. The existing required `student_number` column stores a unique controlled staff identifier for instructor/admin accounts. Email and identifier are unique. Sprint 8 requires no schema or index changes.
+Stores account identity, a bcrypt password hash, a server-controlled role, active status, and timestamps. `student_number` remains unique and required by student registration but is nullable for instructor and administrator accounts. Staff accounts use their unique email identity and do not receive invented student numbers. Migration `003_staff_accounts.sql` makes this change without deleting or rewriting existing accounts.
 
 ### Training result persistence
 
@@ -265,6 +270,9 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 - Authorization reloads the active user and role from MySQL.
 - Instructor routes require the server-verified `instructor` or `admin` role and expose no password, cookie, or JWT fields.
 - Instructor analytics use parameterized filters and read-only queries; student-owned endpoints remain isolated by user ID.
+- Admin account mutations accept only `student`, `instructor`, or `admin` roles and explicit boolean status values.
+- Staff creation accepts only `instructor` or `admin`, validates unique email and a 12-character minimum password, and stores only the bcrypt hash.
+- Deactivation is a reversible `is_active` update. Foreign-key training history remains untouched, and inactive sessions are rejected on their next authenticated request.
 - The JWT is stored in the `telesim_session` HTTP-only cookie.
 - Cookies use `SameSite=Lax` and become secure automatically in production.
 - CORS never uses a wildcard when credentials are enabled.
@@ -285,7 +293,7 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 
 - MySQL credentials and a JWT secret must be configured locally before authentication can run.
 - In-progress attempts may remain when a student exits before completion; a later Begin Training action safely creates a new attempt.
-- Password reset, profile editing, and admin user-management actions are not included in this sprint.
+- Password reset, profile editing, permanent account deletion, and training-result editing are not included in this sprint.
 - Analytics must be compared with the corresponding local records in phpMyAdmin before being treated as production-verified. The optional database integration suite can seed and remove isolated test students with `RUN_DB_INTEGRATION=1 npm test`.
 - The production build still reports non-blocking large-chunk warnings for the 3D and physics bundles.
 

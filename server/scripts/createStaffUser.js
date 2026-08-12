@@ -1,88 +1,44 @@
-import bcrypt from 'bcryptjs'
 import { databasePool } from '../src/config/database.js'
+import { createStaffAccount } from '../src/services/adminService.js'
+import { validateStaffAccountInput } from '../src/utils/adminValidation.js'
 
-const PASSWORD_HASH_ROUNDS = 12
-const ALLOWED_STAFF_ROLES = new Set(['instructor', 'admin'])
+function readArgument(name) {
+  const prefix = `--${name}=`
+  const argument = process.argv.slice(2).find((value) => value.startsWith(prefix))
+  return argument ? argument.slice(prefix.length).trim() : ''
+}
 
-function requireValue(name) {
-  const value = process.env[name]?.trim()
-
+function requireValue(value, label) {
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`)
+    throw new Error(`Missing required staff value: ${label}`)
   }
-
   return value
 }
 
 function readStaffInput() {
-  const role = requireValue('STAFF_ROLE').toLowerCase()
-  const identifier = requireValue('STAFF_IDENTIFIER')
-  const firstName = requireValue('STAFF_FIRST_NAME')
-  const lastName = requireValue('STAFF_LAST_NAME')
-  const email = requireValue('STAFF_EMAIL').toLowerCase()
-  const password = requireValue('STAFF_PASSWORD')
+  const input = {
+    firstName: readArgument('first-name') || process.env.STAFF_FIRST_NAME,
+    lastName: readArgument('last-name') || process.env.STAFF_LAST_NAME,
+    email: readArgument('email') || process.env.STAFF_EMAIL,
+    role: readArgument('role') || process.env.STAFF_ROLE,
+    password: process.env.STAFF_PASSWORD,
+  }
+  Object.entries(input).forEach(([key, value]) => requireValue(value, key))
+  const validation = validateStaffAccountInput(input)
 
-  if (!ALLOWED_STAFF_ROLES.has(role)) {
-    throw new Error('STAFF_ROLE must be instructor or admin.')
+  if (!validation.isValid) {
+    throw new Error(Object.values(validation.errors).join(' '))
   }
 
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$/.test(identifier)) {
-    throw new Error(
-      'STAFF_IDENTIFIER must be 3-32 characters using letters, numbers, dots, underscores, or hyphens.',
-    )
-  }
-
-  if (firstName.length > 80 || lastName.length > 80) {
-    throw new Error('Staff first and last names must be 80 characters or fewer.')
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
-    throw new Error('STAFF_EMAIL must be a valid email address.')
-  }
-
-  if (password.length < 12 || password.length > 128) {
-    throw new Error('STAFF_PASSWORD must be between 12 and 128 characters.')
-  }
-
-  return { role, identifier, firstName, lastName, email, password }
+  return validation.values
 }
 
 async function createStaffUser() {
   const input = readStaffInput()
-  const [existingUsers] = await databasePool.execute(
-    `SELECT id
-     FROM users
-     WHERE student_number = ? OR email = ?
-     LIMIT 1`,
-    [input.identifier, input.email],
-  )
-
-  if (existingUsers.length) {
-    throw new Error(
-      'A user with that staff identifier or email already exists. No account was changed.',
-    )
-  }
-
-  const passwordHash = await bcrypt.hash(
-    input.password,
-    PASSWORD_HASH_ROUNDS,
-  )
-  const [result] = await databasePool.execute(
-    `INSERT INTO users
-      (student_number, first_name, last_name, email, password_hash, role)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      input.identifier,
-      input.firstName,
-      input.lastName,
-      input.email,
-      passwordHash,
-      input.role,
-    ],
-  )
+  const user = await createStaffAccount(input)
 
   console.log(
-    `Created ${input.role} account ${input.identifier} with user ID ${result.insertId}.`,
+    `Created ${user.role} account ${user.email} with user ID ${user.id}.`,
   )
 }
 

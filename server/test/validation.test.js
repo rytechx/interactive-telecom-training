@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   validateLoginInput,
   validateRegistrationInput,
+  validateStaffLoginInput,
 } from '../src/utils/validation.js'
 
 test('registration validation normalizes safe student input', () => {
@@ -13,11 +14,13 @@ test('registration validation normalizes safe student input', () => {
     email: ' STUDENT@Test.Local ',
     password: 'training123',
     confirmPassword: 'training123',
+    role: 'admin',
   })
 
   assert.equal(result.isValid, true)
   assert.equal(result.values.studentNumber, '2026-0001')
   assert.equal(result.values.email, 'student@test.local')
+  assert.equal(result.values.role, undefined)
 })
 
 test('registration validation rejects mismatched short passwords', () => {
@@ -56,4 +59,18 @@ test('login validation requires both identifier and password', () => {
   assert.equal(result.isValid, false)
   assert.ok(result.errors.identifier)
   assert.ok(result.errors.password)
+})
+
+test('staff login validation requires a valid email and password', () => {
+  const valid = validateStaffLoginInput({
+    email: ' STAFF@TEST.LOCAL ',
+    password: 'staff-password',
+  })
+  const invalid = validateStaffLoginInput({ email: 'not-an-email' })
+
+  assert.equal(valid.isValid, true)
+  assert.equal(valid.values.identifier, 'staff@test.local')
+  assert.equal(invalid.isValid, false)
+  assert.ok(invalid.errors.email)
+  assert.ok(invalid.errors.password)
 })

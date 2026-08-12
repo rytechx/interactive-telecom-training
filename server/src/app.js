@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: environment.clientOrigin,
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
   }),
 )

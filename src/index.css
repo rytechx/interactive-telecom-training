@@ -5090,6 +5090,53 @@ summary:focus-visible {
   color: #b4edf8;
 }
 
+.student-login-links {
+  display: grid;
+  gap: 9px;
+}
+
+.auth-card > footer .auth-staff-link {
+  color: #607983;
+  font-size: 8.5px;
+}
+
+.auth-card > footer .auth-staff-link a {
+  margin-left: 3px;
+  color: #7fa8b3;
+}
+
+.auth-page.is-staff {
+  background:
+    radial-gradient(circle at 14% 10%, rgb(35 159 192 / 13%), transparent 32%),
+    #070c12;
+}
+
+.auth-page.is-staff .auth-brand-panel {
+  background:
+    linear-gradient(rgb(75 202 231 / 2.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(75 202 231 / 2.5%) 1px, transparent 1px),
+    linear-gradient(145deg, #10202c, #080d14 74%);
+  background-size: 38px 38px, 38px 38px, auto;
+  border-right-color: rgb(77 199 227 / 18%);
+}
+
+.auth-page.is-staff .auth-form-region {
+  background:
+    radial-gradient(circle at 100% 0%, rgb(46 153 183 / 11%), transparent 40%),
+    #0a1017;
+}
+
+.auth-page.is-staff .auth-card {
+  background: linear-gradient(150deg, rgb(25 36 46 / 98%), rgb(12 19 27 / 99%));
+  border-color: rgb(92 204 232 / 22%);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 42%);
+}
+
+.auth-page.is-staff .auth-brand small,
+.auth-page.is-staff .auth-card > header > span {
+  color: #70d7ef;
+}
+
 .auth-loading-screen {
   display: grid;
   align-content: center;
@@ -6939,5 +6986,287 @@ html.settings-hide-hover-labels .network-object-tooltip {
 
   .instructor-module-analytics-grid > button {
     transition: none;
+  }
+}
+
+/* Administrator account management */
+.instructor-results-filters {
+  grid-template-columns: minmax(180px, 1.2fr) repeat(6, minmax(112px, 0.7fr));
+}
+
+.admin-users-table {
+  min-width: 1120px;
+}
+
+.admin-create-staff-button {
+  min-height: 36px;
+  padding: 0 13px;
+  color: #071b22;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  background: #66cee7;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgb(43 157 188 / 17%);
+}
+
+.admin-create-staff-button:hover {
+  background: #83dff2;
+}
+
+.admin-role-label {
+  color: #c9dce0;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.admin-user-actions select {
+  min-height: 31px;
+  padding: 0 26px 0 8px;
+  color: #d5e6e9;
+  font: inherit;
+  font-size: 9px;
+  background: #0a1a20;
+  border: 1px solid rgb(111 184 205 / 19%);
+  border-radius: 6px;
+  color-scheme: dark;
+}
+
+.admin-user-actions button.is-activate {
+  color: #8ce5b7;
+  border-color: rgb(71 185 127 / 25%);
+}
+
+.admin-user-actions button.is-deactivate {
+  color: #f1c473;
+  border-color: rgb(210 151 52 / 25%);
+}
+
+.admin-user-actions button:disabled,
+.admin-user-actions select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.admin-current-account {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  color: #75d2e9;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  background: rgb(62 166 196 / 8%);
+  border: 1px solid rgb(77 187 218 / 18%);
+  border-radius: 999px;
+}
+
+.admin-action-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  color: #8de3b7;
+  font-size: 9px;
+  background: rgb(50 151 100 / 8%);
+  border: 1px solid rgb(65 184 124 / 18%);
+  border-radius: 7px;
+}
+
+.admin-action-message.is-error {
+  color: #ef9da4;
+  background: rgb(175 68 77 / 8%);
+  border-color: rgb(190 75 85 / 19%);
+}
+
+.admin-action-message button {
+  padding: 5px 8px;
+  color: inherit;
+  font: inherit;
+  font-weight: 750;
+  background: transparent;
+  border: 1px solid currentcolor;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  padding: 20px;
+  background: rgb(2 8 11 / 76%);
+  backdrop-filter: blur(3px);
+  place-items: center;
+}
+
+.admin-confirm-dialog {
+  box-sizing: border-box;
+  width: min(430px, 100%);
+  padding: 24px;
+  color: #8da5ae;
+  background: #0d2027;
+  border: 1px solid rgb(98 197 224 / 26%);
+  border-radius: 10px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 42%);
+}
+
+.admin-confirm-dialog > span {
+  color: #63cee9;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-confirm-dialog h2 {
+  margin: 7px 0 8px;
+  color: #e1edef;
+  font-size: 19px;
+}
+
+.admin-confirm-dialog p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.admin-confirm-dialog > div:not(.admin-dialog-error) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.admin-create-staff-dialog {
+  width: min(650px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+
+.admin-create-staff-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 20px;
+}
+
+.admin-create-staff-form .field-full {
+  grid-column: 1 / -1;
+}
+
+.admin-create-staff-form select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  color: #e9f3f5;
+  font: inherit;
+  font-size: 12px;
+  background: rgb(5 15 20 / 64%);
+  border: 1px solid rgb(126 179 195 / 16%);
+  border-radius: 7px;
+  color-scheme: dark;
+}
+
+.admin-create-staff-dialog .password-input-wrap button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  padding: 6px 7px;
+  color: #77cbe2;
+  background: transparent;
+  border: 0;
+  transform: translateY(-50%);
+}
+
+.admin-create-staff-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.admin-confirm-dialog .admin-dialog-error {
+  display: block;
+  margin-top: 13px;
+  padding: 9px 10px;
+  color: #ef9da4;
+  font-size: 9px;
+  background: rgb(175 68 77 / 8%);
+  border: 1px solid rgb(190 75 85 / 19%);
+  border-radius: 6px;
+}
+
+.admin-confirm-dialog button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.admin-confirm-dialog button {
+  padding: 9px 12px;
+  color: #bfeef8;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  background: rgb(69 174 204 / 10%);
+  border: 1px solid rgb(88 192 221 / 24%);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.admin-confirm-dialog button.is-warning {
+  color: #f1c473;
+  background: rgb(194 132 34 / 9%);
+  border-color: rgb(210 151 52 / 24%);
+}
+
+.instructor-page button:focus-visible,
+.instructor-page input:focus-visible,
+.instructor-page select:focus-visible,
+.instructor-sidebar button:focus-visible,
+.instructor-sidebar a:focus-visible,
+.admin-confirm-dialog button:focus-visible {
+  outline: 2px solid #69d3ed;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1250px) {
+  .instructor-results-filters {
+    grid-template-columns: repeat(4, minmax(145px, 1fr));
+  }
+}
+
+@media (max-width: 880px) {
+  .instructor-results-filters {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .instructor-results-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-create-staff-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-create-staff-form .field-full {
+    grid-column: auto;
   }
 }

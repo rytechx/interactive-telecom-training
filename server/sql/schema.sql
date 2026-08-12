@@ -6,7 +6,7 @@ USE telesim3d;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  student_number VARCHAR(32) NOT NULL,
+  student_number VARCHAR(32) NULL,
   first_name VARCHAR(80) NOT NULL,
   last_name VARCHAR(80) NOT NULL,
   email VARCHAR(254) NOT NULL,

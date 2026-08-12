@@ -14,6 +14,7 @@ if (!runIntegration) {
   const {
     getInstructorModuleAnalytics,
     getInstructorOverview,
+    getInstructorResults,
     getInstructorStudentDetail,
     getInstructorStudents,
     getInstructorTroubleshootingAnalytics,
@@ -70,7 +71,10 @@ if (!runIntegration) {
          COUNT(DISTINCT CASE WHEN a.status = 'completed' THEN a.user_id END)
            AS students_completed,
          ROUND(AVG(CASE WHEN a.status = 'completed' THEN a.score END), 1)
-           AS average_score
+           AS average_score,
+         ROUND(AVG(
+           CASE WHEN a.status = 'completed' THEN a.procedure_accuracy END
+         ), 1) AS average_procedure_accuracy
        FROM training_attempts a
        INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
        INNER JOIN training_modules m ON m.id = a.module_id
@@ -105,9 +109,11 @@ if (!runIntegration) {
     })
     await completeModule(studentA.id, 'fiber', 84, {
       mistakes: 2,
+      wrongToolSelections: 1,
       spliceLossDb: 0.04,
       alignment: 'PASS',
       fusion: 'PASS',
+      protection: 'PASS',
       finalInspection: 'PASS',
     })
     const networkAttempt = await completeModule(studentB.id, 'network', 65, {
@@ -168,6 +174,19 @@ if (!runIntegration) {
     assert.ok(overview.recentActivity.some((item) => item.studentId === studentA.id))
     assert.ok(overview.recentActivity.some((item) => item.studentId === studentB.id))
 
+    const outstandingResults = await getInstructorResults({
+      search: marker,
+      moduleKey: null,
+      scoreBand: null,
+      performanceRating: 'Outstanding',
+      fromDate: null,
+      toDate: null,
+      page: 1,
+      limit: 20,
+    })
+    assert.equal(outstandingResults.attempts.length, 1)
+    assert.equal(outstandingResults.attempts[0].score, 96)
+
     const moduleAnalytics = await getInstructorModuleAnalytics()
     for (const moduleKey of ['rj45', 'fiber', 'network']) {
       const actual = moduleAnalytics.modules.find(
@@ -180,6 +199,17 @@ if (!runIntegration) {
       assert.equal(actual.studentsCompleted, Number(expected.students_completed))
       assert.equal(actual.averageScore, Number(expected.average_score))
       assert.equal(actual.averageBestScore, Number(expected.average_best_score))
+      assert.equal(
+        overview.modules.find((module) => module.moduleKey === moduleKey)
+          .totalAttempts,
+        Number(expected.total_attempts),
+      )
+      if (moduleKey !== 'network') {
+        assert.equal(
+          actual.diagnostics.averageProcedureAccuracy,
+          Number(expected.average_procedure_accuracy),
+        )
+      }
       assert.equal(
         actual.scoreDistribution.reduce((total, band) => total + band.total, 0),
         Number(expected.completed_attempts),
@@ -195,6 +225,7 @@ if (!runIntegration) {
          COUNT(DISTINCT a.user_id) AS students_attempted,
          ROUND(AVG(r.score), 1) AS average_score,
          ROUND(AVG(r.diagnosis_attempts), 1) AS average_diagnosis_attempts,
+         ROUND(AVG(r.repair_attempts), 1) AS average_repair_attempts,
          ROUND(AVG(r.hints_used), 1) AS average_hints_used
        FROM network_scenario_results r
        INNER JOIN training_attempts a ON a.id = r.attempt_id
@@ -207,6 +238,10 @@ if (!runIntegration) {
     assert.equal(
       scenario.averageDiagnosisAttempts,
       Number(scenarioRows[0].average_diagnosis_attempts),
+    )
+    assert.equal(
+      scenario.averageRepairAttempts,
+      Number(scenarioRows[0].average_repair_attempts),
     )
     assert.equal(scenario.averageHintsUsed, Number(scenarioRows[0].average_hints_used))
   })

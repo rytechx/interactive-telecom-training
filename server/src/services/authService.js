@@ -1,12 +1,12 @@
-import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { databasePool } from '../config/database.js'
 import environment from '../config/environment.js'
 import HttpError from '../utils/HttpError.js'
+import { hashPassword, verifyPassword } from '../utils/passwordSecurity.js'
 
-const PASSWORD_HASH_ROUNDS = 12
 const INVALID_CREDENTIALS_MESSAGE =
   'Invalid email/student number or password.'
+const STAFF_ROLES = Object.freeze(['instructor', 'admin'])
 
 function mapSafeUser(user) {
   return {
@@ -56,7 +56,7 @@ async function registerStudent({
     )
   }
 
-  const passwordHash = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS)
+  const passwordHash = await hashPassword(password)
 
   try {
     const [result] = await databasePool.execute(
@@ -88,7 +88,15 @@ async function registerStudent({
   }
 }
 
-async function authenticateUser({ identifier, password }) {
+async function authenticateUser(
+  { identifier, password },
+  {
+    allowedRoles,
+    invalidCredentialsMessage = INVALID_CREDENTIALS_MESSAGE,
+    roleErrorMessage,
+    roleErrorCode,
+  } = {},
+) {
   const [users] = await databasePool.execute(
     `SELECT id, student_number, first_name, last_name, email,
             password_hash, role, is_active
@@ -99,15 +107,36 @@ async function authenticateUser({ identifier, password }) {
   )
   const user = users[0]
 
-  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    throw new HttpError(401, INVALID_CREDENTIALS_MESSAGE, 'INVALID_CREDENTIALS')
+  if (!user || !(await verifyPassword(password, user.password_hash))) {
+    throw new HttpError(401, invalidCredentialsMessage, 'INVALID_CREDENTIALS')
   }
 
   if (!user.is_active) {
     throw new HttpError(403, 'This account is inactive.', 'ACCOUNT_INACTIVE')
   }
 
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    throw new HttpError(403, roleErrorMessage, roleErrorCode)
+  }
+
   return mapSafeUser(user)
+}
+
+function authenticateStudent(credentials) {
+  return authenticateUser(credentials, {
+    allowedRoles: ['student'],
+    roleErrorMessage: 'Use the Staff Portal to sign in to this account.',
+    roleErrorCode: 'STUDENT_ACCESS_REQUIRED',
+  })
+}
+
+function authenticateStaff(credentials) {
+  return authenticateUser(credentials, {
+    allowedRoles: STAFF_ROLES,
+    invalidCredentialsMessage: 'Invalid staff email or password.',
+    roleErrorMessage: 'This account does not have staff access.',
+    roleErrorCode: 'STAFF_ACCESS_REQUIRED',
+  })
 }
 
 async function getUserById(userId) {
@@ -138,6 +167,8 @@ function verifySessionToken(token) {
 }
 
 export {
+  authenticateStaff,
+  authenticateStudent,
   authenticateUser,
   createSessionToken,
   getUserById,

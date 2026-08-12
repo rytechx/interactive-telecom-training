@@ -6,6 +6,7 @@ import useInstructorStore from '../store/useInstructorStore.js'
 import { formatDuration, formatScore } from '../utils/instructorFormatters.js'
 
 const diagnosticLabels = Object.freeze({
+  averageProcedureAccuracy: 'Average Procedure Accuracy',
   averageMistakes: 'Average Mistakes',
   averageWrongToolSelections: 'Wrong Tool Selections',
   averageT568BValidationAttempts: 'T568B Validation Attempts',
@@ -14,6 +15,7 @@ const diagnosticLabels = Object.freeze({
   averageSpliceLoss: 'Average Splice Loss',
   alignmentPassRate: 'Alignment PASS Rate',
   fusionPassRate: 'Fusion PASS Rate',
+  protectionPassRate: 'Protection PASS Rate',
   finalInspectionPassRate: 'Final Inspection PASS Rate',
   configurationCompletionRate: 'Configuration Completion',
   pcToRouterPassRate: 'PC to Router PASS Rate',
@@ -25,7 +27,12 @@ const diagnosticLabels = Object.freeze({
 function formatDiagnostic(key, value) {
   if (!Number.isFinite(value)) return 'Not available'
   if (key === 'averageSpliceLoss') return `${value.toFixed(2)} dB`
-  if (key.toLowerCase().includes('rate')) return `${formatScore(value)}%`
+  if (
+    key.toLowerCase().includes('rate') ||
+    key === 'averageProcedureAccuracy'
+  ) {
+    return `${formatScore(value)}%`
+  }
   return formatScore(value)
 }
 

@@ -5,6 +5,7 @@ import RoleRoute from '../components/auth/RoleRoute.jsx'
 import ApplicationShell from '../components/layout/ApplicationShell.jsx'
 import InstructorShell from '../components/layout/InstructorShell.jsx'
 import AccessRestrictedPage from '../pages/AccessRestrictedPage.jsx'
+import AdminUsersPage from '../pages/AdminUsersPage.jsx'
 import DashboardPage from '../pages/DashboardPage.jsx'
 import InstructorModulesPage from '../pages/InstructorModulesPage.jsx'
 import InstructorOverviewPage from '../pages/InstructorOverviewPage.jsx'
@@ -17,6 +18,7 @@ import ProfilePage from '../pages/ProfilePage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
 import ResultsPage from '../pages/ResultsPage.jsx'
 import SettingsPage from '../pages/SettingsPage.jsx'
+import StaffLoginPage from '../pages/StaffLoginPage.jsx'
 import TelecomLabPage from '../pages/TelecomLabPage.jsx'
 import TrainingModulesPage from '../pages/TrainingModulesPage.jsx'
 import { STAFF_ROLES } from '../utils/roleRoutes.js'
@@ -26,6 +28,7 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<PublicOnlyRoute />}>
         <Route path="login" element={<LoginPage />} />
+        <Route path="staff/login" element={<StaffLoginPage />} />
         <Route path="register" element={<RegisterPage />} />
       </Route>
 
@@ -43,6 +46,9 @@ export default function AppRoutes() {
           <Route path="lab" element={<TelecomLabPage />} />
         </Route>
 
+      </Route>
+
+      <Route element={<ProtectedRoute loginPath="/staff/login" />}>
         <Route element={<RoleRoute allowedRoles={STAFF_ROLES} />}>
           <Route path="instructor" element={<InstructorShell />}>
             <Route index element={<InstructorOverviewPage />} />
@@ -57,6 +63,9 @@ export default function AppRoutes() {
               path="troubleshooting"
               element={<InstructorTroubleshootingPage />}
             />
+            <Route element={<RoleRoute allowedRoles={['admin']} />}>
+              <Route path="users" element={<AdminUsersPage />} />
+            </Route>
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>

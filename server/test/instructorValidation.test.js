@@ -48,6 +48,7 @@ test('attempt filters validate score bands and calendar date ranges', () => {
   assert.deepEqual(
     parseAttemptListQuery({
       scoreBand: '85_94',
+      performance: 'excellent',
       fromDate: '2026-08-01',
       toDate: '2026-08-10',
     }),
@@ -58,9 +59,14 @@ test('attempt filters validate score bands and calendar date ranges', () => {
       page: 1,
       limit: 20,
       scoreBand: '85_94',
+      performanceRating: 'Excellent',
       fromDate: '2026-08-01',
       toDate: '2026-08-10',
     },
+  )
+  assert.throws(
+    () => parseAttemptListQuery({ performance: 'unknown' }),
+    { code: 'INVALID_PERFORMANCE' },
   )
   assert.throws(
     () => parseAttemptListQuery({ fromDate: '2026-02-30' }),

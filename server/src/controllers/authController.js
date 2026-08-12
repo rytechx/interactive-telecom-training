@@ -1,12 +1,14 @@
 import environment from '../config/environment.js'
 import {
-  authenticateUser,
+  authenticateStaff,
+  authenticateStudent,
   createSessionToken,
   registerStudent,
 } from '../services/authService.js'
 import {
   validateLoginInput,
   validateRegistrationInput,
+  validateStaffLoginInput,
 } from '../utils/validation.js'
 
 function getSessionCookieOptions() {
@@ -57,21 +59,45 @@ async function login(request, response, next) {
   }
 
   try {
-    const user = await authenticateUser(validation.values)
-    const token = createSessionToken(user)
-
-    response.cookie(
-      environment.sessionCookieName,
-      token,
-      getSessionCookieOptions(),
-    )
-    response.json({
-      success: true,
-      data: { user },
-    })
+    const user = await authenticateStudent(validation.values)
+    establishSession(response, user)
   } catch (error) {
     next(error)
   }
+}
+
+async function staffLogin(request, response, next) {
+  const validation = validateStaffLoginInput(request.body)
+
+  if (!validation.isValid) {
+    response.status(400).json({
+      success: false,
+      message: 'Enter your staff email and password.',
+      errors: validation.errors,
+    })
+    return
+  }
+
+  try {
+    const user = await authenticateStaff(validation.values)
+    establishSession(response, user)
+  } catch (error) {
+    next(error)
+  }
+}
+
+function establishSession(response, user) {
+  const token = createSessionToken(user)
+
+  response.cookie(
+    environment.sessionCookieName,
+    token,
+    getSessionCookieOptions(),
+  )
+  response.json({
+    success: true,
+    data: { user },
+  })
 }
 
 function currentUser(request, response) {
@@ -97,4 +123,4 @@ function logout(request, response) {
   })
 }
 
-export { currentUser, login, logout, register }
+export { currentUser, login, logout, register, staffLogin }

@@ -93,6 +93,7 @@ export default function InstructorOverviewPage() {
                 <small>
                   Average Best Score: {formatScore(module.averageBestScore)}
                 </small>
+                <small>Total Attempts: {module.totalAttempts}</small>
               </article>
             ))}
           </div>
@@ -135,7 +136,10 @@ export default function InstructorOverviewPage() {
               <article key={attempt.attemptId}>
                 <div>
                   <strong>{attempt.studentName}</strong>
-                  <span>Completed {attempt.moduleName}</span>
+                  <span>
+                    Completed {attempt.moduleName} &middot;{' '}
+                    {attempt.performanceRating ?? 'Not available'}
+                  </span>
                 </div>
                 <b>{formatScore(attempt.score, '%')}</b>
                 <time dateTime={attempt.completedAt}>

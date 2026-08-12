@@ -6,11 +6,18 @@ export default function AuthLayout({
   description,
   children,
   footer,
+  variant = 'student',
 }) {
+  const isStaff = variant === 'staff'
+
   return (
-    <div className="auth-page">
+    <div className={`auth-page${isStaff ? ' is-staff' : ''}`}>
       <section className="auth-brand-panel" aria-label="TeleSim 3D platform">
-        <Link className="auth-brand" to="/login" aria-label="TeleSim 3D login">
+        <Link
+          className="auth-brand"
+          to={isStaff ? '/staff/login' : '/login'}
+          aria-label={`TeleSim 3D ${isStaff ? 'staff' : 'student'} login`}
+        >
           <span className="application-brand-mark" aria-hidden="true">
             <i />
             <i />
@@ -18,16 +25,21 @@ export default function AuthLayout({
           </span>
           <span>
             <strong>TeleSim 3D</strong>
-            <small>Telecom Training Platform</small>
+            <small>{isStaff ? 'Staff Portal' : 'Telecom Training Platform'}</small>
           </span>
         </Link>
 
         <div className="auth-brand-copy">
-          <span>Interactive Technical Education</span>
-          <h1>Build practical telecom skills in a secure virtual laboratory.</h1>
+          <span>{isStaff ? 'Instructor & Administration' : 'Interactive Technical Education'}</span>
+          <h1>
+            {isStaff
+              ? 'Manage training delivery through a secure staff workspace.'
+              : 'Build practical telecom skills in a secure virtual laboratory.'}
+          </h1>
           <p>
-            Practice copper cabling, fiber optic splicing, network installation,
-            CLI configuration, and structured troubleshooting scenarios.
+            {isStaff
+              ? 'Review student performance, training outcomes, module diagnostics, and authorized account administration.'
+              : 'Practice copper cabling, fiber optic splicing, network installation, CLI configuration, and structured troubleshooting scenarios.'}
           </p>
         </div>
 
@@ -40,13 +52,13 @@ export default function AuthLayout({
           <span className="auth-link link-two" />
           <span className="auth-link link-three" />
           <span className="auth-link link-four" />
-          <strong>Virtual Lab Online</strong>
+          <strong>{isStaff ? 'Staff Systems Online' : 'Virtual Lab Online'}</strong>
         </div>
 
         <div className="auth-capabilities" aria-label="Training capabilities">
-          <span>Guided Procedures</span>
-          <span>Practical Assessments</span>
-          <span>Network Troubleshooting</span>
+          <span>{isStaff ? 'Student Oversight' : 'Guided Procedures'}</span>
+          <span>{isStaff ? 'Training Analytics' : 'Practical Assessments'}</span>
+          <span>{isStaff ? 'Role Protected' : 'Network Troubleshooting'}</span>
         </div>
       </section>
 

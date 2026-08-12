@@ -188,6 +188,7 @@ function createPagination(page, limit, totalItems) {
   return {
     page,
     limit,
+    total: totalItems,
     totalItems,
     totalPages: Math.max(1, Math.ceil(totalItems / limit)),
   }
@@ -245,6 +246,7 @@ async function getInstructorOverview() {
            m.module_key,
            m.name AS module_name,
            totals.total_students,
+           COALESCE(attempt_totals.total_attempts, 0) AS total_attempts,
            COUNT(module_best.user_id) AS students_completed,
            CASE
              WHEN totals.total_students = 0 THEN 0
@@ -260,6 +262,12 @@ async function getInstructorOverview() {
            WHERE role = 'student'
          ) totals
          LEFT JOIN (
+           SELECT a.module_id, COUNT(*) AS total_attempts
+           FROM training_attempts a
+           INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+           GROUP BY a.module_id
+         ) attempt_totals ON attempt_totals.module_id = m.id
+         LEFT JOIN (
            SELECT a.module_id, a.user_id, MAX(a.score) AS best_score
            FROM training_attempts a
            INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
@@ -271,7 +279,8 @@ async function getInstructorOverview() {
            m.id,
            m.module_key,
            m.name,
-           totals.total_students
+           totals.total_students,
+           attempt_totals.total_attempts
          ORDER BY m.id`,
       ),
       databasePool.execute(
@@ -331,6 +340,7 @@ async function getInstructorOverview() {
       moduleName: row.module_name,
       studentsCompleted: Number(row.students_completed),
       totalStudents: Number(row.total_students),
+      totalAttempts: Number(row.total_attempts),
       completionRate: Number(row.completion_rate),
       averageBestScore: toNumber(row.average_best_score),
     })),
@@ -647,6 +657,7 @@ function passRate(rows, metricName) {
 function aggregateModuleDiagnostics(moduleKey, rows, scenarioSummary) {
   if (moduleKey === 'rj45') {
     return {
+      averageProcedureAccuracy: averageMetric(rows, 'procedureAccuracy'),
       averageMistakes: averageMetric(rows, 'mistakes'),
       averageWrongToolSelections: averageMetric(rows, 'wrongToolSelections'),
       averageT568BValidationAttempts: averageMetric(
@@ -659,11 +670,14 @@ function aggregateModuleDiagnostics(moduleKey, rows, scenarioSummary) {
 
   if (moduleKey === 'fiber') {
     return {
+      averageProcedureAccuracy: averageMetric(rows, 'procedureAccuracy'),
       averageMistakes: averageMetric(rows, 'mistakes'),
+      averageWrongToolSelections: averageMetric(rows, 'wrongToolSelections'),
       averagePreparationErrors: averageMetric(rows, 'preparationErrors'),
       averageSpliceLoss: averageMetric(rows, 'spliceLossDb'),
       alignmentPassRate: passRate(rows, 'alignment'),
       fusionPassRate: passRate(rows, 'fusion'),
+      protectionPassRate: passRate(rows, 'protection'),
       finalInspectionPassRate: passRate(rows, 'finalInspection'),
     }
   }
@@ -775,7 +789,7 @@ async function getInstructorModuleAnalytics() {
          GROUP BY m.module_key, score_band`,
       ),
       databasePool.execute(
-        `SELECT m.module_key, a.metrics_json
+        `SELECT m.module_key, a.procedure_accuracy, a.metrics_json
          FROM training_attempts a
          INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
          INNER JOIN training_modules m ON m.id = a.module_id
@@ -796,7 +810,12 @@ async function getInstructorModuleAnalytics() {
     modules: moduleRows.map((row) => {
       const moduleMetrics = metricRows
         .filter((metric) => metric.module_key === row.module_key)
-        .map((metric) => ({ metrics: parseJson(metric.metrics_json) }))
+        .map((metric) => ({
+          metrics: {
+            ...parseJson(metric.metrics_json),
+            procedureAccuracy: toNumber(metric.procedure_accuracy),
+          },
+        }))
       const bandCounts = Object.fromEntries(
         distributionRows
           .filter((item) => item.module_key === row.module_key)
@@ -841,6 +860,7 @@ async function getInstructorResults({
   search,
   moduleKey,
   scoreBand,
+  performanceRating,
   fromDate,
   toDate,
   page,
@@ -873,6 +893,11 @@ async function getInstructorResults({
   }
 
   addScoreBandCondition(scoreBand, conditions)
+
+  if (performanceRating) {
+    conditions.push('a.performance_rating = ?')
+    parameters.push(performanceRating)
+  }
 
   if (fromDate) {
     conditions.push('a.completed_at >= ?')
@@ -947,6 +972,7 @@ async function getInstructorTroubleshootingAnalytics() {
          ROUND(AVG(r.diagnosis_attempts), 1) AS average_diagnosis_attempts,
          ROUND(AVG(r.incorrect_diagnosis_attempts), 1)
            AS average_incorrect_diagnoses,
+         ROUND(AVG(r.repair_attempts), 1) AS average_repair_attempts,
          ROUND(AVG(r.hints_used), 1) AS average_hints_used
        FROM network_scenario_results r
        INNER JOIN training_attempts a ON a.id = r.attempt_id
@@ -973,6 +999,7 @@ async function getInstructorTroubleshootingAnalytics() {
       averageCompletionTime: toNumber(row?.average_completion_time),
       averageDiagnosisAttempts: toNumber(row?.average_diagnosis_attempts),
       averageIncorrectDiagnoses: toNumber(row?.average_incorrect_diagnoses),
+      averageRepairAttempts: toNumber(row?.average_repair_attempts),
       averageHintsUsed: toNumber(row?.average_hints_used),
       completionRate: totalNetworkAttempts
         ? round((attemptsCompleted / totalNetworkAttempts) * 100)

@@ -15,6 +15,14 @@ const SCORE_BANDS = Object.freeze([
   '95_100',
 ])
 const PAGE_LIMITS = Object.freeze([20, 50])
+const PERFORMANCE_RATINGS = Object.freeze({
+  outstanding: 'Outstanding',
+  excellent: 'Excellent',
+  very_good: 'Very Good',
+  good: 'Good',
+  needs_practice: 'Needs Practice',
+  repeat_training: 'Repeat Training',
+})
 
 function parsePositiveId(value, label = 'Record') {
   const parsedValue = Number.parseInt(value, 10)
@@ -125,6 +133,7 @@ function parseAttemptListQuery(query = {}) {
   })
   const moduleKey = normalizeOptionalValue(query.module)
   const scoreBand = normalizeOptionalValue(query.scoreBand)
+  const performanceKey = normalizeOptionalValue(query.performance)
 
   if (moduleKey && !MODULE_KEYS.includes(moduleKey)) {
     throw new HttpError(400, 'Module filter is invalid.', 'INVALID_MODULE')
@@ -132,6 +141,14 @@ function parseAttemptListQuery(query = {}) {
 
   if (scoreBand && !SCORE_BANDS.includes(scoreBand)) {
     throw new HttpError(400, 'Score range is invalid.', 'INVALID_SCORE_RANGE')
+  }
+
+  if (performanceKey && !PERFORMANCE_RATINGS[performanceKey]) {
+    throw new HttpError(
+      400,
+      'Performance filter is invalid.',
+      'INVALID_PERFORMANCE',
+    )
   }
 
   const fromDate = parseDate(query.fromDate, 'Start date')
@@ -149,6 +166,9 @@ function parseAttemptListQuery(query = {}) {
     ...filters,
     moduleKey,
     scoreBand,
+    performanceRating: performanceKey
+      ? PERFORMANCE_RATINGS[performanceKey]
+      : null,
     fromDate,
     toDate,
   }
@@ -158,6 +178,7 @@ export {
   INSTRUCTOR_ROLES,
   MODULE_KEYS,
   PAGE_LIMITS,
+  PERFORMANCE_RATINGS,
   SCORE_BANDS,
   STUDENT_STATUSES,
   parseAttemptListQuery,

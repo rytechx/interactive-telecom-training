@@ -1,0 +1,2 @@
+ALTER TABLE users
+  MODIFY COLUMN student_number VARCHAR(32) NULL;

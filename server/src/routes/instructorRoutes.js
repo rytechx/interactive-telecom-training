@@ -1,5 +1,11 @@
 import { Router } from 'express'
 import {
+  createStaff,
+  userRole,
+  users,
+  userStatus,
+} from '../controllers/adminController.js'
+import {
   modules,
   overview,
   results,
@@ -26,5 +32,9 @@ instructorRouter.get(
 instructorRouter.get('/modules', modules)
 instructorRouter.get('/results', results)
 instructorRouter.get('/troubleshooting', troubleshooting)
+instructorRouter.get('/users', authorize('admin'), users)
+instructorRouter.post('/users/staff', authorize('admin'), createStaff)
+instructorRouter.patch('/users/:userId/role', authorize('admin'), userRole)
+instructorRouter.patch('/users/:userId/status', authorize('admin'), userStatus)
 
 export default instructorRouter

@@ -88,6 +88,8 @@ export default function InstructorTroubleshootingPage() {
                   <div><dt>Average Score</dt><dd>{formatScore(scenario.averageScore)}</dd></div>
                   <div><dt>Average Time</dt><dd>{formatDuration(scenario.averageCompletionTime)}</dd></div>
                   <div><dt>Diagnosis Attempts</dt><dd>{formatScore(scenario.averageDiagnosisAttempts)}</dd></div>
+                  <div><dt>Wrong Diagnoses</dt><dd>{formatScore(scenario.averageIncorrectDiagnoses)}</dd></div>
+                  <div><dt>Repair Attempts</dt><dd>{formatScore(scenario.averageRepairAttempts)}</dd></div>
                   <div><dt>Hints Used</dt><dd>{formatScore(scenario.averageHintsUsed)}</dd></div>
                   <div><dt>Completion Rate</dt><dd>{formatScore(scenario.completionRate, '%')}</dd></div>
                 </dl>

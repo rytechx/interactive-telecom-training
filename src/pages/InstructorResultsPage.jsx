@@ -16,6 +16,7 @@ export default function InstructorResultsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [moduleKey, setModuleKey] = useState('all')
   const [scoreBand, setScoreBand] = useState('all')
+  const [performance, setPerformance] = useState('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [page, setPage] = useState(1)
@@ -49,17 +50,19 @@ export default function InstructorResultsPage() {
       search: debouncedSearch,
       module: moduleKey,
       scoreBand,
+      performance,
       fromDate,
       toDate,
       page,
       limit,
     })
-  }, [debouncedSearch, fromDate, limit, loadResults, moduleKey, page, scoreBand, toDate])
+  }, [debouncedSearch, fromDate, limit, loadResults, moduleKey, page, performance, scoreBand, toDate])
 
   const retry = () => void loadResults({
     search: debouncedSearch,
     module: moduleKey,
     scoreBand,
+    performance,
     fromDate,
     toDate,
     page,
@@ -117,6 +120,21 @@ export default function InstructorResultsPage() {
             <option value="70_84">70-84</option>
             <option value="85_94">85-94</option>
             <option value="95_100">95-100</option>
+          </select>
+        </label>
+        <label>
+          <span>Performance</span>
+          <select value={performance} onChange={(event) => {
+            setPerformance(event.target.value)
+            setPage(1)
+          }}>
+            <option value="all">All Ratings</option>
+            <option value="outstanding">Outstanding</option>
+            <option value="excellent">Excellent</option>
+            <option value="very_good">Very Good</option>
+            <option value="good">Good</option>
+            <option value="needs_practice">Needs Practice</option>
+            <option value="repeat_training">Repeat Training</option>
           </select>
         </label>
         <label>

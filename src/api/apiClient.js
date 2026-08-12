@@ -68,6 +68,8 @@ const authApi = Object.freeze({
   checkSession: (signal) => apiRequest('/auth/me', { signal }),
   login: (credentials) =>
     apiRequest('/auth/login', { method: 'POST', body: credentials }),
+  staffLogin: (credentials) =>
+    apiRequest('/auth/staff/login', { method: 'POST', body: credentials }),
   register: (registration) =>
     apiRequest('/auth/register', { method: 'POST', body: registration }),
   logout: () => apiRequest('/auth/logout', { method: 'POST' }),

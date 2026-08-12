@@ -76,6 +76,20 @@ test('login endpoint validates credentials without exposing account details', as
   )
 })
 
+test('staff login endpoint requires a staff email and password', async () => {
+  const response = await fetch(`${apiBaseUrl}/auth/staff/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 400)
+  assert.equal(payload.success, false)
+  assert.equal(payload.message, 'Enter your staff email and password.')
+  assert.ok(payload.errors.email)
+})
+
 test('current-user endpoint rejects requests without a session cookie', async () => {
   const response = await fetch(`${apiBaseUrl}/auth/me`)
   const payload = await response.json()
@@ -109,6 +123,28 @@ test('training attempt endpoint requires an authenticated session', async () => 
 
 test('instructor analytics require an authenticated session', async () => {
   const response = await fetch(`${apiBaseUrl}/instructor/overview`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
+test('admin user management requires an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/instructor/users`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
+test('staff account creation requires an authenticated admin session', async () => {
+  const response = await fetch(`${apiBaseUrl}/instructor/users/staff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
   const payload = await response.json()
 
   assert.equal(response.status, 401)

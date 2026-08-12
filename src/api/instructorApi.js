@@ -42,6 +42,25 @@ const instructorApi = Object.freeze({
     apiRequest('/instructor/troubleshooting').then(
       (response) => response.data,
     ),
+  getUsers: (filters) =>
+    apiRequest(`/instructor/users${buildQuery(filters)}`).then(
+      (response) => response.data,
+    ),
+  createStaffAccount: (account) =>
+    apiRequest('/instructor/users/staff', {
+      method: 'POST',
+      body: account,
+    }).then((response) => response.data.user),
+  updateUserRole: (userId, role) =>
+    apiRequest(`/instructor/users/${userId}/role`, {
+      method: 'PATCH',
+      body: { role },
+    }).then((response) => response.data.user),
+  updateUserStatus: (userId, isActive) =>
+    apiRequest(`/instructor/users/${userId}/status`, {
+      method: 'PATCH',
+      body: { isActive },
+    }).then((response) => response.data.user),
 })
 
 export default instructorApi

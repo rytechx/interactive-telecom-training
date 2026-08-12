@@ -11,6 +11,7 @@ const metricLabels = Object.freeze({
   incorrectT568BAttempts: 'T568B Validation Attempts',
   restartStepCount: 'Restarted Steps',
   cableTest: 'Cable Test',
+  terminationStandard: 'Termination Standard',
   t568bVerified: 'T568B Verified',
   preparationErrors: 'Preparation Errors',
   sequenceErrors: 'Sequence Errors',
@@ -119,8 +120,11 @@ export default function InstructorAttemptDetail({
                       <dl>
                         <div><dt>Score</dt><dd>{formatScore(scenario.score, '%')}</dd></div>
                         <div><dt>Diagnosis Attempts</dt><dd>{scenario.diagnosisAttempts}</dd></div>
+                        <div><dt>Wrong Diagnoses</dt><dd>{scenario.incorrectDiagnosisAttempts}</dd></div>
                         <div><dt>Hints Used</dt><dd>{scenario.hintsUsed}</dd></div>
                         <div><dt>Repair Attempts</dt><dd>{scenario.repairAttempts}</dd></div>
+                        <div><dt>Failed Repairs</dt><dd>{scenario.failedRepairAttempts}</dd></div>
+                        <div><dt>Duration</dt><dd>{formatDuration(scenario.durationSeconds)}</dd></div>
                       </dl>
                     </article>
                   ))}

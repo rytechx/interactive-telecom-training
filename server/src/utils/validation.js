@@ -5,6 +5,25 @@ function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function getEmailValidationError(email) {
+  if (!email) return 'Email is required.'
+  if (email.length > 254 || !EMAIL_PATTERN.test(email)) {
+    return 'Enter a valid email address.'
+  }
+  return null
+}
+
+function getPasswordValidationError(password, minimumLength = 8) {
+  if (!password) return 'Password is required.'
+  if (password.length < minimumLength) {
+    return `Password must be at least ${minimumLength} characters.`
+  }
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    return 'Password must be 72 bytes or fewer.'
+  }
+  return null
+}
+
 function validateRegistrationInput(input = {}) {
   const values = {
     studentNumber: normalizeText(input.studentNumber),
@@ -40,19 +59,11 @@ function validateRegistrationInput(input = {}) {
     errors.lastName = 'Last name must be 80 characters or fewer.'
   }
 
-  if (!values.email) {
-    errors.email = 'Email is required.'
-  } else if (values.email.length > 254 || !EMAIL_PATTERN.test(values.email)) {
-    errors.email = 'Enter a valid email address.'
-  }
+  const emailError = getEmailValidationError(values.email)
+  const passwordError = getPasswordValidationError(values.password)
 
-  if (!values.password) {
-    errors.password = 'Password is required.'
-  } else if (values.password.length < 8) {
-    errors.password = 'Password must be at least 8 characters.'
-  } else if (Buffer.byteLength(values.password, 'utf8') > 72) {
-    errors.password = 'Password must be 72 bytes or fewer.'
-  }
+  if (emailError) errors.email = emailError
+  if (passwordError) errors.password = passwordError
 
   if (!values.confirmPassword) {
     errors.confirmPassword = 'Confirm your password.'
@@ -91,4 +102,30 @@ function validateLoginInput(input = {}) {
   }
 }
 
-export { validateLoginInput, validateRegistrationInput }
+function validateStaffLoginInput(input = {}) {
+  const email = normalizeText(input.email).toLowerCase()
+  const values = {
+    identifier: email,
+    password: typeof input.password === 'string' ? input.password : '',
+  }
+  const errors = {}
+  const emailError = getEmailValidationError(email)
+
+  if (emailError) errors.email = emailError
+  if (!values.password) errors.password = 'Password is required.'
+
+  return {
+    values,
+    errors,
+    isValid: Object.keys(errors).length === 0,
+  }
+}
+
+export {
+  getEmailValidationError,
+  getPasswordValidationError,
+  normalizeText,
+  validateLoginInput,
+  validateRegistrationInput,
+  validateStaffLoginInput,
+}

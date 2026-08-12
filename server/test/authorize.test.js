@@ -32,3 +32,20 @@ test('instructor authorization accepts instructor and admin accounts', () => {
   assert.equal(runAuthorization('instructor'), undefined)
   assert.equal(runAuthorization('admin'), undefined)
 })
+
+test('admin authorization rejects instructors and accepts administrators', () => {
+  let instructorError
+  let adminError = Symbol('not-called')
+  const middleware = authorize('admin')
+
+  middleware({ user: { role: 'instructor' } }, {}, (error) => {
+    instructorError = error
+  })
+  middleware({ user: { role: 'admin' } }, {}, (error) => {
+    adminError = error
+  })
+
+  assert.equal(instructorError.status, 403)
+  assert.equal(instructorError.code, 'FORBIDDEN')
+  assert.equal(adminError, undefined)
+})
