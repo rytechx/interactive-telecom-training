@@ -82,7 +82,12 @@ export default function LoginPage() {
       }
     >
       {location.state?.message && (
-        <div className="auth-message is-success" role="status">
+        <div
+          className={`auth-message ${
+            location.state.messageType === 'error' ? 'is-error' : 'is-success'
+          }`}
+          role={location.state.messageType === 'error' ? 'alert' : 'status'}
+        >
           {location.state.message}
         </div>
       )}
@@ -102,6 +107,7 @@ export default function LoginPage() {
             value={values.identifier}
             onChange={updateField('identifier')}
             autoComplete="username"
+            required
             aria-invalid={Boolean(fieldErrors.identifier)}
             aria-describedby={fieldErrors.identifier ? 'identifier-error' : undefined}
             autoFocus

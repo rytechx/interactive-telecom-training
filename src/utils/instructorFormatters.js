@@ -18,21 +18,14 @@ function formatScore(value, suffix = '') {
 }
 
 function formatDuration(durationSeconds) {
-  if (!Number.isFinite(durationSeconds)) return 'Not available'
-  const minutes = Math.floor(durationSeconds / 60)
-  const seconds = Math.max(0, Math.round(durationSeconds % 60))
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  return formatClockDuration(durationSeconds, 'Not available')
 }
 
 function formatDate(value, { includeTime = false } = {}) {
-  if (!value) return 'No activity'
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) return 'No activity'
-
-  return new Intl.DateTimeFormat(undefined, includeTime
-    ? { dateStyle: 'medium', timeStyle: 'short' }
-    : { dateStyle: 'medium' }).format(date)
+  return formatLocalDate(value, {
+    includeTime,
+    fallback: 'No activity',
+  })
 }
 
 function getStatusClass(status) {
@@ -46,3 +39,7 @@ export {
   formatStatus,
   getStatusClass,
 }
+import {
+  formatClockDuration,
+  formatLocalDate,
+} from './formatters.js'

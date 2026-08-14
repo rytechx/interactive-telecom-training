@@ -13,6 +13,7 @@ import useToolStore from '../store/useToolStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
 import TelecomIcon from '../ui/TelecomIcon.jsx'
 import { getTrainingModule } from '../app/trainingModules.js'
+import { isWebGLAvailable } from '../utils/webglSupport.js'
 
 const TelecomLabScene = lazy(
   () => import('../scenes/TelecomLab/TelecomLabScene.jsx'),
@@ -46,6 +47,7 @@ export default function TelecomLabPage() {
   const [leaveConfirmationVisible, setLeaveConfirmationVisible] =
     useState(false)
   const [retryKey, setRetryKey] = useState(0)
+  const [webGLAvailable] = useState(isWebGLAvailable)
   const selectedTrainingModule = useAppSessionStore(
     (state) => state.selectedTrainingModule,
   )
@@ -78,12 +80,40 @@ export default function TelecomLabPage() {
     workstationActive,
   ])
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const labElement = labPageRef.current
+
+    return () => {
+      if (document.pointerLockElement) {
+        document.exitPointerLock()
+      }
+
+      if (document.fullscreenElement === labElement) {
+        void document.exitFullscreen().catch(() => {})
+      }
+
       resetLabSession()
-    },
-    [],
-  )
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!helpVisible && !leaveConfirmationVisible) {
+      return undefined
+    }
+
+    const handleEscape = (event) => {
+      if (event.key !== 'Escape') return
+
+      if (leaveConfirmationVisible) {
+        setLeaveConfirmationVisible(false)
+      } else {
+        setHelpVisible(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [helpVisible, leaveConfirmationVisible])
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -112,17 +142,33 @@ export default function TelecomLabPage() {
     }
   }
 
-  const returnToDashboard = () => {
+  const releaseBrowserControls = async () => {
+    if (document.pointerLockElement) {
+      document.exitPointerLock()
+    }
+
+    if (document.fullscreenElement === labPageRef.current) {
+      try {
+        await document.exitFullscreen()
+      } catch {
+        setIsFullscreen(false)
+      }
+    }
+  }
+
+  const returnToDashboard = async () => {
     if (workstationActive) {
       setLeaveConfirmationVisible(true)
       return
     }
 
+    await releaseBrowserControls()
     clearTrainingObjective()
     navigate('/')
   }
 
-  const confirmReturnToDashboard = () => {
+  const confirmReturnToDashboard = async () => {
+    await releaseBrowserControls()
     resetLabSession()
     clearTrainingObjective()
     navigate('/')
@@ -137,7 +183,26 @@ export default function TelecomLabPage() {
         <button type="button" onClick={() => setRetryKey((value) => value + 1)}>
           Retry
         </button>
-        <button type="button" className="secondary" onClick={confirmReturnToDashboard}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => void confirmReturnToDashboard()}
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    </div>
+  )
+  const webGLFallback = (
+    <div className="lab-error-state" role="alert">
+      <TelecomIcon name="lab" size={34} />
+      <h1>3D graphics are unavailable in this browser or device.</h1>
+      <p>Use a current Chromium browser with hardware acceleration enabled.</p>
+      <div>
+        <button
+          type="button"
+          onClick={() => void confirmReturnToDashboard()}
+        >
           Return to Dashboard
         </button>
       </div>
@@ -151,11 +216,13 @@ export default function TelecomLabPage() {
         workstationActive ? ' is-workstation-active' : ''
       }`}
     >
-      <LabErrorBoundary resetKey={retryKey} fallback={errorFallback}>
-        <Suspense fallback={<LabLoadingState />}>
-          <TelecomLabScene key={retryKey} />
-        </Suspense>
-      </LabErrorBoundary>
+      {webGLAvailable ? (
+        <LabErrorBoundary resetKey={retryKey} fallback={errorFallback}>
+          <Suspense fallback={<LabLoadingState />}>
+            <TelecomLabScene key={retryKey} />
+          </Suspense>
+        </LabErrorBoundary>
+      ) : webGLFallback}
 
       <LabModuleControls
         fullscreenVisible={fullscreenVisible}
@@ -176,7 +243,7 @@ export default function TelecomLabPage() {
       )}
 
       {showControlGuide && helpVisible && (
-        <aside id="lab-help-panel" className="lab-help-panel">
+        <aside id="lab-help-panel" className="lab-help-panel" aria-label="Laboratory help">
           <strong>Laboratory Controls</strong>
           <span>Click the 3D view to enable mouse look.</span>
           <span>Use WASD to move and Shift to run.</span>
@@ -185,6 +252,11 @@ export default function TelecomLabPage() {
         </aside>
       )}
 
+      <aside className="lab-display-advisory" role="status">
+        <strong>Desktop or laptop display recommended</strong>
+        <span>TeleSim 3D training is optimized for a larger display and keyboard.</span>
+      </aside>
+
       {leaveConfirmationVisible && (
         <div className="lab-leave-confirmation" role="dialog" aria-modal="true" aria-labelledby="leave-lab-title">
           <div>
@@ -192,10 +264,18 @@ export default function TelecomLabPage() {
             <h2 id="leave-lab-title">Return to the dashboard?</h2>
             <p>The current workstation procedure will be reset.</p>
             <footer>
-              <button type="button" onClick={() => setLeaveConfirmationVisible(false)}>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setLeaveConfirmationVisible(false)}
+              >
                 Stay in Laboratory
               </button>
-              <button type="button" className="secondary" onClick={confirmReturnToDashboard}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void confirmReturnToDashboard()}
+              >
                 Return to Dashboard
               </button>
             </footer>

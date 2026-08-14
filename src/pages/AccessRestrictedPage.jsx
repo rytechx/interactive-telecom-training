@@ -9,9 +9,9 @@ export default function AccessRestrictedPage() {
   return (
     <main className="access-restricted-page">
       <section>
-        <span>403</span>
-        <h1>Access Restricted</h1>
-        <p>You do not have permission to access this area.</p>
+        <span>Authorization</span>
+        <h1>403 — Access Restricted</h1>
+        <p>You do not have permission to access this section.</p>
         <button
           type="button"
           onClick={() => navigate(getHomeRouteForRole(role), { replace: true })}

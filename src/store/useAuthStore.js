@@ -145,6 +145,14 @@ const useAuthStore = create((set) => ({
     return true
   },
 
+  expireSession: () => set({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    sessionChecked: true,
+    authError: null,
+  }),
+
   clearAuthError: () => set({ authError: null }),
 }))
 

@@ -1,22 +1,4 @@
-function formatActivityDate(value) {
-  if (!value) return 'Date unavailable'
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) return 'Date unavailable'
-
-  const formattedDate = new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-  const formattedTime = new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date)
-
-  return [formattedDate, formattedTime].join(' \u2022 ')
-}
+import { formatLocalDate } from '../../utils/formatters.js'
 
 export default function RecentActivity({
   recentResults,
@@ -53,7 +35,9 @@ export default function RecentActivity({
               <div>
                 <strong>{result.module?.title ?? result.moduleName}</strong>
                 <time dateTime={result.completedAt ?? undefined}>
-                  {formatActivityDate(result.completedAt)}
+                  {formatLocalDate(result.completedAt, {
+                    fallback: 'Date unavailable',
+                  })}
                 </time>
               </div>
               <span>{result.performanceRating}</span>

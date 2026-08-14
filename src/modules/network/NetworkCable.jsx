@@ -1,8 +1,35 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { CatmullRomCurve3, Quaternion, TubeGeometry, Vector3 } from 'three'
+import {
+  BoxGeometry,
+  CatmullRomCurve3,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  Quaternion,
+  TubeGeometry,
+  Vector3,
+} from 'three'
 import { NETWORK_PORT_TYPES } from './networkDeviceConfigs.js'
+
+const CABLE_ANIMATION_POINT_COUNT = 19
+const CABLE_GEOMETRY_UPDATE_RATE = 20
+const unitBoxGeometry = new BoxGeometry(1, 1, 1)
+const invisibleHitboxMaterial = new MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+})
+const connectorContactMaterial = new MeshStandardMaterial({
+  color: '#c7b067',
+  metalness: 0.52,
+  roughness: 0.4,
+})
+const powerProngMaterial = new MeshStandardMaterial({
+  color: '#c6ccd0',
+  metalness: 0.72,
+  roughness: 0.34,
+})
 
 function smoothStep(progress) {
   return progress * progress * (3 - 2 * progress)
@@ -41,13 +68,13 @@ function CableHitboxSegment({ start, end, width, onPointerEnter, onPointerLeave,
     <mesh
       position={transform.position}
       quaternion={transform.quaternion}
+      geometry={unitBoxGeometry}
+      material={invisibleHitboxMaterial}
+      scale={[transform.length + width, width, width]}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       onClick={onClick}
-    >
-      <boxGeometry args={[transform.length + width, width, width]} />
-      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-    </mesh>
+    />
   )
 }
 
@@ -65,19 +92,15 @@ function CablePlug({
   const plugColor = highlighted
     ? highlightColor
     : configuredPlugColor ?? (isPower ? '#4e595f' : color)
+  const plugScale = isPower
+    ? endRole === 'pdu'
+      ? [0.16, 0.1, 0.18]
+      : [0.14, 0.09, 0.16]
+    : [0.11, 0.075, 0.14]
 
   return (
     <group ref={groupRef}>
-      <mesh>
-        <boxGeometry
-          args={
-            isPower
-              ? endRole === 'pdu'
-                ? [0.16, 0.1, 0.18]
-                : [0.14, 0.09, 0.16]
-              : [0.11, 0.075, 0.14]
-          }
-        />
+      <mesh geometry={unitBoxGeometry} scale={plugScale}>
         <meshStandardMaterial
           color={plugColor}
           emissive={highlightColor}
@@ -118,14 +141,13 @@ function CablePlug({
       )}
       {isPower && endRole === 'pdu' &&
         [-0.034, 0.034].map((positionX) => (
-          <mesh key={positionX} position={[positionX, 0, 0.155]}>
-            <boxGeometry args={[0.018, 0.052, 0.075]} />
-            <meshStandardMaterial
-              color="#c6ccd0"
-              metalness={0.72}
-              roughness={0.34}
-            />
-          </mesh>
+          <mesh
+            key={positionX}
+            geometry={unitBoxGeometry}
+            material={powerProngMaterial}
+            position={[positionX, 0, 0.155]}
+            scale={[0.018, 0.052, 0.075]}
+          />
         ))}
       {!isPower && (
         <>
@@ -146,21 +168,21 @@ function CablePlug({
           ))}
           {[-0.035, -0.025, -0.015, -0.005, 0.005, 0.015, 0.025, 0.035].map(
             (positionX) => (
-              <mesh key={positionX} position={[positionX, 0.028, 0.072]}>
-                <boxGeometry args={[0.007, 0.012, 0.026]} />
-                <meshStandardMaterial
-                  color="#c7b067"
-                  metalness={0.52}
-                  roughness={0.4}
-                />
-              </mesh>
+              <mesh
+                key={positionX}
+                geometry={unitBoxGeometry}
+                material={connectorContactMaterial}
+                position={[positionX, 0.028, 0.072]}
+                scale={[0.007, 0.012, 0.026]}
+              />
             ),
           )}
           <mesh
+            geometry={unitBoxGeometry}
             position={[0, 0.055, 0.01]}
             rotation={[-0.16, 0, 0]}
+            scale={[0.058, 0.012, 0.12]}
           >
-            <boxGeometry args={[0.058, 0.012, 0.12]} />
             <meshStandardMaterial
               color={plugColor}
               transparent
@@ -200,6 +222,18 @@ export default function NetworkCable({
   const animationElapsed = useRef(0)
   const lastGeometryProgress = useRef(-1)
   const animationCompleted = useRef(false)
+  const animatedPoints = useMemo(
+    () => Array.from(
+      { length: CABLE_ANIMATION_POINT_COUNT },
+      () => new Vector3(),
+    ),
+    [],
+  )
+  const animatedCurve = useMemo(
+    () => new CatmullRomCurve3(animatedPoints, false, 'centripetal'),
+    [animatedPoints],
+  )
+  const curvePointScratch = useMemo(() => new Vector3(), [])
   const isHovered = hoveredObjectId === config.id
   const canInteract = canSelect || canReject
   const highlighted = selected || isHovered
@@ -385,24 +419,19 @@ export default function NetworkCable({
 
       if (
         progress < 1 &&
-        progress - lastGeometryProgress.current < 1 / 24
+        progress - lastGeometryProgress.current < 1 / CABLE_GEOMETRY_UPDATE_RATE
       ) {
         return
       }
 
       lastGeometryProgress.current = progress
-      const animatedPoints = Array.from({ length: 19 }, (_, index) => {
-        const curveProgress = index / 18
+      animatedPoints.forEach((point, index) => {
+        const curveProgress = index / (CABLE_ANIMATION_POINT_COUNT - 1)
 
-        return partialCurve
-          .getPoint(curveProgress)
-          .lerp(connectedCurve.getPoint(curveProgress), insertionProgress)
+        partialCurve.getPoint(curveProgress, point)
+        connectedCurve.getPoint(curveProgress, curvePointScratch)
+        point.lerp(curvePointScratch, insertionProgress)
       })
-      const animatedCurve = new CatmullRomCurve3(
-        animatedPoints,
-        false,
-        'centripetal',
-      )
       const animatedGeometry = new TubeGeometry(
         animatedCurve,
         28,
@@ -445,21 +474,19 @@ export default function NetworkCable({
 
     if (
       progress < 1 &&
-      progress - lastGeometryProgress.current < 1 / 24
+      progress - lastGeometryProgress.current < 1 / CABLE_GEOMETRY_UPDATE_RATE
     ) {
       return
     }
 
     lastGeometryProgress.current = progress
 
-    const animatedPoints = Array.from({ length: 19 }, (_, index) =>
-      connectedCurve.getPoint((index / 18) * visibleRouteProgress),
-    )
-    const animatedCurve = new CatmullRomCurve3(
-      animatedPoints,
-      false,
-      'centripetal',
-    )
+    animatedPoints.forEach((point, index) => {
+      connectedCurve.getPoint(
+        (index / (CABLE_ANIMATION_POINT_COUNT - 1)) * visibleRouteProgress,
+        point,
+      )
+    })
     const animatedGeometry = new TubeGeometry(
       animatedCurve,
       28,

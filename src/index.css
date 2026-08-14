@@ -7385,3 +7385,160 @@ html.settings-hide-hover-labels .network-object-tooltip:not(.is-persistent) {
     grid-column: auto;
   }
 }
+
+:is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #64cce9;
+  outline-offset: 3px;
+}
+
+.application-error-page {
+  display: grid;
+  min-height: 100dvh;
+  padding: 24px;
+  color: #dcebef;
+  background:
+    radial-gradient(circle at top, rgb(39 129 153 / 16%), transparent 42%),
+    #071116;
+  place-items: center;
+}
+
+.application-error-page > section {
+  width: min(480px, 100%);
+  padding: 30px;
+  text-align: center;
+  background: rgb(10 28 35 / 96%);
+  border: 1px solid rgb(104 204 232 / 26%);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 36%);
+}
+
+.application-error-page span {
+  color: #69d3ed;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.application-error-page h1 {
+  margin: 10px 0;
+  font-size: clamp(25px, 4vw, 36px);
+}
+
+.application-error-page p {
+  margin: 0;
+  color: #9eb3ba;
+  line-height: 1.6;
+}
+
+.application-error-page section > div {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.application-error-page button,
+.application-error-page a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 14px;
+  color: #eaf8fb;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+  background: #17657b;
+  border: 1px solid rgb(105 211 237 / 34%);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.application-error-page a {
+  background: #13272f;
+}
+
+.lab-display-advisory {
+  display: none;
+}
+
+html.settings-large-text .application-navigation a,
+html.settings-large-text .application-profile-placeholder,
+html.settings-large-text .instructor-sidebar-footer,
+html.settings-large-text .instructor-table,
+html.settings-large-text .assessment-section,
+html.settings-large-text .attempt-history-row {
+  font-size: 12px;
+}
+
+html.settings-large-text .procedure-panel h1 {
+  font-size: 20px;
+}
+
+html.settings-large-text .procedure-panel h2,
+html.settings-large-text .procedure-panel .procedure-instruction,
+html.settings-large-text .procedure-panel button,
+html.settings-large-text .assessment-actions button {
+  font-size: 13px;
+}
+
+html.settings-large-text .lab-objective-panel strong,
+html.settings-large-text .lab-help-panel strong {
+  font-size: 12px;
+}
+
+html.settings-large-text .lab-objective-panel p,
+html.settings-large-text .lab-help-panel span {
+  font-size: 10px;
+}
+
+html.settings-high-contrast :is(input, select, textarea) {
+  color: #eef9fb;
+  border-color: rgb(137 219 239 / 54%);
+}
+
+html.settings-high-contrast .procedure-panel,
+html.settings-high-contrast .lab-help-panel,
+html.settings-high-contrast .lab-objective-panel,
+html.settings-high-contrast .rj45-assessment-panel,
+html.settings-high-contrast .instructor-panel,
+html.settings-high-contrast .instructor-table-card {
+  border-color: rgb(144 224 244 / 46%);
+}
+
+html.settings-high-contrast .procedure-panel :is(p, span, small),
+html.settings-high-contrast .rj45-assessment-panel :is(p, span, small),
+html.settings-high-contrast .instructor-page :is(p, span, small) {
+  color: #c2d7dd;
+}
+
+@media (max-width: 760px) {
+  .lab-display-advisory {
+    position: absolute;
+    z-index: 24;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    display: grid;
+    gap: 3px;
+    padding: 10px 12px;
+    color: #dcecf0;
+    background: rgb(8 24 30 / 94%);
+    border: 1px solid rgb(105 211 237 / 28%);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 34%);
+    pointer-events: none;
+  }
+
+  .lab-display-advisory strong {
+    font-size: 11px;
+  }
+
+  .lab-display-advisory span {
+    color: #9fb5bc;
+    font-size: 9px;
+    line-height: 1.4;
+  }
+}

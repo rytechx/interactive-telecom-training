@@ -1,9 +1,26 @@
+import { useEffect, useRef } from 'react'
+
 export default function AdminAccountActionDialog({
   action,
   isLoading,
   onCancel,
   onConfirm,
 }) {
+  const cancelButtonRef = useRef(null)
+
+  useEffect(() => {
+    if (!action) return undefined
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !isLoading) {
+        onCancel()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [action, isLoading, onCancel])
+
   if (!action) return null
 
   const isRoleChange = action.type === 'role'
@@ -24,7 +41,13 @@ export default function AdminAccountActionDialog({
         <h2 id="admin-confirm-title">{title}</h2>
         <p>{description}</p>
         <div>
-          <button type="button" onClick={onCancel} disabled={isLoading}>
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            autoFocus
+            onClick={onCancel}
+            disabled={isLoading}
+          >
             Cancel
           </button>
           <button

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
 import PasswordField from '../components/auth/PasswordField.jsx'
 import useAuthStore from '../store/useAuthStore.js'
@@ -21,6 +21,7 @@ function validateStaffLogin(values) {
 
 export default function StaffLoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const staffLogin = useAuthStore((state) => state.staffLogin)
   const isLoading = useAuthStore((state) => state.isLoading)
   const authError = useAuthStore((state) => state.authError)
@@ -78,6 +79,11 @@ export default function StaffLoginPage() {
         </p>
       )}
     >
+      {location.state?.message && (
+        <div className="auth-message is-error" role="alert">
+          {location.state.message}
+        </div>
+      )}
       {authError && (
         <div className="auth-message is-error" role="alert">
           {authError}
@@ -94,6 +100,7 @@ export default function StaffLoginPage() {
             value={values.email}
             onChange={updateField('email')}
             autoComplete="username"
+            required
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? 'staff-email-error' : undefined}
             autoFocus

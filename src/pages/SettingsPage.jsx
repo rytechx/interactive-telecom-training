@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import SettingToggle from '../components/settings/SettingToggle.jsx'
 import PageHeader from '../components/layout/PageHeader.jsx'
 import useSettingsStore from '../store/useSettingsStore.js'
@@ -25,7 +26,22 @@ function VolumeRange({ id, label, description, value, disabled, onChange }) {
 }
 
 export default function SettingsPage() {
-  const settings = useSettingsStore()
+  const settings = useSettingsStore(useShallow((state) => ({
+    showHints: state.showHints,
+    showHoverLabels: state.showHoverLabels,
+    confirmRestart: state.confirmRestart,
+    showProcedureGuide: state.showProcedureGuide,
+    mouseSensitivity: state.mouseSensitivity,
+    showControlGuide: state.showControlGuide,
+    reducedMotion: state.reducedMotion,
+    largeText: state.largeText,
+    highContrast: state.highContrast,
+    alwaysShowLabels: state.alwaysShowLabels,
+    masterVolume: state.masterVolume,
+    effectsVolume: state.effectsVolume,
+    ambientVolume: state.ambientVolume,
+    muteAll: state.muteAll,
+  })))
   const updateSetting = useSettingsStore((state) => state.updateSetting)
   const resetControlPreferences = useSettingsStore(
     (state) => state.resetControlPreferences,

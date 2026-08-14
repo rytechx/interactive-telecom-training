@@ -4,6 +4,10 @@ import { TRAINING_MODULES } from '../app/trainingModules.js'
 import PageHeader from '../components/layout/PageHeader.jsx'
 import useTrainingPersistenceStore from '../store/useTrainingPersistenceStore.js'
 import TelecomIcon from '../ui/TelecomIcon.jsx'
+import {
+  formatClockDuration,
+  formatLocalDate,
+} from '../utils/formatters.js'
 
 const resultFilters = Object.freeze([
   Object.freeze({ key: 'all', label: 'All Modules', moduleKey: null }),
@@ -34,21 +38,6 @@ const metricLabels = Object.freeze({
   troubleshootingCompleted: 'Scenarios Completed',
   averageScore: 'Scenario Average',
 })
-
-function formatDuration(durationSeconds) {
-  if (!Number.isFinite(durationSeconds)) return '—'
-  const minutes = Math.floor(durationSeconds / 60)
-  const seconds = durationSeconds % 60
-  return `${minutes}m ${String(seconds).padStart(2, '0')}s`
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
-}
 
 function formatMetricValue(key, value) {
   if (key === 'spliceLossDb' && Number.isFinite(value)) {
@@ -101,7 +90,7 @@ function AttemptDetails({ attempt, isLoading, error, onClose, onRetry }) {
         <div><dt>Score</dt><dd>{attempt.score}%</dd></div>
         <div><dt>Performance</dt><dd>{attempt.performanceRating}</dd></div>
         <div><dt>Accuracy</dt><dd>{attempt.procedureAccuracy ?? '—'}{attempt.procedureAccuracy !== null ? '%' : ''}</dd></div>
-        <div><dt>Duration</dt><dd>{formatDuration(attempt.durationSeconds)}</dd></div>
+        <div><dt>Duration</dt><dd>{formatClockDuration(attempt.durationSeconds)}</dd></div>
       </dl>
 
       {visibleMetrics.length > 0 && (
@@ -250,9 +239,9 @@ export default function ResultsPage() {
                 <span>#{attempt.attemptNumber}</span>
                 <b>{attempt.score}%</b>
                 <span>{attempt.performanceRating}</span>
-                <span>{formatDuration(attempt.durationSeconds)}</span>
+                <span>{formatClockDuration(attempt.durationSeconds)}</span>
                 <time dateTime={attempt.completedAt}>
-                  {formatDate(attempt.completedAt)}
+                  {formatLocalDate(attempt.completedAt)}
                 </time>
                 <button type="button" onClick={() => handleViewDetails(attempt.attemptId)}>
                   View Details

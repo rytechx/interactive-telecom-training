@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '../components/auth/ProtectedRoute.jsx'
 import PublicOnlyRoute from '../components/auth/PublicOnlyRoute.jsx'
 import RoleRoute from '../components/auth/RoleRoute.jsx'
@@ -14,6 +14,7 @@ import InstructorStudentDetailPage from '../pages/InstructorStudentDetailPage.js
 import InstructorStudentsPage from '../pages/InstructorStudentsPage.jsx'
 import InstructorTroubleshootingPage from '../pages/InstructorTroubleshootingPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
+import NotFoundPage from '../pages/NotFoundPage.jsx'
 import ProfilePage from '../pages/ProfilePage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
 import ResultsPage from '../pages/ResultsPage.jsx'
@@ -71,7 +72,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }

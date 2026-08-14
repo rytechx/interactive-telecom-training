@@ -184,7 +184,6 @@ export default function CableTester({
         }
         position={CABLE_TESTER_BUTTON_POSITION}
         scale={[0.04, 0.022, 0.04]}
-        castShadow
         onPointerEnter={onButtonPointerEnter}
         onPointerLeave={onButtonPointerLeave}
         onClick={onButtonClick}

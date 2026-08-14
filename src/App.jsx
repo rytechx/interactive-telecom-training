@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import AppRoutes from './app/AppRoutes.jsx'
+import SessionExpiryHandler from './components/auth/SessionExpiryHandler.jsx'
+import ApplicationErrorBoundary from './components/layout/ApplicationErrorBoundary.jsx'
 import useTrainingPersistenceBootstrap from './hooks/useTrainingPersistenceBootstrap.js'
 import useTrainingResultSync from './hooks/useTrainingResultSync.js'
 import useSettingsEffects from './hooks/useSettingsEffects.js'
@@ -20,7 +22,10 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <SessionExpiryHandler />
+      <ApplicationErrorBoundary>
+        <AppRoutes />
+      </ApplicationErrorBoundary>
     </BrowserRouter>
   )
 }

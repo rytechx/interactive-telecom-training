@@ -501,7 +501,6 @@ export default function RJ45WireArrangement({
                     )
                   }
                   geometry={conductorGeometry}
-                  castShadow
                 >
                   <meshStandardMaterial
                     color={wire.primaryColor}
@@ -578,7 +577,6 @@ export default function RJ45WireArrangement({
               GUIDE_CENTER_Z - GUIDE_DEPTH / 2,
             ]}
             scale={[GUIDE_WIDTH, 0.018, 0.018]}
-            castShadow
             receiveShadow
           />
 
@@ -594,7 +592,6 @@ export default function RJ45WireArrangement({
                 GUIDE_CENTER_Z,
               ]}
               scale={[0.006, 0.028, GUIDE_DEPTH]}
-              castShadow
             />
           ))}
 

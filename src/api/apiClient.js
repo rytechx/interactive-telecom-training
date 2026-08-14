@@ -2,6 +2,16 @@ const DEFAULT_API_URL = 'http://localhost:3001/api'
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL?.trim() || DEFAULT_API_URL
 ).replace(/\/$/, '')
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000
+const SESSION_EXPIRED_EVENT = 'telesim:session-expired'
+const AUTH_ENTRY_PATHS = new Set([
+  '/auth/login',
+  '/auth/staff/login',
+  '/auth/register',
+  '/auth/logout',
+  '/auth/me',
+])
+let sessionExpiryNotified = false
 
 class ApiError extends Error {
   constructor(message, { status = 0, code = null, errors = null } = {}) {
@@ -29,39 +39,85 @@ async function parseResponse(response) {
   }
 }
 
-async function apiRequest(path, { method = 'GET', body, signal } = {}) {
-  let response
+function notifySessionExpired(path) {
+  if (
+    sessionExpiryNotified ||
+    AUTH_ENTRY_PATHS.has(path) ||
+    typeof window === 'undefined'
+  ) {
+    return
+  }
+
+  sessionExpiryNotified = true
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+}
+
+async function apiRequest(
+  path,
+  { method = 'GET', body, signal, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS } = {},
+) {
+  const requestController = new AbortController()
+  let requestTimedOut = false
+  const handleExternalAbort = () => requestController.abort()
+  const timeoutId = window.setTimeout(() => {
+    requestTimedOut = true
+    requestController.abort()
+  }, timeoutMs)
+
+  signal?.addEventListener('abort', handleExternalAbort, { once: true })
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       credentials: 'include',
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
-      signal,
+      signal: requestController.signal,
     })
+    const payload = await parseResponse(response)
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        notifySessionExpired(path)
+      }
+
+      throw new ApiError(
+        payload?.message || 'The TeleSim server could not complete this request.',
+        {
+          status: response.status,
+          code: payload?.code ?? null,
+          errors: payload?.errors ?? null,
+        },
+      )
+    }
+
+    if (AUTH_ENTRY_PATHS.has(path)) {
+      sessionExpiryNotified = false
+    }
+
+    return payload
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (error instanceof ApiError) {
       throw error
     }
 
+    if (error.name === 'AbortError') {
+      if (signal?.aborted) {
+        throw error
+      }
+
+      if (requestTimedOut) {
+        throw new ApiError('The TeleSim server took too long to respond.', {
+          code: 'REQUEST_TIMEOUT',
+        })
+      }
+    }
+
     throw new ApiError('Unable to connect to the TeleSim server.')
+  } finally {
+    window.clearTimeout(timeoutId)
+    signal?.removeEventListener('abort', handleExternalAbort)
   }
-
-  const payload = await parseResponse(response)
-
-  if (!response.ok) {
-    throw new ApiError(
-      payload?.message || 'The TeleSim server could not complete this request.',
-      {
-        status: response.status,
-        code: payload?.code ?? null,
-        errors: payload?.errors ?? null,
-      },
-    )
-  }
-
-  return payload
 }
 
 const authApi = Object.freeze({
@@ -75,4 +131,4 @@ const authApi = Object.freeze({
   logout: () => apiRequest('/auth/logout', { method: 'POST' }),
 })
 
-export { ApiError, apiRequest, authApi }
+export { ApiError, SESSION_EXPIRED_EVENT, apiRequest, authApi }

@@ -199,7 +199,6 @@ export default function RJ45ConnectorModel({
               ]}
               scale={[0.012, 0.008, 0.11]}
               material={contactMaterial}
-              castShadow
             />
             <BoxPart
               position={[channelX, 0.025, -0.105]}

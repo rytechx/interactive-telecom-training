@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PasswordField from '../auth/PasswordField.jsx'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -51,6 +51,17 @@ function AdminCreateStaffDialogContent({
   const [values, setValues] = useState(initialValues)
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitError, setSubmitError] = useState(null)
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !isLoading) {
+        onCancel()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isLoading, onCancel])
 
   const updateField = (fieldName) => (event) => {
     setValues((current) => ({ ...current, [fieldName]: event.target.value }))
@@ -106,9 +117,12 @@ function AdminCreateStaffDialogContent({
               value={values.firstName}
               onChange={updateField('firstName')}
               autoComplete="given-name"
+              required
+              autoFocus
               aria-invalid={Boolean(fieldErrors.firstName)}
+              aria-describedby={fieldErrors.firstName ? 'staff-first-name-error' : undefined}
             />
-            {fieldErrors.firstName && <span className="auth-field-error">{fieldErrors.firstName}</span>}
+            {fieldErrors.firstName && <span id="staff-first-name-error" className="auth-field-error">{fieldErrors.firstName}</span>}
           </div>
           <div className="auth-field">
             <label htmlFor="staffLastName">Last Name</label>
@@ -117,9 +131,11 @@ function AdminCreateStaffDialogContent({
               value={values.lastName}
               onChange={updateField('lastName')}
               autoComplete="family-name"
+              required
               aria-invalid={Boolean(fieldErrors.lastName)}
+              aria-describedby={fieldErrors.lastName ? 'staff-last-name-error' : undefined}
             />
-            {fieldErrors.lastName && <span className="auth-field-error">{fieldErrors.lastName}</span>}
+            {fieldErrors.lastName && <span id="staff-last-name-error" className="auth-field-error">{fieldErrors.lastName}</span>}
           </div>
           <div className="auth-field field-full">
             <label htmlFor="newStaffEmail">Email</label>
@@ -129,9 +145,11 @@ function AdminCreateStaffDialogContent({
               value={values.email}
               onChange={updateField('email')}
               autoComplete="off"
+              required
               aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'new-staff-email-error' : undefined}
             />
-            {fieldErrors.email && <span className="auth-field-error">{fieldErrors.email}</span>}
+            {fieldErrors.email && <span id="new-staff-email-error" className="auth-field-error">{fieldErrors.email}</span>}
           </div>
           <div className="auth-field field-full">
             <label htmlFor="newStaffRole">Role</label>

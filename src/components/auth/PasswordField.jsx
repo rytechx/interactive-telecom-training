@@ -25,6 +25,7 @@ export default function PasswordField({
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
+          required
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
         />

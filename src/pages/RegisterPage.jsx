@@ -132,6 +132,7 @@ export default function RegisterPage() {
             value={values.studentNumber}
             onChange={updateField('studentNumber')}
             autoComplete="off"
+            required
             aria-invalid={Boolean(fieldErrors.studentNumber)}
             aria-describedby={fieldErrors.studentNumber ? 'student-number-error' : undefined}
             autoFocus
@@ -152,6 +153,7 @@ export default function RegisterPage() {
             value={values.firstName}
             onChange={updateField('firstName')}
             autoComplete="given-name"
+            required
             aria-invalid={Boolean(fieldErrors.firstName)}
           />
           {fieldErrors.firstName && (
@@ -168,6 +170,7 @@ export default function RegisterPage() {
             value={values.lastName}
             onChange={updateField('lastName')}
             autoComplete="family-name"
+            required
             aria-invalid={Boolean(fieldErrors.lastName)}
           />
           {fieldErrors.lastName && (
@@ -184,6 +187,7 @@ export default function RegisterPage() {
             value={values.email}
             onChange={updateField('email')}
             autoComplete="email"
+            required
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? 'email-error' : undefined}
           />

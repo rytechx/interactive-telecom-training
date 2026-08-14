@@ -1,4 +1,6 @@
 import { NETWORK_OVERLAYS } from '../../../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../../../store/useSettingsStore.js'
+import { confirmTrainingRestart } from '../../../utils/trainingConfirmations.js'
 import { NETWORK_TOPOLOGY } from '../networkTopology.js'
 import {
   NETWORK_TROUBLESHOOTING_DIAGNOSES,
@@ -43,6 +45,7 @@ export default function TroubleshootingPanel({
   onReturnToSelection,
   onReturnToLaboratory,
 }) {
+  const confirmRestart = useSettingsStore((state) => state.confirmRestart)
   const complete = mode === NETWORK_TROUBLESHOOTING_MODES.COMPLETE
   const elapsedSeconds = metrics.scenarioStartTime
     ? Math.max(
@@ -55,6 +58,11 @@ export default function TroubleshootingPanel({
         ),
       )
     : 0
+  const handleRestart = () => {
+    if (confirmTrainingRestart('scenario', confirmRestart)) {
+      onRestart()
+    }
+  }
 
   return (
     <section
@@ -206,7 +214,7 @@ export default function TroubleshootingPanel({
           )}
 
           <div className="training-actions procedure-secondary-actions">
-            <button type="button" className="secondary" onClick={onRestart}>
+            <button type="button" className="secondary" onClick={handleRestart}>
               Restart Scenario
             </button>
             <button type="button" className="secondary" onClick={onExit}>
