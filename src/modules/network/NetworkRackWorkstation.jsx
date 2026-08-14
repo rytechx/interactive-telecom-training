@@ -2,6 +2,7 @@ import { Html } from '@react-three/drei'
 import { useEffect } from 'react'
 import NetworkRack from '../../objects/telecom/NetworkRack.jsx'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import NetworkCable from './NetworkCable.jsx'
 import NetworkDevice from './NetworkDevice.jsx'
 import NetworkPort from './NetworkPort.jsx'
@@ -344,6 +345,7 @@ function WorkstationCableRaceway() {
 }
 
 function RackPdu({
+  alwaysShowLabels,
   networkPowered,
   interactivePortIds,
   hoveredObjectId,
@@ -457,6 +459,7 @@ function RackPdu({
           isHovered={hoveredObjectId === port.id}
           isSelected={selectedPortId === port.id}
           isTarget={targetPortId === port.id}
+          alwaysShowLabels={alwaysShowLabels}
           onPointerEnter={(hoveredPort) =>
             onHover(hoveredPort.id, hoveredPort.name)
           }
@@ -477,6 +480,7 @@ export default function NetworkRackWorkstation({
   const networkCurrentStep = useNetworkTrainingStore(
     (state) => state.networkCurrentStep,
   )
+  const alwaysShowLabels = useSettingsStore((state) => state.alwaysShowLabels)
   const networkTrainingStarted = useNetworkTrainingStore(
     (state) => state.networkTrainingStarted,
   )
@@ -713,6 +717,7 @@ export default function NetworkRackWorkstation({
               'switch-port-2': 0.7,
             }}
             activeLinkPortIds={activeLinkPortIds}
+            alwaysShowLabels={alwaysShowLabels}
             interactivePortIds={interactivePortIds}
             hoveredObjectId={hoveredObjectId}
             selectedPortId={selectedNetworkPortId}
@@ -740,6 +745,7 @@ export default function NetworkRackWorkstation({
         />
 
         <RackPdu
+          alwaysShowLabels={alwaysShowLabels}
           networkPowered={networkPowered || isPoweringOn}
           interactivePortIds={interactivePortIds}
           hoveredObjectId={hoveredObjectId}
@@ -841,6 +847,7 @@ export default function NetworkRackWorkstation({
                 !connection?.connected
               }
               canReject={false}
+              alwaysShowLabels={alwaysShowLabels}
               muted={isPowerConnectionStep && !isPowerCable}
               hoveredObjectId={hoveredObjectId}
               onHover={handleHover}

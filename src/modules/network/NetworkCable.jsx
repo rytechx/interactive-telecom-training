@@ -184,6 +184,7 @@ export default function NetworkCable({
   selected = false,
   canSelect = false,
   canReject = false,
+  alwaysShowLabels = false,
   muted = false,
   hoveredObjectId = null,
   onHover,
@@ -550,13 +551,16 @@ export default function NetworkCable({
           />
         ))}
 
-      {isHovered && canInteract && (
+      {(isHovered || (alwaysShowLabels && canInteract)) && (
         <Html
           position={[tooltipPosition[0], tooltipPosition[1] + 0.2, tooltipPosition[2]]}
           center
           zIndexRange={[3, 0]}
         >
-          <div className="network-object-tooltip" role="tooltip">
+          <div
+            className={`network-object-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             {config.name}
           </div>
         </Html>

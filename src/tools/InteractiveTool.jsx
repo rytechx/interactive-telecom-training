@@ -4,6 +4,7 @@ import { Color, MeshStandardMaterial, RingGeometry } from 'three'
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../store/useInteractionStore.js'
+import useSettingsStore from '../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../store/useToolStore.js'
 import useTrainingStore from '../store/useTrainingStore.js'
 import {
@@ -118,6 +119,7 @@ export default function InteractiveTool({
     (state) => state.isTrainingMode,
   )
   const hoveredToolId = useToolStore((state) => state.hoveredToolId)
+  const alwaysShowLabels = useSettingsStore((state) => state.alwaysShowLabels)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
   const isProcedureAnimating = useTrainingStore(
@@ -291,7 +293,7 @@ export default function InteractiveTool({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
-      {isHovered && (
+      {(isHovered || (alwaysShowLabels && isExpectedTool)) && (
         <Html
           position={[
             workbenchPosition[0],
@@ -300,7 +302,10 @@ export default function InteractiveTool({
           ]}
           center
         >
-          <div className="tool-tooltip" role="tooltip">
+          <div
+            className={`tool-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             {tool.name}
           </div>
         </Html>

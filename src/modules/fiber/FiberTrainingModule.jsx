@@ -117,7 +117,7 @@ export default function FiberTrainingModule({
         <pointLight
           position={[0.18, 2.25, 0.28]}
           color="#edf8f6"
-          intensity={isFiberFocused ? 4 : 0}
+          intensity={isFiberFocused ? 3.2 : 0}
           distance={3.8}
           decay={2}
           castShadow={false}

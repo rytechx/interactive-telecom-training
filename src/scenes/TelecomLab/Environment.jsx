@@ -1,8 +1,8 @@
 export default function Environment() {
   return (
     <>
-      <color attach="background" args={['#b9c6ca']} />
-      <fog attach="fog" args={['#c4ced0', 22, 38]} />
+      <color attach="background" args={['#c1c8c7']} />
+      <fog attach="fog" args={['#c7ccca', 22, 38]} />
     </>
   )
 }

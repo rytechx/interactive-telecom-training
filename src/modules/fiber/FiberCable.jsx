@@ -2,6 +2,7 @@ import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import {
   FiberCleaningWipe,
@@ -167,6 +168,7 @@ export default function FiberCable({
   hoveredObjectId,
   onHoveredObjectChange,
 }) {
+  const alwaysShowLabels = useSettingsStore((state) => state.alwaysShowLabels)
   const assessmentVisible = useFiberTrainingStore(
     (state) => state.assessmentVisible,
   )
@@ -1015,9 +1017,12 @@ export default function FiberCable({
         </group>
       )}
 
-      {isHovered && (
+      {(isHovered || (alwaysShowLabels && canInteract)) && (
         <Html position={tooltipPosition} center>
-          <div className="tool-tooltip" role="tooltip">
+          <div
+            className={`tool-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             {tooltipText}
           </div>
         </Html>

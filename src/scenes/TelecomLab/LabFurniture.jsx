@@ -31,7 +31,7 @@ export default function LabFurniture({
         position={rj45WorkbenchPosition}
         interactionDistance={2.2}
       >
-        <Workbench position={rj45WorkbenchPosition} topColor="#9b7147" />
+        <Workbench position={rj45WorkbenchPosition} />
       </Interactable>
       <Interactable
         id={FIBER_WORKSTATION.id}
@@ -39,10 +39,10 @@ export default function LabFurniture({
         position={fiberWorkbenchPosition}
         interactionDistance={2.2}
       >
-        <Workbench position={fiberWorkbenchPosition} topColor="#aeb8be" />
+        <Workbench position={fiberWorkbenchPosition} />
       </Interactable>
-      <Stool position={rj45StoolPosition} color="#46545d" />
-      <Stool position={fiberStoolPosition} color="#46545d" />
+      <Stool position={rj45StoolPosition} />
+      <Stool position={fiberStoolPosition} />
       <StorageCabinet position={storageCabinetPosition} />
     </group>
   )

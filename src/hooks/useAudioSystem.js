@@ -56,8 +56,20 @@ function getFeedbackEffect(feedback) {
   return null
 }
 
-function subscribeToTrainingStore(store, stepKey, completionKey) {
+function subscribeToTrainingStore(
+  store,
+  stepKey,
+  completionKey,
+  trainingStartedKey = 'trainingStarted',
+) {
   return store.subscribe((state, previousState) => {
+    if (
+      state[trainingStartedKey] &&
+      !previousState[trainingStartedKey]
+    ) {
+      playEffect('training-start', { cooldown: 500 })
+    }
+
     if (
       state.isProcedureAnimating &&
       !previousState.isProcedureAnimating
@@ -130,9 +142,17 @@ export default function useAudioSystem() {
       useNetworkTrainingStore,
       'networkCurrentStep',
       null,
+      'networkTrainingStarted',
     )
     const unsubscribeTester = useTrainingStore.subscribe(
       (state, previousState) => {
+        if (
+          state.isCableTesting &&
+          state.cableTestResults !== previousState.cableTestResults
+        ) {
+          playEffect('tester-beep', { cooldown: 90 })
+        }
+
         if (state.finalTestResult !== previousState.finalTestResult) {
           playEffect(
             state.finalTestResult === 'PASS' ? 'success' : 'warning',
@@ -151,7 +171,7 @@ export default function useAudioSystem() {
     const unsubscribePower = useNetworkTrainingStore.subscribe(
       (state, previousState) => {
         if (state.networkPowered && !previousState.networkPowered) {
-          playEffect('link-established', { cooldown: 500 })
+          playEffect('network-startup', { cooldown: 700 })
         }
 
         if (

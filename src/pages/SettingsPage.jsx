@@ -154,9 +154,9 @@ export default function SettingsPage() {
           <SettingToggle
             id="always-show-labels"
             label="Always Show Interactive Labels"
-            description="Persistent 3D labels require a future performance-safe scene update."
+            description="Keep compact labels visible for objects that are currently actionable."
             checked={settings.alwaysShowLabels}
-            disabled
+            onChange={(value) => updateSetting('alwaysShowLabels', value)}
           />
         </section>
 

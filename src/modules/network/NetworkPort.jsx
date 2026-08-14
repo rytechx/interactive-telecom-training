@@ -13,6 +13,7 @@ export default function NetworkPort({
   isHovered = false,
   isSelected = false,
   isTarget = false,
+  alwaysShowLabels = false,
   linkActive = false,
   powerOnStartedAt = null,
   linkDelay = 0,
@@ -168,12 +169,12 @@ export default function NetworkPort({
         </mesh>
       )}
 
-      {(isHovered || isSelected) && (
+      {(isHovered || isSelected || (alwaysShowLabels && isInteractive)) && (
         <Html position={tooltipPosition} center zIndexRange={[4, 0]}>
           <div
             className={`network-object-tooltip${
               isSelected ? ' is-selected' : isTarget ? ' is-target' : ''
-            }`}
+            }${alwaysShowLabels && !isHovered && !isSelected ? ' is-persistent' : ''}`}
             role="tooltip"
           >
             <strong>{port.name}</strong>

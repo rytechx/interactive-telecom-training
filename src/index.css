@@ -1997,15 +1997,23 @@ canvas {
 }
 
 .tool-tooltip {
-  padding: 6px 9px;
-  color: #f7fbff;
-  font: 600 12px/1.2 system-ui, sans-serif;
+  padding: 5px 8px;
+  color: #effaff;
+  font: 700 11px/1.2 system-ui, sans-serif;
   white-space: nowrap;
   pointer-events: none;
-  background: rgb(18 24 28 / 88%);
-  border: 1px solid rgb(121 191 255 / 48%);
+  background: rgb(11 21 27 / 94%);
+  border: 1px solid rgb(102 204 238 / 42%);
   border-radius: 5px;
-  box-shadow: 0 5px 16px rgb(0 0 0 / 28%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
+}
+
+.tool-tooltip.is-persistent,
+.network-object-tooltip.is-persistent {
+  opacity: 0.84;
+  border-color: rgb(102 204 238 / 26%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 22%);
+  transform: scale(0.94);
 }
 
 .tool-inspection-panel {
@@ -3987,6 +3995,17 @@ summary:focus-visible {
   padding-inline: 10px;
 }
 
+.lab-page-controls .lab-fullscreen-button {
+  padding-inline: 10px;
+}
+
+.lab-page-controls .lab-fullscreen-button > span {
+  min-width: 12px;
+  font-size: 13px;
+  line-height: 1;
+  text-align: center;
+}
+
 .telecom-lab-page.is-workstation-active
   .training-overlay:not(.is-assessment) {
   padding-top: var(--lab-content-top);
@@ -4358,6 +4377,10 @@ summary:focus-visible {
   .lab-help-panel {
     top: var(--lab-content-top);
     right: var(--lab-page-edge);
+  }
+
+  .lab-page-controls .lab-fullscreen-label {
+    display: none;
   }
 }
 
@@ -5602,8 +5625,8 @@ html.settings-high-contrast .application-page time {
   color: #b9ccd2;
 }
 
-html.settings-hide-hover-labels .tool-tooltip,
-html.settings-hide-hover-labels .network-object-tooltip {
+html.settings-hide-hover-labels .tool-tooltip:not(.is-persistent),
+html.settings-hide-hover-labels .network-object-tooltip:not(.is-persistent) {
   display: none !important;
 }
 

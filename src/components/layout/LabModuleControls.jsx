@@ -2,8 +2,11 @@ import TelecomIcon from '../../ui/TelecomIcon.jsx'
 
 export default function LabModuleControls({
   helpVisible,
+  fullscreenVisible,
+  isFullscreen,
   showHelp,
   onBack,
+  onToggleFullscreen,
   onToggleHelp,
 }) {
   return (
@@ -23,6 +26,19 @@ export default function LabModuleControls({
           >
             <TelecomIcon name="help" size={17} />
             Help
+          </button>
+        )}
+        {fullscreenVisible && (
+          <button
+            type="button"
+            className={`lab-fullscreen-button${isFullscreen ? ' is-active' : ''}`}
+            onClick={onToggleFullscreen}
+            aria-pressed={isFullscreen}
+          >
+            <span aria-hidden="true">{isFullscreen ? '×' : '⛶'}</span>
+            <span className="lab-fullscreen-label">
+              {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            </span>
           </button>
         )}
       </nav>

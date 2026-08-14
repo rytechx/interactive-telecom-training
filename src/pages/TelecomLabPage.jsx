@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LabErrorBoundary from '../components/layout/LabErrorBoundary.jsx'
 import LabModuleControls from '../components/layout/LabModuleControls.jsx'
@@ -39,7 +39,10 @@ function LabLoadingState() {
 
 export default function TelecomLabPage() {
   const navigate = useNavigate()
+  const labPageRef = useRef(null)
   const [helpVisible, setHelpVisible] = useState(false)
+  const [fullscreenVisible, setFullscreenVisible] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [leaveConfirmationVisible, setLeaveConfirmationVisible] =
     useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -82,6 +85,33 @@ export default function TelecomLabPage() {
     [],
   )
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === labPageRef.current)
+    }
+
+    setFullscreenVisible(
+      Boolean(document.fullscreenEnabled && labPageRef.current?.requestFullscreen),
+    )
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      } else {
+        await labPageRef.current?.requestFullscreen()
+      }
+    } catch {
+      setFullscreenVisible(false)
+    }
+  }
+
   const returnToDashboard = () => {
     if (workstationActive) {
       setLeaveConfirmationVisible(true)
@@ -116,6 +146,7 @@ export default function TelecomLabPage() {
 
   return (
     <div
+      ref={labPageRef}
       className={`telecom-lab-page${
         workstationActive ? ' is-workstation-active' : ''
       }`}
@@ -127,9 +158,12 @@ export default function TelecomLabPage() {
       </LabErrorBoundary>
 
       <LabModuleControls
+        fullscreenVisible={fullscreenVisible}
         helpVisible={helpVisible}
+        isFullscreen={isFullscreen}
         showHelp={showControlGuide}
         onBack={returnToDashboard}
+        onToggleFullscreen={toggleFullscreen}
         onToggleHelp={() => setHelpVisible((visible) => !visible)}
       />
 

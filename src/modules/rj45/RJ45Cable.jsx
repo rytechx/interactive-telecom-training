@@ -11,6 +11,7 @@ import {
 import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import { TOOL_IDS } from '../../tools/toolConfigs.js'
@@ -128,6 +129,7 @@ export default function RJ45Cable({
   const toolViewState = useToolStore((state) => state.toolViewState)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const trainingStarted = useTrainingStore((state) => state.trainingStarted)
+  const alwaysShowLabels = useSettingsStore((state) => state.alwaysShowLabels)
   const currentStep = useTrainingStore((state) => state.currentStep)
   const selectedWorkpieceId = useTrainingStore(
     (state) => state.selectedWorkpieceId,
@@ -368,9 +370,12 @@ export default function RJ45Cable({
         onHoveredObjectChange={onHoveredObjectChange}
       />
 
-      {isHovered && canInteract && (
+      {(isHovered || (alwaysShowLabels && canInteract)) && (
         <Html position={[0, 0.22, 0.3]} center>
-          <div className="tool-tooltip" role="tooltip">
+          <div
+            className={`tool-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             Ethernet Cable
           </div>
         </Html>

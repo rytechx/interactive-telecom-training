@@ -184,6 +184,12 @@ function playEffectPattern(effectName) {
       scheduleTone({ frequency: 520, endFrequency: 620, duration: 0.1, gain: 0.075, type: 'sine' })
       scheduleTone({ frequency: 720, endFrequency: 820, duration: 0.14, gain: 0.06, type: 'sine', delay: 0.075 })
       break
+    case 'network-startup':
+      scheduleNoise({ duration: 0.2, gain: 0.025, cutoff: 520 })
+      scheduleTone({ frequency: 82, endFrequency: 118, duration: 0.32, gain: 0.04, type: 'sine' })
+      scheduleTone({ frequency: 520, endFrequency: 620, duration: 0.1, gain: 0.06, type: 'sine', delay: 0.34 })
+      scheduleTone({ frequency: 720, endFrequency: 820, duration: 0.13, gain: 0.05, type: 'sine', delay: 0.42 })
+      break
     case 'assessment-complete':
       scheduleTone({ frequency: 420, endFrequency: 520, duration: 0.12, gain: 0.08, type: 'triangle' })
       scheduleTone({ frequency: 620, endFrequency: 720, duration: 0.16, gain: 0.07, type: 'triangle', delay: 0.1 })

@@ -3,9 +3,9 @@ import { MeshPhysicalMaterial, MeshStandardMaterial } from 'three'
 const industrialFloorMaterial = new MeshPhysicalMaterial({
   color: '#626d72',
   metalness: 0.06,
-  roughness: 0.56,
-  clearcoat: 0.16,
-  clearcoatRoughness: 0.72,
+  roughness: 0.68,
+  clearcoat: 0.08,
+  clearcoatRoughness: 0.82,
 })
 
 const paintedWallMaterial = new MeshStandardMaterial({

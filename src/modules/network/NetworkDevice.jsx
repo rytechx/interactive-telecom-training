@@ -209,6 +209,7 @@ export default function NetworkDevice({
   linkPowerOnStartedAtByPortId = {},
   linkDelayByPortId = {},
   activeLinkPortIds = [],
+  alwaysShowLabels = false,
   interactivePortIds = [],
   hoveredObjectId = null,
   selectedPortId = null,
@@ -391,6 +392,7 @@ export default function NetworkDevice({
             linkPowerOnStartedAtByPortId[port.id] ?? linkPowerOnStartedAt
           }
           linkDelay={linkDelayByPortId[port.id] ?? 1.5}
+          alwaysShowLabels={alwaysShowLabels}
           onPointerEnter={(hoveredPort) =>
             onHover?.(hoveredPort.id, hoveredPort.name)
           }
@@ -433,13 +435,16 @@ export default function NetworkDevice({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {isHovered && canInteract && (
+      {(isHovered || (alwaysShowLabels && canInteract)) && (
         <Html
           position={[0, bodyDimensions[1] / 2 + 0.22, 0.1]}
           center
           zIndexRange={[3, 0]}
         >
-          <div className="network-object-tooltip" role="tooltip">
+          <div
+            className={`network-object-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             {canConfigure
               ? configurationLabel ?? `Configure ${config.shortName}`
               : config.shortName}

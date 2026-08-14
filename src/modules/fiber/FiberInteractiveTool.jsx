@@ -5,6 +5,7 @@ import useInteractionStore, {
   WORKSTATION_PHASES,
 } from '../../store/useInteractionStore.js'
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
+import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FIBER_WORKSTATION } from '../../workstations/workstationConfigs.js'
 import { getFiberProcedureStep } from './fiberProcedure.js'
@@ -80,6 +81,7 @@ export default function FiberInteractiveTool({ tool, children }) {
     (state) => state.assessmentVisible,
   )
   const hoveredToolId = useToolStore((state) => state.hoveredToolId)
+  const alwaysShowLabels = useSettingsStore((state) => state.alwaysShowLabels)
   const activeToolId = useToolStore((state) => state.activeToolId)
   const toolViewState = useToolStore((state) => state.toolViewState)
   const setHoveredTool = useToolStore((state) => state.setHoveredTool)
@@ -172,7 +174,7 @@ export default function FiberInteractiveTool({ tool, children }) {
         />
       )}
       {children}
-      {isHovered && (
+      {(isHovered || (alwaysShowLabels && isExpected)) && (
         <Html
           position={[
             tool.restPosition[0],
@@ -181,7 +183,10 @@ export default function FiberInteractiveTool({ tool, children }) {
           ]}
           center
         >
-          <div className="tool-tooltip" role="tooltip">
+          <div
+            className={`tool-tooltip${alwaysShowLabels && !isHovered ? ' is-persistent' : ''}`}
+            role="tooltip"
+          >
             {tool.name}
           </div>
         </Html>
