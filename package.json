@@ -1,12 +1,13 @@
 {
   "name": "interactive-telecom-training",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "qa:imports": "node scripts/checkImportCasing.js",
     "preview": "vite preview"
   },
   "dependencies": {

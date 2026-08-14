@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS telesim3d
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE telesim3d;
-
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   student_number VARCHAR(32) NULL,
@@ -52,6 +46,7 @@ CREATE TABLE IF NOT EXISTS training_attempts (
   INDEX idx_training_attempts_user (user_id),
   INDEX idx_training_attempts_module (module_id),
   INDEX idx_training_attempts_user_module (user_id, module_id),
+  INDEX idx_training_attempts_status_completed (status, completed_at),
   INDEX idx_training_attempts_completed_at (completed_at),
   CONSTRAINT uq_training_attempt_number UNIQUE (user_id, module_id, attempt_number),
   CONSTRAINT fk_training_attempts_user

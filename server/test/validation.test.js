@@ -6,14 +6,16 @@ import {
   validateStaffLoginInput,
 } from '../src/utils/validation.js'
 
+const TEST_PASSWORD = 'x'.repeat(16)
+
 test('registration validation normalizes safe student input', () => {
   const result = validateRegistrationInput({
     studentNumber: ' 2026-0001 ',
     firstName: ' Test ',
     lastName: ' Student ',
     email: ' STUDENT@Test.Local ',
-    password: 'training123',
-    confirmPassword: 'training123',
+    password: TEST_PASSWORD,
+    confirmPassword: TEST_PASSWORD,
     role: 'admin',
   })
 
@@ -44,8 +46,8 @@ test('registration validation rejects invalid email and student number', () => {
     firstName: 'Test',
     lastName: 'Student',
     email: 'invalid-email',
-    password: 'training123',
-    confirmPassword: 'training123',
+    password: TEST_PASSWORD,
+    confirmPassword: TEST_PASSWORD,
   })
 
   assert.equal(result.isValid, false)
@@ -64,7 +66,7 @@ test('login validation requires both identifier and password', () => {
 test('staff login validation requires a valid email and password', () => {
   const valid = validateStaffLoginInput({
     email: ' STAFF@TEST.LOCAL ',
-    password: 'staff-password',
+    password: TEST_PASSWORD,
   })
   const invalid = validateStaffLoginInput({ email: 'not-an-email' })
 

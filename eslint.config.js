@@ -19,7 +19,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['server/**/*.js'],
+    files: ['server/**/*.js', 'scripts/**/*.js'],
     ignores: ['server/node_modules/**'],
     extends: [js.configs.recommended],
     languageOptions: {

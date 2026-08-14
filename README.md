@@ -41,23 +41,11 @@ npm install
 
 Open the XAMPP Control Panel and start the MySQL service. Apache is optional for the Vite and Express development workflow.
 
-### 3. Create the database schema
+### 3. Create the local database
 
-Open phpMyAdmin or another MySQL client and execute:
+Open phpMyAdmin or another MySQL client and create an empty `utf8mb4` database named `telesim3d`. A hosted environment may assign a different database name; use that value in `DB_NAME`.
 
-```text
-server/sql/schema.sql
-```
-
-The script creates the `telesim3d` database, authentication and training-result tables, and the three training-module records.
-
-For an existing database with registered students, do not delete or reimport the database. Run the safe migration from `server/` instead:
-
-```bash
-npm run migrate
-```
-
-This applies the numbered migrations in `server/sql/`, including the training-result tables and the nullable staff `student_number` refinement. The migrations preserve existing users and attempts and can be run again safely.
+Do not import a production data dump into source control. The migration command in step 5 applies `server/sql/schema.sql` followed by the numbered, non-destructive migrations and idempotent module seeds.
 
 ### 4. Configure the API environment
 
@@ -79,21 +67,25 @@ Required API variables:
 
 | Variable | Purpose |
 | --- | --- |
+| `NODE_ENV` | Runtime mode: `development`, `test`, or `production` |
 | `PORT` | Express API port; defaults to `3001` |
 | `DB_HOST` | MySQL host |
 | `DB_PORT` | MySQL port |
 | `DB_USER` | MySQL user |
 | `DB_PASSWORD` | MySQL password |
-| `DB_NAME` | Database name; use `telesim3d` |
+| `DB_NAME` | Selected MySQL database name |
 | `JWT_SECRET` | Secret used to sign session tokens |
 | `JWT_EXPIRES_IN` | Session lifetime such as `8h` |
 | `CLIENT_ORIGIN` | Exact Vite origin allowed by CORS |
+| `COOKIE_SECURE` | `true` for production HTTPS; `false` for local HTTP |
+| `COOKIE_SAME_SITE` | Cookie policy: `lax`, `strict`, or `none` |
 
 ### 5. Install and start the API
 
 ```bash
 cd server
 npm install
+npm run migrate
 npm run dev
 ```
 
@@ -124,12 +116,18 @@ Use the exact Vite origin configured in `CLIENT_ORIGIN`. Authentication cookies 
 
 ### Create a development staff account
 
-Public registration always creates a `student`. Bootstrap the first administrator through the controlled server-side utility. From `server/`, keep the password in a temporary environment variable and pass non-secret identity fields as command options:
+Public registration always creates a `student`. Bootstrap the first administrator through the controlled server-side utility. From `server/`, read the password through a hidden PowerShell prompt, expose it only to the child process, and pass non-secret identity fields as command options:
 
 ```powershell
-$env:STAFF_PASSWORD = 'use-a-unique-long-password'
-npm run create-staff -- --role=admin --first-name=Your --last-name=Name --email=your-address@example.test
-Remove-Item Env:STAFF_PASSWORD
+$securePassword = Read-Host 'Staff password' -AsSecureString
+$passwordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try {
+  $env:STAFF_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPointer)
+  npm run create-staff -- --role=admin --first-name=Your --last-name=Name --email=your-address@example.test
+} finally {
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPointer)
+  Remove-Item Env:STAFF_PASSWORD -ErrorAction SilentlyContinue
+}
 ```
 
 The utility also accepts `STAFF_FIRST_NAME`, `STAFF_LAST_NAME`, `STAFF_EMAIL`, and `STAFF_ROLE` environment values when command options are not supplied. It accepts only `instructor` or `admin`, requires a password of at least 12 characters, hashes it with the shared bcrypt service, creates no fake student number, and refuses to replace an existing account. Values above are placeholders, not application credentials. Do not add staff passwords to `.env`, command history, source code, or version control. After the first administrator signs in at `/staff/login`, additional staff accounts can be created from User Management.
@@ -153,7 +151,7 @@ Run these commands from `server/`:
 | --- | --- |
 | `npm run dev` | Start the API with Node watch mode |
 | `npm start` | Start the API normally |
-| `npm run migrate` | Apply all numbered non-destructive database migrations |
+| `npm run migrate` | Apply the base schema and all numbered non-destructive migrations |
 | `npm run create-staff` | Bootstrap one controlled instructor/admin account |
 | `npm run create:staff` | Backward-compatible alias for `create-staff` |
 | `npm test` | Run backend validation tests |
@@ -274,8 +272,9 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 - Staff creation accepts only `instructor` or `admin`, validates unique email and a 12-character minimum password, and stores only the bcrypt hash.
 - Deactivation is a reversible `is_active` update. Foreign-key training history remains untouched, and inactive sessions are rejected on their next authenticated request.
 - The JWT is stored in the `telesim_session` HTTP-only cookie.
-- Cookies use `SameSite=Lax` and become secure automatically in production.
+- Cookies are HTTP-only, use the configured SameSite policy, and must be secure in production.
 - CORS never uses a wildcard when credentials are enabled.
+- Production startup rejects missing database credentials, weak JWT secrets, non-HTTPS frontend origins, and insecure cookie configuration without printing secret values.
 - `.env` files and backend dependencies are excluded from Git.
 
 ## Laboratory Controls
@@ -291,11 +290,12 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 
 ## Current Limitations
 
-- MySQL credentials and a JWT secret must be configured locally before authentication can run.
+- MySQL credentials and a JWT secret must be configured before authentication can run.
 - In-progress attempts may remain when a student exits before completion; a later Begin Training action safely creates a new attempt.
 - Password reset, profile editing, permanent account deletion, and training-result editing are not included in this sprint.
-- Analytics must be compared with the corresponding local records in phpMyAdmin before being treated as production-verified. The optional database integration suite can seed and remove isolated test students with `RUN_DB_INTEGRATION=1 npm test`.
+- Analytics must be compared with the corresponding database records before being treated as production-verified. The optional database integration suite can seed and remove isolated test students with `RUN_DB_INTEGRATION=1 npm test`.
 - The production build still reports non-blocking large-chunk warnings for the 3D and physics bundles.
+- Production deployment, domain, HTTPS cookie behavior, and production save/read persistence require validation on the actual deployed URL before release tagging.
 
 ## Documentation
 
@@ -303,3 +303,12 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 - [Development Roadmap](docs/DEVELOPMENT_ROADMAP.md)
 - [Coding Standards](docs/CODING_STANDARDS.md)
 - [Testing Checklist](docs/TESTING_CHECKLIST.md)
+- [User Guide](docs/USER_GUIDE.md)
+- [Instructor Guide](docs/INSTRUCTOR_GUIDE.md)
+- [Admin Guide](docs/ADMIN_GUIDE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Backup and Recovery](docs/BACKUP_AND_RECOVERY.md)
+- [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
+- [Capstone Demo Guide](docs/CAPSTONE_DEMO_GUIDE.md)
+- [Third-Party Notices](docs/THIRD_PARTY_NOTICES.md)
+- [Release Changelog](CHANGELOG.md)

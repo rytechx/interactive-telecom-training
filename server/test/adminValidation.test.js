@@ -7,6 +7,8 @@ import {
   validateStaffAccountInput,
 } from '../src/utils/adminValidation.js'
 
+const TEST_PASSWORD = 'x'.repeat(16)
+
 test('admin user filters normalize supported role and status values', () => {
   assert.deepEqual(
     parseAdminUserListQuery({
@@ -55,7 +57,7 @@ test('staff account validation accepts only strong instructor or admin accounts'
     firstName: ' Staff ',
     lastName: ' Member ',
     email: ' STAFF@TEST.LOCAL ',
-    password: 'strong-staff-password',
+    password: TEST_PASSWORD,
     role: 'INSTRUCTOR',
   })
   const invalid = validateStaffAccountInput({

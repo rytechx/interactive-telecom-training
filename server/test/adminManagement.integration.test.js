@@ -4,6 +4,9 @@ import { after, test } from 'node:test'
 import bcrypt from 'bcryptjs'
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === '1'
+const adminPassword = randomBytes(24).toString('base64url')
+const studentPassword = randomBytes(24).toString('base64url')
+const staffPassword = randomBytes(24).toString('base64url')
 
 if (!runIntegration) {
   test('admin management integration requires RUN_DB_INTEGRATION=1', {
@@ -41,7 +44,7 @@ if (!runIntegration) {
 
   test('admin updates preserve history and prevent self-lockout', async () => {
     const marker = `AM-${Date.now()}-${randomBytes(2).toString('hex')}`
-    const passwordHash = await bcrypt.hash('integration-only-password', 4)
+    const passwordHash = await bcrypt.hash(adminPassword, 4)
     const [adminResult] = await databasePool.execute(
       `INSERT INTO users
         (student_number, first_name, last_name, email, password_hash, role)
@@ -61,13 +64,12 @@ if (!runIntegration) {
       firstName: 'Student',
       lastName: marker,
       email: `${marker}-student@test.local`.toLowerCase(),
-      password: 'integration-test-password',
+      password: studentPassword,
       role: 'admin',
     })
     createdUserIds.push(student.id)
     assert.equal(student.role, 'student')
 
-    const staffPassword = 'integration-staff-password'
     const staff = await createStaffAccount({
       firstName: 'Instructor',
       lastName: marker,
@@ -87,7 +89,7 @@ if (!runIntegration) {
     await assert.rejects(
       authenticateStaff({
         identifier: student.email,
-        password: 'integration-test-password',
+        password: studentPassword,
       }),
       (error) => error.code === 'STAFF_ACCESS_REQUIRED',
     )

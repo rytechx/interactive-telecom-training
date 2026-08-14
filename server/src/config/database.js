@@ -22,7 +22,7 @@ async function verifyDatabaseConnection() {
     await connection.ping()
   } catch (error) {
     const databaseError = new Error(
-      'Unable to connect to MySQL. Check the XAMPP MySQL service and server environment configuration.',
+      'Unable to connect to MySQL. Verify the database service and DB_* environment configuration.',
     )
     databaseError.code = error.code
     throw databaseError

@@ -12,8 +12,22 @@ dist
 dist-ssr
 *.local
 .env
+.env.*
+!.env.example
 server/.env
+!server/.env.example
 server/node_modules
+
+# Local exports and database backups
+backups/
+exports/
+*.dump
+*.sql.gz
+*.dump.sql
+database-export*.sql
+production-dump*.sql
+*.bak
+*.tmp
 
 # Editor directories and files
 .vscode/*

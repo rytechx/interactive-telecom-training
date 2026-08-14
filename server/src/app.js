@@ -8,11 +8,14 @@ import instructorRouter from './routes/instructorRoutes.js'
 import trainingRouter from './routes/trainingRoutes.js'
 
 const app = express()
+const corsOrigin = (origin, callback) => {
+  callback(null, !origin || origin === environment.clientOrigin)
+}
 
 app.disable('x-powered-by')
 app.use(
   cors({
-    origin: environment.clientOrigin,
+    origin: corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],

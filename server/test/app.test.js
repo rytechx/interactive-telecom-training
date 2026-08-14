@@ -44,6 +44,16 @@ test('health endpoint returns the safe API status', async () => {
   assert.equal(response.headers.get('access-control-allow-origin'), 'http://localhost:5173')
   assert.equal(payload.success, true)
   assert.equal(payload.data.service, 'TeleSim 3D API')
+  assert.equal(response.headers.get('x-powered-by'), null)
+})
+
+test('CORS does not authorize an unconfigured frontend origin', async () => {
+  const response = await fetch(`${apiBaseUrl}/health`, {
+    headers: { Origin: 'https://untrusted.example' },
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get('access-control-allow-origin'), null)
 })
 
 test('registration endpoint rejects invalid input before database access', async () => {
@@ -160,4 +170,5 @@ test('logout endpoint clears the HTTP-only session cookie', async () => {
   assert.match(setCookieHeader, /^telesim_session=/)
   assert.match(setCookieHeader, /HttpOnly/i)
   assert.match(setCookieHeader, /SameSite=Lax/i)
+  assert.doesNotMatch(setCookieHeader, /;\s*Secure/i)
 })

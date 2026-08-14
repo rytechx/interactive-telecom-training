@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { after, test } from 'node:test'
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === '1'
+const testPassword = randomBytes(24).toString('base64url')
 
 if (!runIntegration) {
   test('training persistence integration requires RUN_DB_INTEGRATION=1', {
@@ -39,7 +40,7 @@ if (!runIntegration) {
       firstName: 'Persistence',
       lastName: 'Tester',
       email: `persistence-${label}-${unique}@test.local`,
-      password: 'training123',
+      password: testPassword,
     })
     createdUserIds.push(user.id)
     return user

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { after, test } from 'node:test'
 
 const runIntegration = process.env.RUN_DB_INTEGRATION === '1'
+const testPassword = randomBytes(24).toString('base64url')
 
 if (!runIntegration) {
   test('instructor analytics integration requires RUN_DB_INTEGRATION=1', {
@@ -43,7 +44,7 @@ if (!runIntegration) {
       firstName: `Analytics${suffix}`,
       lastName: marker,
       email: `${marker}-${suffix}@test.local`.toLowerCase(),
-      password: 'integration-test-password',
+      password: testPassword,
     })
     createdUserIds.push(student.id)
     return student

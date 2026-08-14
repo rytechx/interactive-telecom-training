@@ -1,4 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import mysql from 'mysql2/promise'
 import environment from '../src/config/environment.js'
@@ -16,13 +17,14 @@ const connection = await mysql.createConnection({
 })
 
 try {
-  const migrationFiles = (await readdir(migrationDirectory))
+  const numberedMigrations = (await readdir(migrationDirectory))
     .filter((fileName) => /^\d{3}_.+\.sql$/.test(fileName))
     .sort()
+  const migrationFiles = ['schema.sql', ...numberedMigrations]
 
   for (const migrationFile of migrationFiles) {
     const migrationSql = await readFile(
-      `${migrationDirectory}/${migrationFile}`,
+      join(migrationDirectory, migrationFile),
       'utf8',
     )
     await connection.query(migrationSql)

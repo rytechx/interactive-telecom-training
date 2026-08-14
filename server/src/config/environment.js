@@ -28,6 +28,58 @@ function getPositiveInteger(name, fallback) {
   return parsedValue
 }
 
+function getBoolean(name, fallback) {
+  const value = process.env[name]?.trim().toLowerCase()
+
+  if (!value) {
+    return fallback
+  }
+
+  if (value === 'true') return true
+  if (value === 'false') return false
+
+  throw new Error(`${name} must be true or false.`)
+}
+
+function getClientOrigin() {
+  const value = getRequiredEnvironmentValue('CLIENT_ORIGIN')
+
+  if (value === '*') {
+    throw new Error('CLIENT_ORIGIN must be an explicit frontend origin.')
+  }
+
+  let parsedOrigin
+
+  try {
+    parsedOrigin = new URL(value)
+  } catch {
+    throw new Error('CLIENT_ORIGIN must be a valid HTTP or HTTPS origin.')
+  }
+
+  if (
+    !['http:', 'https:'].includes(parsedOrigin.protocol) ||
+    parsedOrigin.username ||
+    parsedOrigin.password ||
+    parsedOrigin.pathname !== '/' ||
+    parsedOrigin.search ||
+    parsedOrigin.hash
+  ) {
+    throw new Error('CLIENT_ORIGIN must be a valid HTTP or HTTPS origin.')
+  }
+
+  return parsedOrigin.origin
+}
+
+function getSameSitePolicy() {
+  const value = process.env.COOKIE_SAME_SITE?.trim().toLowerCase() || 'lax'
+
+  if (!['lax', 'strict', 'none'].includes(value)) {
+    throw new Error('COOKIE_SAME_SITE must be lax, strict, or none.')
+  }
+
+  return value
+}
+
 function parseDurationToMilliseconds(value) {
   const match = /^(\d+)(s|m|h|d)$/.exec(value)
 
@@ -36,6 +88,11 @@ function parseDurationToMilliseconds(value) {
   }
 
   const amount = Number.parseInt(match[1], 10)
+
+  if (amount <= 0) {
+    throw new Error('JWT_EXPIRES_IN must be greater than zero.')
+  }
+
   const multipliers = {
     s: 1000,
     m: 60 * 1000,
@@ -47,22 +104,55 @@ function parseDurationToMilliseconds(value) {
 }
 
 const jwtExpiresIn = process.env.JWT_EXPIRES_IN?.trim() || '8h'
+const nodeEnvironment = process.env.NODE_ENV?.trim().toLowerCase() || 'development'
+
+if (!['development', 'test', 'production'].includes(nodeEnvironment)) {
+  throw new Error('NODE_ENV must be development, test, or production.')
+}
+
+const isProduction = nodeEnvironment === 'production'
+const jwtSecret = getRequiredEnvironmentValue('JWT_SECRET')
+const clientOrigin = getClientOrigin()
+const cookieSecure = getBoolean('COOKIE_SECURE', isProduction)
+const cookieSameSite = getSameSitePolicy()
+
+if (isProduction && Buffer.byteLength(jwtSecret, 'utf8') < 32) {
+  throw new Error('JWT_SECRET must be at least 32 bytes in production.')
+}
+
+if (isProduction && new URL(clientOrigin).protocol !== 'https:') {
+  throw new Error('CLIENT_ORIGIN must use HTTPS in production.')
+}
+
+if (isProduction && !cookieSecure) {
+  throw new Error('COOKIE_SECURE must be true in production.')
+}
+
+if (cookieSameSite === 'none' && !cookieSecure) {
+  throw new Error('COOKIE_SECURE must be true when COOKIE_SAME_SITE is none.')
+}
 
 const environment = Object.freeze({
-  nodeEnvironment: process.env.NODE_ENV?.trim() || 'development',
+  nodeEnvironment,
   port: getPositiveInteger('PORT', 3001),
   database: Object.freeze({
     host: getRequiredEnvironmentValue('DB_HOST'),
     port: getPositiveInteger('DB_PORT', 3306),
     user: getRequiredEnvironmentValue('DB_USER'),
-    password: getRequiredEnvironmentValue('DB_PASSWORD', { allowEmpty: true }),
+    password: getRequiredEnvironmentValue('DB_PASSWORD', {
+      allowEmpty: !isProduction,
+    }),
     name: getRequiredEnvironmentValue('DB_NAME'),
   }),
-  jwtSecret: getRequiredEnvironmentValue('JWT_SECRET'),
+  jwtSecret,
   jwtExpiresIn,
   sessionMaxAge: parseDurationToMilliseconds(jwtExpiresIn),
   sessionCookieName: 'telesim_session',
-  clientOrigin: getRequiredEnvironmentValue('CLIENT_ORIGIN'),
+  clientOrigin,
+  cookie: Object.freeze({
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
+  }),
 })
 
 export default environment

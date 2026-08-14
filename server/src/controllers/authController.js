@@ -14,8 +14,8 @@ import {
 function getSessionCookieOptions() {
   return {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: environment.nodeEnvironment === 'production',
+    sameSite: environment.cookie.sameSite,
+    secure: environment.cookie.secure,
     maxAge: environment.sessionMaxAge,
     path: '/',
   }
