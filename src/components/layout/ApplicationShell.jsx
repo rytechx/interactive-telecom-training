@@ -12,8 +12,10 @@ const navigationItems = Object.freeze([
 
 export default function ApplicationShell() {
   const navigate = useNavigate()
+  const mobileMenuButtonRef = useRef(null)
   const profileMenuRef = useRef(null)
   const profileButtonRef = useRef(null)
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
@@ -54,7 +56,21 @@ export default function ApplicationShell() {
     }
   }, [profileMenuOpen])
 
+  useEffect(() => {
+    if (!mobileNavigationOpen) return undefined
+
+    const closeMobileNavigation = (event) => {
+      if (event.key !== 'Escape') return
+      setMobileNavigationOpen(false)
+      mobileMenuButtonRef.current?.focus()
+    }
+
+    document.addEventListener('keydown', closeMobileNavigation)
+    return () => document.removeEventListener('keydown', closeMobileNavigation)
+  }, [mobileNavigationOpen])
+
   const signOut = async () => {
+    setMobileNavigationOpen(false)
     setProfileMenuOpen(false)
     await logout()
     navigate('/login', { replace: true })
@@ -62,6 +78,90 @@ export default function ApplicationShell() {
 
   return (
     <div className="application-shell">
+      <header className="application-mobile-header">
+        <div>
+          <span className="application-brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>
+            <strong>TeleSim 3D</strong>
+            <small>Student Portal</small>
+          </span>
+        </div>
+        <button
+          ref={mobileMenuButtonRef}
+          type="button"
+          className="application-mobile-menu-button"
+          onClick={() => setMobileNavigationOpen((open) => !open)}
+          aria-expanded={mobileNavigationOpen}
+          aria-controls="student-mobile-navigation"
+          aria-label={`${mobileNavigationOpen ? 'Close' : 'Open'} navigation menu`}
+        >
+          <i />
+          <i />
+          <i />
+        </button>
+      </header>
+
+      {mobileNavigationOpen && (
+        <>
+          <button
+            type="button"
+            className="application-mobile-backdrop"
+            onClick={() => setMobileNavigationOpen(false)}
+            aria-label="Close navigation menu"
+          />
+          <aside
+            id="student-mobile-navigation"
+            className="application-mobile-drawer"
+            aria-label="Student navigation menu"
+          >
+            <div className="application-mobile-drawer-heading">
+              <span>Student Workspace</span>
+              <strong>TeleSim Navigation</strong>
+            </div>
+            <nav className="application-mobile-navigation" aria-label="Mobile navigation">
+              {navigationItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end}
+                  className={({ isActive }) => (isActive ? 'is-active' : '')}
+                  onClick={() => setMobileNavigationOpen(false)}
+                >
+                  <TelecomIcon name={item.icon} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => (isActive ? 'is-active' : '')}
+                onClick={() => setMobileNavigationOpen(false)}
+              >
+                <TelecomIcon name="settings" />
+                <span>Settings</span>
+              </NavLink>
+              <NavLink to="/profile" onClick={() => setMobileNavigationOpen(false)}>
+                <TelecomIcon name="user" />
+                <span>Profile</span>
+              </NavLink>
+            </nav>
+            <div className="application-mobile-account">
+              <div>
+                <strong>{fullName}</strong>
+                <small>{profileMeta}</small>
+              </div>
+              <button type="button" onClick={signOut}>
+                <TelecomIcon name="logout" size={16} />
+                Log Out
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+
       <aside className="application-sidebar">
         <div className="application-brand">
           <span className="application-brand-mark" aria-hidden="true">
@@ -82,6 +182,8 @@ export default function ApplicationShell() {
               to={item.path}
               end={item.end}
               className={({ isActive }) => (isActive ? 'is-active' : '')}
+              aria-label={item.label}
+              title={item.label}
             >
               <TelecomIcon name={item.icon} />
               <span>{item.label}</span>
@@ -95,6 +197,8 @@ export default function ApplicationShell() {
             className={({ isActive }) =>
               `application-settings-link${isActive ? ' is-active' : ''}`
             }
+            aria-label="Settings"
+            title="Settings"
           >
             <TelecomIcon name="settings" />
             <span>Settings</span>
@@ -108,6 +212,8 @@ export default function ApplicationShell() {
               aria-expanded={profileMenuOpen}
               aria-haspopup="menu"
               aria-controls="authenticated-student-menu"
+              aria-label={`Open profile menu for ${fullName}`}
+              title={fullName}
             >
               <TelecomIcon name="user" />
               <span>

@@ -113,7 +113,7 @@ export default function LoginPage() {
             autoFocus
           />
           {fieldErrors.identifier && (
-            <span id="identifier-error" className="auth-field-error">
+            <span id="identifier-error" className="auth-field-error" role="alert">
               {fieldErrors.identifier}
             </span>
           )}

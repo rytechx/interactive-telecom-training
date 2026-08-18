@@ -9,9 +9,15 @@ export default function AuthLayout({
   variant = 'student',
 }) {
   const isStaff = variant === 'staff'
+  const isRegistration = variant === 'registration'
+  const pageClassName = [
+    'auth-page',
+    isStaff ? 'is-staff' : '',
+    isRegistration ? 'is-registration' : '',
+  ].filter(Boolean).join(' ')
 
   return (
-    <div className={`auth-page${isStaff ? ' is-staff' : ''}`}>
+    <div className={pageClassName}>
       <section className="auth-brand-panel" aria-label="TeleSim 3D platform">
         <Link
           className="auth-brand"
@@ -28,6 +34,13 @@ export default function AuthLayout({
             <small>{isStaff ? 'Staff Portal' : 'Telecom Training Platform'}</small>
           </span>
         </Link>
+
+        {isStaff && (
+          <div className="auth-mobile-context">
+            <span>Secure Management Workspace</span>
+            <strong>Instructor / Administrator Access</strong>
+          </div>
+        )}
 
         <div className="auth-brand-copy">
           <span>{isStaff ? 'Instructor & Administration' : 'Interactive Technical Education'}</span>
@@ -52,8 +65,15 @@ export default function AuthLayout({
           <span className="auth-link link-two" />
           <span className="auth-link link-three" />
           <span className="auth-link link-four" />
-          <strong>{isStaff ? 'Staff Systems Online' : 'Virtual Lab Online'}</strong>
+          {!isStaff && <strong>Virtual Lab Online</strong>}
         </div>
+
+        {isStaff && (
+          <div className="auth-staff-system-status" aria-hidden="true">
+            <i />
+            <strong>Staff Systems Online</strong>
+          </div>
+        )}
 
         <div className="auth-capabilities" aria-label="Training capabilities">
           <span>{isStaff ? 'Student Oversight' : 'Guided Procedures'}</span>

@@ -38,7 +38,11 @@ export default function PasswordField({
         </button>
       </div>
       {hint && <small id={hintId}>{hint}</small>}
-      {error && <span id={errorId} className="auth-field-error">{error}</span>}
+      {error && (
+        <span id={errorId} className="auth-field-error" role="alert">
+          {error}
+        </span>
+      )}
     </div>
   )
 }

@@ -106,7 +106,7 @@ export default function StaffLoginPage() {
             autoFocus
           />
           {fieldErrors.email && (
-            <span id="staff-email-error" className="auth-field-error">
+            <span id="staff-email-error" className="auth-field-error" role="alert">
               {fieldErrors.email}
             </span>
           )}

@@ -107,6 +107,7 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
+      variant="registration"
       eyebrow="Student Registration"
       title="Create your account"
       description="Register for secure access to TeleSim practical modules and future training records."
@@ -155,9 +156,12 @@ export default function RegisterPage() {
             autoComplete="given-name"
             required
             aria-invalid={Boolean(fieldErrors.firstName)}
+            aria-describedby={fieldErrors.firstName ? 'first-name-error' : undefined}
           />
           {fieldErrors.firstName && (
-            <span className="auth-field-error">{fieldErrors.firstName}</span>
+            <span id="first-name-error" className="auth-field-error" role="alert">
+              {fieldErrors.firstName}
+            </span>
           )}
         </div>
 
@@ -172,9 +176,12 @@ export default function RegisterPage() {
             autoComplete="family-name"
             required
             aria-invalid={Boolean(fieldErrors.lastName)}
+            aria-describedby={fieldErrors.lastName ? 'last-name-error' : undefined}
           />
           {fieldErrors.lastName && (
-            <span className="auth-field-error">{fieldErrors.lastName}</span>
+            <span id="last-name-error" className="auth-field-error" role="alert">
+              {fieldErrors.lastName}
+            </span>
           )}
         </div>
 
@@ -192,7 +199,7 @@ export default function RegisterPage() {
             aria-describedby={fieldErrors.email ? 'email-error' : undefined}
           />
           {fieldErrors.email && (
-            <span id="email-error" className="auth-field-error">
+            <span id="email-error" className="auth-field-error" role="alert">
               {fieldErrors.email}
             </span>
           )}
