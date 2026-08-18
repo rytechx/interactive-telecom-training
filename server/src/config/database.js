@@ -26,6 +26,13 @@ async function verifyDatabaseConnection() {
       'Unable to connect to MySQL. Verify the database service and DB_* environment configuration.',
     )
     databaseError.code = error.code ?? 'DATABASE_CONNECTION_ERROR'
+
+    for (const property of ['errno', 'sqlState', 'sqlMessage']) {
+      if (error[property] !== undefined) {
+        databaseError[property] = error[property]
+      }
+    }
+
     throw databaseError
   } finally {
     connection?.release()

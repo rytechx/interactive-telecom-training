@@ -10,6 +10,13 @@ function verifyDatabaseAfterStartup() {
     .catch((error) => {
       console.error('Database connection failed during startup.')
       console.error(`Error code: ${error.code ?? 'DATABASE_CONNECTION_ERROR'}`)
+      console.error(`Error number: ${error.errno ?? 'unavailable'}`)
+      console.error(`SQL state: ${error.sqlState ?? 'unavailable'}`)
+      console.error(`MySQL message: ${error.sqlMessage ?? 'unavailable'}`)
+      console.error(`Database host: ${environment.database.host}`)
+      console.error(`Database port: ${environment.database.port}`)
+      console.error(`Database user: ${environment.database.user}`)
+      console.error(`Database name: ${environment.database.name}`)
     })
 }
 
