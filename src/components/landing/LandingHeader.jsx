@@ -1,9 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+const navigationItems = Object.freeze([
+  Object.freeze({ id: 'top', label: 'Home' }),
+  Object.freeze({ id: 'training', label: 'Training' }),
+  Object.freeze({ id: 'workflow', label: 'How It Works' }),
+  Object.freeze({ id: 'platform', label: 'Platform' }),
+  Object.freeze({ id: 'about', label: 'About' }),
+])
+
 export default function LandingHeader({ session }) {
   const menuButtonRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState('top')
 
   useEffect(() => {
     if (!menuOpen) return undefined
@@ -18,10 +28,40 @@ export default function LandingHeader({ session }) {
     return () => document.removeEventListener('keydown', closeMenu)
   }, [menuOpen])
 
+  useEffect(() => {
+    const page = document.getElementById('top')
+    if (!page) return undefined
+
+    const updateHeader = () => {
+      setScrolled(page.scrollTop > 8)
+
+      const marker = page.scrollTop + 150
+      let currentSection = 'top'
+
+      navigationItems.forEach((item) => {
+        const section = document.getElementById(item.id)
+        if (section && section.offsetTop <= marker) {
+          currentSection = item.id
+        }
+      })
+
+      setActiveSection(currentSection)
+    }
+
+    updateHeader()
+    page.addEventListener('scroll', updateHeader, { passive: true })
+    window.addEventListener('resize', updateHeader)
+
+    return () => {
+      page.removeEventListener('scroll', updateHeader)
+      window.removeEventListener('resize', updateHeader)
+    }
+  }, [])
+
   const closeNavigation = () => setMenuOpen(false)
 
   return (
-    <header className="landing-header">
+    <header className={`landing-header${scrolled ? ' is-scrolled' : ''}`}>
       <div className="landing-container landing-header-inner">
         <Link className="landing-brand" to="/" aria-label="TeleSim 3D home">
           <span className="application-brand-mark" aria-hidden="true">
@@ -54,9 +94,17 @@ export default function LandingHeader({ session }) {
           className={`landing-navigation${menuOpen ? ' is-open' : ''}`}
         >
           <nav aria-label="Public navigation">
-            <a href="#top" onClick={closeNavigation}>Home</a>
-            <a href="#training" onClick={closeNavigation}>Training</a>
-            <a href="#about" onClick={closeNavigation}>About</a>
+            {navigationItems.map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                className={activeSection === item.id ? 'is-active' : undefined}
+                aria-current={activeSection === item.id ? 'location' : undefined}
+                onClick={closeNavigation}
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
 
           <div className="landing-header-actions">
