@@ -164,14 +164,14 @@ export default function TelecomLabPage() {
 
     await releaseBrowserControls()
     clearTrainingObjective()
-    navigate('/')
+    navigate('/dashboard')
   }
 
   const confirmReturnToDashboard = async () => {
     await releaseBrowserControls()
     resetLabSession()
     clearTrainingObjective()
-    navigate('/')
+    navigate('/dashboard')
   }
 
   const errorFallback = (

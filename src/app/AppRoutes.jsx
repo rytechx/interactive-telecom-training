@@ -13,6 +13,7 @@ import InstructorResultsPage from '../pages/InstructorResultsPage.jsx'
 import InstructorStudentDetailPage from '../pages/InstructorStudentDetailPage.jsx'
 import InstructorStudentsPage from '../pages/InstructorStudentsPage.jsx'
 import InstructorTroubleshootingPage from '../pages/InstructorTroubleshootingPage.jsx'
+import LandingPage from '../pages/LandingPage.jsx'
 import LoginPage from '../pages/LoginPage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import ProfilePage from '../pages/ProfilePage.jsx'
@@ -27,6 +28,8 @@ import { STAFF_ROLES } from '../utils/roleRoutes.js'
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route index element={<LandingPage />} />
+
       <Route element={<PublicOnlyRoute />}>
         <Route path="login" element={<LoginPage />} />
         <Route path="staff/login" element={<StaffLoginPage />} />
@@ -38,7 +41,7 @@ export default function AppRoutes() {
 
         <Route element={<RoleRoute allowedRoles={['student']} redirectTo="/instructor" />}>
           <Route element={<ApplicationShell />}>
-            <Route index element={<DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="training" element={<TrainingModulesPage />} />
             <Route path="results" element={<ResultsPage />} />
             <Route path="profile" element={<ProfilePage />} />

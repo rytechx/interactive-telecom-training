@@ -4,7 +4,7 @@ import useAuthStore from '../../store/useAuthStore.js'
 import TelecomIcon from '../../ui/TelecomIcon.jsx'
 
 const navigationItems = Object.freeze([
-  Object.freeze({ path: '/', label: 'Dashboard', icon: 'dashboard', end: true }),
+  Object.freeze({ path: '/dashboard', label: 'Dashboard', icon: 'dashboard', end: true }),
   Object.freeze({ path: '/training', label: 'Training Modules', icon: 'modules' }),
   Object.freeze({ path: '/lab', label: 'Telecom Laboratory', icon: 'lab' }),
   Object.freeze({ path: '/results', label: 'Results', icon: 'results' }),

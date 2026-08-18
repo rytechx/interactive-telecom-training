@@ -66,7 +66,7 @@ export default function LoginPage() {
       return
     }
 
-    navigate('/', { replace: true })
+    navigate('/dashboard', { replace: true })
   }
 
   return (

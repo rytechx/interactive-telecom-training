@@ -5,7 +5,7 @@ function isStaffRole(role) {
 }
 
 function getHomeRouteForRole(role) {
-  return isStaffRole(role) ? '/instructor' : '/'
+  return isStaffRole(role) ? '/instructor' : '/dashboard'
 }
 
 export { getHomeRouteForRole, isStaffRole, STAFF_ROLES }
