@@ -32,7 +32,7 @@ async function reservePorts(total) {
 }
 
 async function waitForHealth(url, childProcess) {
-  const deadline = Date.now() + 15000
+  const deadline = Date.now() + 30000
 
   while (Date.now() < deadline) {
     if (childProcess.exitCode !== null) {
@@ -50,7 +50,7 @@ async function waitForHealth(url, childProcess) {
 }
 
 async function waitForOutput(readOutput, expectedText) {
-  const deadline = Date.now() + 3000
+  const deadline = Date.now() + 10000
 
   while (Date.now() < deadline) {
     if (readOutput().includes(expectedText)) return
@@ -81,6 +81,7 @@ test('server keeps serving when the startup database check fails', async (contex
       CLIENT_ORIGIN: 'http://localhost:5173',
       COOKIE_SECURE: 'false',
       COOKIE_SAME_SITE: 'lax',
+      STAFF_BOOTSTRAP_ENABLED: 'false',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -123,4 +124,78 @@ test('server keeps serving when the startup database check fails', async (contex
   assert.match(errorOutput, /Error code: ECONNREFUSED/)
   assert.doesNotMatch(errorOutput, new RegExp(databasePassword))
   assert.doesNotMatch(errorOutput, new RegExp(jwtSecret))
+})
+
+test('server keeps serving and hides secrets when staff bootstrap fails', async (context) => {
+  const [httpPort, unavailableDatabasePort] = await reservePorts(2)
+  const adminPassword = randomBytes(24).toString('base64url')
+  const instructorPassword = randomBytes(24).toString('base64url')
+  const childProcess = spawn(process.execPath, ['server.js'], {
+    cwd: serverDirectory,
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      PORT: String(httpPort),
+      DB_HOST: '127.0.0.1',
+      DB_PORT: String(unavailableDatabasePort),
+      DB_USER: 'bootstrap-startup-test-user',
+      DB_PASSWORD: randomBytes(24).toString('base64url'),
+      DB_NAME: 'bootstrap-startup-test-database',
+      DB_CONNECT_TIMEOUT_MS: '250',
+      JWT_SECRET: randomBytes(48).toString('base64url'),
+      JWT_EXPIRES_IN: '8h',
+      CLIENT_ORIGIN: 'http://localhost:5173',
+      COOKIE_SECURE: 'false',
+      COOKIE_SAME_SITE: 'lax',
+      STAFF_BOOTSTRAP_ENABLED: 'true',
+      BOOTSTRAP_ADMIN_FIRST_NAME: 'Admin',
+      BOOTSTRAP_ADMIN_LAST_NAME: 'Account',
+      BOOTSTRAP_ADMIN_EMAIL: 'invalid-email',
+      BOOTSTRAP_ADMIN_PASSWORD: adminPassword,
+      BOOTSTRAP_INSTRUCTOR_FIRST_NAME: 'Instructor',
+      BOOTSTRAP_INSTRUCTOR_LAST_NAME: 'Account',
+      BOOTSTRAP_INSTRUCTOR_EMAIL: 'instructor-startup@test.local',
+      BOOTSTRAP_INSTRUCTOR_PASSWORD: instructorPassword,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let standardOutput = ''
+  let errorOutput = ''
+
+  childProcess.stdout.setEncoding('utf8')
+  childProcess.stderr.setEncoding('utf8')
+  childProcess.stdout.on('data', (chunk) => {
+    standardOutput += chunk
+  })
+  childProcess.stderr.on('data', (chunk) => {
+    errorOutput += chunk
+  })
+
+  context.after(async () => {
+    if (childProcess.exitCode === null) {
+      const exitPromise = once(childProcess, 'exit')
+      childProcess.kill('SIGTERM')
+      await exitPromise
+    }
+  })
+
+  const response = await waitForHealth(
+    `http://127.0.0.1:${httpPort}/api/health`,
+    childProcess,
+  )
+
+  await waitForOutput(
+    () => errorOutput,
+    'Production staff bootstrap failed.',
+  )
+
+  assert.equal(response.status, 503)
+  assert.equal(childProcess.exitCode, null)
+  assert.match(standardOutput, /Production staff bootstrap started\./)
+  assert.match(errorOutput, /Error code: INVALID_STAFF_BOOTSTRAP_INPUT/)
+
+  for (const output of [standardOutput, errorOutput]) {
+    assert.doesNotMatch(output, new RegExp(adminPassword))
+    assert.doesNotMatch(output, new RegExp(instructorPassword))
+  }
 })

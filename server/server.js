@@ -1,6 +1,7 @@
 import app from './src/app.js'
 import { databasePool, verifyDatabaseConnection } from './src/config/database.js'
 import environment from './src/config/environment.js'
+import { bootstrapProductionStaff } from './src/services/staffBootstrapService.js'
 
 function verifyDatabaseAfterStartup() {
   return verifyDatabaseConnection()
@@ -20,12 +21,34 @@ function verifyDatabaseAfterStartup() {
     })
 }
 
+async function runProductionStaffBootstrap() {
+  if (process.env.STAFF_BOOTSTRAP_ENABLED !== 'true') {
+    return
+  }
+
+  console.log('Production staff bootstrap started.')
+
+  try {
+    const summary = await bootstrapProductionStaff()
+    const adminStatus = summary.admin === 'created' ? 'created' : 'already exists'
+    const instructorStatus =
+      summary.instructor === 'created' ? 'created' : 'already exists'
+
+    console.log(`Admin bootstrap: ${adminStatus}.`)
+    console.log(`Instructor bootstrap: ${instructorStatus}.`)
+    console.log('Production staff bootstrap completed.')
+  } catch (error) {
+    console.error('Production staff bootstrap failed.')
+    console.error(`Error code: ${error.code ?? 'STAFF_BOOTSTRAP_ERROR'}`)
+  }
+}
+
 function startServer() {
   const server = app.listen(environment.port, () => {
     console.log(`TeleSim API running on port ${environment.port}`)
+    void verifyDatabaseAfterStartup()
+    void runProductionStaffBootstrap()
   })
-
-  void verifyDatabaseAfterStartup()
 
   const shutdown = (signal) => {
     console.log(`${signal} received. Shutting down TeleSim API.`)
