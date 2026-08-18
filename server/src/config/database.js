@@ -1,5 +1,8 @@
+import dns from 'node:dns'
 import mysql from 'mysql2/promise'
 import environment from './environment.js'
+
+dns.setDefaultResultOrder('ipv4first')
 
 const databasePool = mysql.createPool({
   host: environment.database.host,
