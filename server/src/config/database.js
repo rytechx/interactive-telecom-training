@@ -12,6 +12,7 @@ const databasePool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  connectTimeout: environment.database.connectTimeout,
 })
 
 async function verifyDatabaseConnection() {
@@ -24,7 +25,7 @@ async function verifyDatabaseConnection() {
     const databaseError = new Error(
       'Unable to connect to MySQL. Verify the database service and DB_* environment configuration.',
     )
-    databaseError.code = error.code
+    databaseError.code = error.code ?? 'DATABASE_CONNECTION_ERROR'
     throw databaseError
   } finally {
     connection?.release()

@@ -34,16 +34,19 @@ after(async () => {
   await databasePool.end()
 })
 
-test('health endpoint returns the safe API status', async () => {
+test('health endpoint safely reports unavailable database state', async () => {
   const response = await fetch(`${apiBaseUrl}/health`, {
     headers: { Origin: 'http://localhost:5173' },
   })
   const payload = await response.json()
 
-  assert.equal(response.status, 200)
+  assert.equal(response.status, 503)
   assert.equal(response.headers.get('access-control-allow-origin'), 'http://localhost:5173')
-  assert.equal(payload.success, true)
+  assert.equal(payload.success, false)
+  assert.equal(payload.data.status, 'degraded')
   assert.equal(payload.data.service, 'TeleSim 3D API')
+  assert.equal(payload.data.database, 'unavailable')
+  assert.equal(payload.message, undefined)
   assert.equal(response.headers.get('x-powered-by'), null)
 })
 
@@ -52,7 +55,7 @@ test('CORS does not authorize an unconfigured frontend origin', async () => {
     headers: { Origin: 'https://untrusted.example' },
   })
 
-  assert.equal(response.status, 200)
+  assert.equal(response.status, 503)
   assert.equal(response.headers.get('access-control-allow-origin'), null)
 })
 

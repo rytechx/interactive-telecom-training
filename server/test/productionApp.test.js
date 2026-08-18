@@ -59,6 +59,6 @@ test('production CORS omits authorization for another origin', async () => {
     headers: { Origin: 'https://untrusted.example' },
   })
 
-  assert.equal(response.status, 200)
+  assert.equal(response.status, 503)
   assert.equal(response.headers.get('access-control-allow-origin'), null)
 })

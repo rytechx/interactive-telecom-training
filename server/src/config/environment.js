@@ -143,6 +143,7 @@ const environment = Object.freeze({
       allowEmpty: !isProduction,
     }),
     name: getRequiredEnvironmentValue('DB_NAME'),
+    connectTimeout: getPositiveInteger('DB_CONNECT_TIMEOUT_MS', 3000),
   }),
   jwtSecret,
   jwtExpiresIn,

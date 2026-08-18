@@ -2,29 +2,34 @@ import app from './src/app.js'
 import { databasePool, verifyDatabaseConnection } from './src/config/database.js'
 import environment from './src/config/environment.js'
 
-async function startServer() {
-  try {
-    await verifyDatabaseConnection()
-    console.log('MySQL connection successful')
-
-    const server = app.listen(environment.port, () => {
-      console.log(`TeleSim API running on port ${environment.port}`)
+function verifyDatabaseAfterStartup() {
+  return verifyDatabaseConnection()
+    .then(() => {
+      console.log('MySQL connection successful')
     })
+    .catch((error) => {
+      console.error('Database connection failed during startup.')
+      console.error(`Error code: ${error.code ?? 'DATABASE_CONNECTION_ERROR'}`)
+    })
+}
 
-    const shutdown = (signal) => {
-      console.log(`${signal} received. Shutting down TeleSim API.`)
-      server.close(async () => {
-        await databasePool.end()
-        process.exit(0)
-      })
-    }
+function startServer() {
+  const server = app.listen(environment.port, () => {
+    console.log(`TeleSim API running on port ${environment.port}`)
+  })
 
-    process.once('SIGINT', () => shutdown('SIGINT'))
-    process.once('SIGTERM', () => shutdown('SIGTERM'))
-  } catch (error) {
-    console.error(error.message)
-    process.exitCode = 1
+  void verifyDatabaseAfterStartup()
+
+  const shutdown = (signal) => {
+    console.log(`${signal} received. Shutting down TeleSim API.`)
+    server.close(async () => {
+      await databasePool.end()
+      process.exit(0)
+    })
   }
+
+  process.once('SIGINT', () => shutdown('SIGINT'))
+  process.once('SIGTERM', () => shutdown('SIGTERM'))
 }
 
 startServer()
