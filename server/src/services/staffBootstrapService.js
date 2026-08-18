@@ -16,6 +16,7 @@ const BOOTSTRAP_ACCOUNTS = Object.freeze([
     role: 'instructor',
   }),
 ])
+const DRY_RUN_MINIMUM_PASSWORD_LENGTH = 6
 
 async function findUserByEmail(email) {
   const [users] = await databasePool.execute(
@@ -36,8 +37,11 @@ function readAccountInput(environment, account) {
   }
 }
 
-function validateAccount(environment, account, validateStaff) {
-  const validation = validateStaff(readAccountInput(environment, account))
+function validateAccount(environment, account, validateStaff, validationOptions) {
+  const validation = validateStaff(
+    readAccountInput(environment, account),
+    validationOptions,
+  )
 
   if (!validation.isValid) {
     const error = new Error(`${account.label} bootstrap configuration is invalid.`)
@@ -76,9 +80,18 @@ async function bootstrapProductionStaff({
     return undefined
   }
 
+  const validationOptions =
+    environment.STAFF_BOOTSTRAP_DRY_RUN === 'true'
+      ? { minimumPasswordLength: DRY_RUN_MINIMUM_PASSWORD_LENGTH }
+      : undefined
   const validatedAccounts = BOOTSTRAP_ACCOUNTS.map((account) => ({
     ...account,
-    input: validateAccount(environment, account, validateStaff),
+    input: validateAccount(
+      environment,
+      account,
+      validateStaff,
+      validationOptions,
+    ),
   }))
   const summary = {}
 

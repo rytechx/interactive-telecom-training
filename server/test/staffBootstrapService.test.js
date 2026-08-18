@@ -45,6 +45,42 @@ test('bootstrap does nothing unless explicitly enabled', async () => {
   }
 })
 
+test('bootstrap accepts six-character passwords only in explicit dry-run mode', async () => {
+  const shortPasswords = {
+    BOOTSTRAP_ADMIN_PASSWORD: 'x'.repeat(6),
+    BOOTSTRAP_INSTRUCTOR_PASSWORD: 'y'.repeat(6),
+  }
+  const dependencies = {
+    findExistingUser: async () => null,
+    createStaff: async () => {},
+  }
+  const dryRunSummary = await bootstrapProductionStaff({
+    ...dependencies,
+    environment: createEnvironment({
+      ...shortPasswords,
+      STAFF_BOOTSTRAP_DRY_RUN: 'true',
+    }),
+  })
+
+  assert.deepEqual(dryRunSummary, {
+    admin: 'created',
+    instructor: 'created',
+  })
+
+  for (const dryRunValue of [undefined, 'false', 'TRUE', '1', ' true ']) {
+    await assert.rejects(
+      bootstrapProductionStaff({
+        ...dependencies,
+        environment: createEnvironment({
+          ...shortPasswords,
+          STAFF_BOOTSTRAP_DRY_RUN: dryRunValue,
+        }),
+      }),
+      { code: 'INVALID_STAFF_BOOTSTRAP_INPUT' },
+    )
+  }
+})
+
 test('bootstrap creates the Admin account with the existing staff service', async () => {
   const environment = createEnvironment()
   const createdAccounts = []

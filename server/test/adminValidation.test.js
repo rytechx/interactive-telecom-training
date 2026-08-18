@@ -78,3 +78,27 @@ test('staff account validation accepts only strong instructor or admin accounts'
   assert.ok(invalid.errors.password)
   assert.ok(invalid.errors.role)
 })
+
+test('staff password validation keeps its default and supports an explicit minimum', () => {
+  const input = {
+    firstName: 'Dry',
+    lastName: 'Run',
+    email: 'dry-run@test.local',
+    password: 'x'.repeat(6),
+    role: 'admin',
+  }
+  const normalValidation = validateStaffAccountInput(input)
+  const dryRunValidation = validateStaffAccountInput(input, {
+    minimumPasswordLength: 6,
+  })
+  const tooShortValidation = validateStaffAccountInput(
+    { ...input, password: 'x'.repeat(5) },
+    { minimumPasswordLength: 6 },
+  )
+
+  assert.equal(normalValidation.isValid, false)
+  assert.ok(normalValidation.errors.password)
+  assert.equal(dryRunValidation.isValid, true)
+  assert.equal(tooShortValidation.isValid, false)
+  assert.ok(tooShortValidation.errors.password)
+})

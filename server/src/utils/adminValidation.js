@@ -97,7 +97,10 @@ function parseStatusUpdate(input = {}) {
   return input.isActive
 }
 
-function validateStaffAccountInput(input = {}) {
+function validateStaffAccountInput(
+  input = {},
+  { minimumPasswordLength = 12 } = {},
+) {
   const values = {
     firstName: normalizeText(input.firstName),
     lastName: normalizeText(input.lastName),
@@ -120,7 +123,10 @@ function validateStaffAccountInput(input = {}) {
   }
 
   const emailError = getEmailValidationError(values.email)
-  const passwordError = getPasswordValidationError(values.password, 12)
+  const passwordError = getPasswordValidationError(
+    values.password,
+    minimumPasswordLength,
+  )
 
   if (emailError) errors.email = emailError
   if (passwordError) errors.password = passwordError
