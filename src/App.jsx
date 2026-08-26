@@ -8,8 +8,9 @@ import useTrainingResultSync from './hooks/useTrainingResultSync.js'
 import useSettingsEffects from './hooks/useSettingsEffects.js'
 import useAudioSystem from './hooks/useAudioSystem.js'
 import useAuthStore from './store/useAuthStore.js'
+import MaintenancePage from './pages/MaintenancePage.jsx'
 
-export default function App() {
+function NormalApplication() {
   useTrainingResultSync()
   useTrainingPersistenceBootstrap()
   useSettingsEffects()
@@ -28,4 +29,15 @@ export default function App() {
       </ApplicationErrorBoundary>
     </BrowserRouter>
   )
+}
+
+export default function App() {
+  const maintenanceMode =
+    import.meta.env.VITE_MAINTENANCE_MODE?.trim().toLowerCase() === 'true'
+
+  if (maintenanceMode) {
+    return <MaintenancePage />
+  }
+
+  return <NormalApplication />
 }
