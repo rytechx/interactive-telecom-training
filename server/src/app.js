@@ -5,6 +5,7 @@ import { verifyDatabaseConnection } from './config/database.js'
 import environment from './config/environment.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import authRouter from './routes/authRoutes.js'
+import classRouter from './routes/classRoutes.js'
 import instructorRouter from './routes/instructorRoutes.js'
 import trainingRouter from './routes/trainingRoutes.js'
 
@@ -51,6 +52,7 @@ app.get('/api/health', async (request, response) => {
 })
 
 app.use('/api/auth', authRouter)
+app.use('/api/classes', classRouter)
 app.use('/api/training', trainingRouter)
 app.use('/api/instructor', instructorRouter)
 app.use(notFound)

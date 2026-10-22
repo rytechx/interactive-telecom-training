@@ -1,5 +1,6 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_NUMBER_PATTERN = /^[A-Za-z0-9-]+$/
+const CLASS_CODE_PATTERN = /^TS-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -33,6 +34,7 @@ function validateRegistrationInput(input = {}) {
     password: typeof input.password === 'string' ? input.password : '',
     confirmPassword:
       typeof input.confirmPassword === 'string' ? input.confirmPassword : '',
+    classCode: normalizeText(input.classCode).toUpperCase(),
   }
   const errors = {}
 
@@ -69,6 +71,10 @@ function validateRegistrationInput(input = {}) {
     errors.confirmPassword = 'Confirm your password.'
   } else if (values.confirmPassword !== values.password) {
     errors.confirmPassword = 'Passwords do not match.'
+  }
+
+  if (values.classCode && !CLASS_CODE_PATTERN.test(values.classCode)) {
+    errors.classCode = 'Enter a valid class code in the format TS-XXXXXX.'
   }
 
   return {

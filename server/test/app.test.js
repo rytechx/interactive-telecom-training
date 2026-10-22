@@ -143,6 +143,24 @@ test('instructor analytics require an authenticated session', async () => {
   assert.equal(payload.code, 'AUTH_REQUIRED')
 })
 
+test('student class routes require an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/classes/me`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
+test('instructor class routes require an authenticated session', async () => {
+  const response = await fetch(`${apiBaseUrl}/instructor/classes`)
+  const payload = await response.json()
+
+  assert.equal(response.status, 401)
+  assert.equal(payload.success, false)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+})
+
 test('admin user management requires an authenticated session', async () => {
   const response = await fetch(`${apiBaseUrl}/instructor/users`)
   const payload = await response.json()

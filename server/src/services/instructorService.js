@@ -19,7 +19,7 @@ const TROUBLESHOOTING_SCENARIOS = Object.freeze([
   Object.freeze({ key: 'switch-power-failure', title: 'Device Power Fault' }),
 ])
 
-const STUDENT_RECORDS_SQL = `
+const STUDENT_RECORDS_BASE_SQL = `
   SELECT
     u.id,
     u.student_number,
@@ -102,8 +102,46 @@ const STUDENT_RECORDS_SQL = `
     FROM training_attempts
     GROUP BY user_id
   ) activity ON activity.user_id = u.id
-  WHERE u.role = 'student'
 `
+
+function getStudentAccessCondition(actor, alias = 'u') {
+  if (!actor || actor.role === 'admin') {
+    return { sql: '1 = 1', parameters: [] }
+  }
+
+  return {
+    sql: `EXISTS (
+      SELECT 1
+      FROM class_enrollments access_enrollment
+      INNER JOIN classes access_class
+        ON access_class.id = access_enrollment.class_id
+      WHERE access_enrollment.student_id = ${alias}.id
+        AND access_class.instructor_id = ?
+    )`,
+    parameters: [actor.id],
+  }
+}
+
+function buildStudentRecordsSql(actor, { classId = null } = {}) {
+  const access = getStudentAccessCondition(actor)
+  const conditions = ["u.role = 'student'", access.sql]
+  const parameters = [...access.parameters]
+
+  if (classId) {
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM class_enrollments selected_enrollment
+      WHERE selected_enrollment.student_id = u.id
+        AND selected_enrollment.class_id = ?
+    )`)
+    parameters.push(classId)
+  }
+
+  return {
+    sql: `${STUDENT_RECORDS_BASE_SQL} WHERE ${conditions.join(' AND ')}`,
+    parameters,
+  }
+}
 
 function parseJson(value) {
   if (!value) return {}
@@ -214,7 +252,12 @@ function buildSearchConditions(search, conditions, parameters, alias = 'records'
   )
 }
 
-async function getInstructorOverview() {
+async function getInstructorOverview(actor = null) {
+  const records = buildStudentRecordsSql(actor)
+  const totalScope = getStudentAccessCondition(actor, 'scope_student')
+  const attemptScope = getStudentAccessCondition(actor, 'u')
+  const completionScope = getStudentAccessCondition(actor, 'u')
+  const recentScope = getStudentAccessCondition(actor, 'u')
   const [[headlineRows], [statusRows], [moduleRows], [recentRows]] =
     await Promise.all([
       databasePool.execute(
@@ -234,12 +277,14 @@ async function getInstructorOverview() {
            ) AS students_completing_all_modules,
            ROUND(AVG(records.average_best_score), 1) AS average_overall_score,
            SUM(records.completed_attempts) AS total_completed_attempts
-         FROM (${STUDENT_RECORDS_SQL}) records`,
+         FROM (${records.sql}) records`,
+        records.parameters,
       ),
       databasePool.execute(
         `SELECT training_status, COUNT(*) AS total
-         FROM (${STUDENT_RECORDS_SQL}) records
+         FROM (${records.sql}) records
          GROUP BY training_status`,
+        records.parameters,
       ),
       databasePool.execute(
         `SELECT
@@ -258,20 +303,22 @@ async function getInstructorOverview() {
          FROM training_modules m
          CROSS JOIN (
            SELECT COUNT(*) AS total_students
-           FROM users
-           WHERE role = 'student'
+           FROM users scope_student
+           WHERE scope_student.role = 'student'
+             AND ${totalScope.sql}
          ) totals
          LEFT JOIN (
            SELECT a.module_id, COUNT(*) AS total_attempts
            FROM training_attempts a
-           INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+            INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+            WHERE ${attemptScope.sql}
            GROUP BY a.module_id
          ) attempt_totals ON attempt_totals.module_id = m.id
          LEFT JOIN (
            SELECT a.module_id, a.user_id, MAX(a.score) AS best_score
            FROM training_attempts a
            INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
-           WHERE a.status = 'completed'
+            WHERE a.status = 'completed' AND ${completionScope.sql}
            GROUP BY a.module_id, a.user_id
          ) module_best ON module_best.module_id = m.id
          WHERE m.is_active = TRUE
@@ -282,6 +329,11 @@ async function getInstructorOverview() {
            totals.total_students,
            attempt_totals.total_attempts
          ORDER BY m.id`,
+        [
+          ...totalScope.parameters,
+          ...attemptScope.parameters,
+          ...completionScope.parameters,
+        ],
       ),
       databasePool.execute(
         `SELECT
@@ -302,9 +354,10 @@ async function getInstructorOverview() {
          FROM training_attempts a
          INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
          INNER JOIN training_modules m ON m.id = a.module_id
-         WHERE a.status = 'completed'
+         WHERE a.status = 'completed' AND ${recentScope.sql}
          ORDER BY a.completed_at DESC, a.id DESC
          LIMIT 8`,
+        recentScope.parameters,
       ),
     ])
 
@@ -354,7 +407,8 @@ async function getInstructorStudents({
   moduleKey,
   page,
   limit,
-}) {
+}, actor = null, { classId = null } = {}) {
+  const records = buildStudentRecordsSql(actor, { classId })
   const conditions = ['1 = 1']
   const parameters = []
   buildSearchConditions(search, conditions, parameters)
@@ -381,20 +435,20 @@ async function getInstructorStudents({
   const [[countRows], [studentRows]] = await Promise.all([
     databasePool.execute(
       `SELECT COUNT(*) AS total
-       FROM (${STUDENT_RECORDS_SQL}) records
+       FROM (${records.sql}) records
        WHERE ${whereClause}`,
-      parameters,
+      [...records.parameters, ...parameters],
     ),
     databasePool.execute(
       `SELECT *
-       FROM (${STUDENT_RECORDS_SQL}) records
+       FROM (${records.sql}) records
        WHERE ${whereClause}
        ORDER BY
          records.latest_activity IS NULL,
          records.latest_activity DESC,
          records.full_name
        LIMIT ? OFFSET ?`,
-      [...parameters, limit, (page - 1) * limit],
+      [...records.parameters, ...parameters, limit, (page - 1) * limit],
     ),
   ])
   const totalItems = Number(countRows[0]?.total ?? 0)
@@ -406,14 +460,16 @@ async function getInstructorStudents({
   }
 }
 
-async function getInstructorStudentDetail(studentId) {
+async function getInstructorStudentDetail(studentId, actor = null) {
+  const access = getStudentAccessCondition(actor)
   const [[profileRows], [moduleRows], [attemptRows]] = await Promise.all([
     databasePool.execute(
-      `SELECT id, student_number, first_name, last_name, email, role, is_active
-       FROM users
-       WHERE id = ? AND role = 'student'
+      `SELECT u.id, u.student_number, u.first_name, u.last_name,
+              u.email, u.role, u.is_active
+       FROM users u
+       WHERE u.id = ? AND u.role = 'student' AND ${access.sql}
        LIMIT 1`,
-      [studentId],
+      [studentId, ...access.parameters],
     ),
     databasePool.execute(
       `SELECT id, module_key, name, category, difficulty
@@ -512,7 +568,9 @@ async function getInstructorStudentDetail(studentId) {
 async function getInstructorStudentAttempts(
   studentId,
   { moduleKey, page, limit },
+  actor = null,
 ) {
+  const access = getStudentAccessCondition(actor)
   const conditions = ['a.user_id = ?', "u.role = 'student'"]
   const parameters = [studentId]
 
@@ -524,8 +582,10 @@ async function getInstructorStudentAttempts(
   const whereClause = conditions.join(' AND ')
   const [[studentRows], [countRows], [attemptRows]] = await Promise.all([
     databasePool.execute(
-      `SELECT id FROM users WHERE id = ? AND role = 'student' LIMIT 1`,
-      [studentId],
+      `SELECT u.id FROM users u
+       WHERE u.id = ? AND u.role = 'student' AND ${access.sql}
+       LIMIT 1`,
+      [studentId, ...access.parameters],
     ),
     databasePool.execute(
       `SELECT COUNT(*) AS total
@@ -572,7 +632,8 @@ async function getInstructorStudentAttempts(
   }
 }
 
-async function getInstructorAttemptDetail(studentId, attemptId) {
+async function getInstructorAttemptDetail(studentId, attemptId, actor = null) {
+  const access = getStudentAccessCondition(actor)
   const [attemptRows] = await databasePool.execute(
     `SELECT
        a.id,
@@ -593,9 +654,9 @@ async function getInstructorAttemptDetail(studentId, attemptId) {
      FROM training_attempts a
      INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
      INNER JOIN training_modules m ON m.id = a.module_id
-     WHERE a.id = ? AND a.user_id = ?
+     WHERE a.id = ? AND a.user_id = ? AND ${access.sql}
      LIMIT 1`,
-    [attemptId, studentId],
+    [attemptId, studentId, ...access.parameters],
   )
   const attempt = attemptRows[0]
 
@@ -706,7 +767,13 @@ function aggregateModuleDiagnostics(moduleKey, rows, scenarioSummary) {
   }
 }
 
-async function getInstructorModuleAnalytics() {
+async function getInstructorModuleAnalytics(actor = null) {
+  const totalScope = getStudentAccessCondition(actor, 'scope_student')
+  const attemptScope = getStudentAccessCondition(actor, 'u')
+  const completionScope = getStudentAccessCondition(actor, 'u')
+  const distributionScope = getStudentAccessCondition(actor, 'u')
+  const metricScope = getStudentAccessCondition(actor, 'u')
+  const scenarioScope = getStudentAccessCondition(actor, 'u')
   const [[moduleRows], [distributionRows], [metricRows], [scenarioRows]] =
     await Promise.all([
       databasePool.execute(
@@ -732,8 +799,9 @@ async function getInstructorModuleAnalytics() {
          FROM training_modules m
          CROSS JOIN (
            SELECT COUNT(*) AS total_students
-           FROM users
-           WHERE role = 'student'
+           FROM users scope_student
+           WHERE scope_student.role = 'student'
+             AND ${totalScope.sql}
          ) totals
          LEFT JOIN (
            SELECT
@@ -751,6 +819,7 @@ async function getInstructorModuleAnalytics() {
              )) AS average_duration
            FROM training_attempts a
            INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+           WHERE ${attemptScope.sql}
            GROUP BY a.module_id
          ) attempts ON attempts.module_id = m.id
          LEFT JOIN (
@@ -762,13 +831,18 @@ async function getInstructorModuleAnalytics() {
              SELECT a.module_id, a.user_id, MAX(a.score) AS best_score
              FROM training_attempts a
              INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
-             WHERE a.status = 'completed'
+             WHERE a.status = 'completed' AND ${completionScope.sql}
              GROUP BY a.module_id, a.user_id
            ) module_best
            GROUP BY module_best.module_id
          ) completions ON completions.module_id = m.id
          WHERE m.is_active = TRUE
          ORDER BY m.id`,
+        [
+          ...totalScope.parameters,
+          ...attemptScope.parameters,
+          ...completionScope.parameters,
+        ],
       ),
       databasePool.execute(
         `SELECT
@@ -785,15 +859,17 @@ async function getInstructorModuleAnalytics() {
          FROM training_attempts a
          INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
          INNER JOIN training_modules m ON m.id = a.module_id
-         WHERE a.status = 'completed'
+         WHERE a.status = 'completed' AND ${distributionScope.sql}
          GROUP BY m.module_key, score_band`,
+        distributionScope.parameters,
       ),
       databasePool.execute(
         `SELECT m.module_key, a.procedure_accuracy, a.metrics_json
          FROM training_attempts a
          INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
          INNER JOIN training_modules m ON m.id = a.module_id
-         WHERE a.status = 'completed'`,
+         WHERE a.status = 'completed' AND ${metricScope.sql}`,
+        metricScope.parameters,
       ),
       databasePool.execute(
         `SELECT
@@ -801,7 +877,9 @@ async function getInstructorModuleAnalytics() {
            COUNT(*) AS scenarios_completed
          FROM network_scenario_results r
          INNER JOIN training_attempts a ON a.id = r.attempt_id
-         INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'`,
+         INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+         WHERE ${scenarioScope.sql}`,
+        scenarioScope.parameters,
       ),
     ])
   const scenarioSummary = scenarioRows[0]
@@ -865,9 +943,11 @@ async function getInstructorResults({
   toDate,
   page,
   limit,
-}) {
+}, actor = null) {
+  const access = getStudentAccessCondition(actor)
   const conditions = ["a.status = 'completed'", "u.role = 'student'"]
-  const parameters = []
+  const parameters = [...access.parameters]
+  conditions.push(access.sql)
 
   if (search) {
     const searchValue = `%${search}%`
@@ -952,14 +1032,18 @@ async function getInstructorResults({
   }
 }
 
-async function getInstructorTroubleshootingAnalytics() {
+async function getInstructorTroubleshootingAnalytics(actor = null) {
+  const networkScope = getStudentAccessCondition(actor, 'u')
+  const scenarioScope = getStudentAccessCondition(actor, 'u')
   const [[networkAttemptRows], [scenarioRows]] = await Promise.all([
     databasePool.execute(
       `SELECT COUNT(*) AS total_network_attempts
        FROM training_attempts a
        INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
        INNER JOIN training_modules m
-         ON m.id = a.module_id AND m.module_key = 'network'`,
+         ON m.id = a.module_id AND m.module_key = 'network'
+       WHERE ${networkScope.sql}`,
+      networkScope.parameters,
     ),
     databasePool.execute(
       `SELECT
@@ -977,7 +1061,9 @@ async function getInstructorTroubleshootingAnalytics() {
        FROM network_scenario_results r
        INNER JOIN training_attempts a ON a.id = r.attempt_id
        INNER JOIN users u ON u.id = a.user_id AND u.role = 'student'
+       WHERE ${scenarioScope.sql}
        GROUP BY r.scenario_key`,
+      scenarioScope.parameters,
     ),
   ])
   const totalNetworkAttempts = Number(

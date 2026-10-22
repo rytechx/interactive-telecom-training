@@ -15,9 +15,8 @@ import {
 } from '../utils/instructorValidation.js'
 
 async function overview(request, response, next) {
-  void request
   try {
-    response.json({ success: true, data: await getInstructorOverview() })
+    response.json({ success: true, data: await getInstructorOverview(request.user) })
   } catch (error) {
     next(error)
   }
@@ -29,6 +28,7 @@ async function students(request, response, next) {
       success: true,
       data: await getInstructorStudents(
         parseInstructorListQuery(request.query),
+        request.user,
       ),
     })
   } catch (error) {
@@ -42,6 +42,7 @@ async function studentDetail(request, response, next) {
       success: true,
       data: await getInstructorStudentDetail(
         parsePositiveId(request.params.studentId, 'Student'),
+        request.user,
       ),
     })
   } catch (error) {
@@ -56,6 +57,7 @@ async function studentAttempts(request, response, next) {
       data: await getInstructorStudentAttempts(
         parsePositiveId(request.params.studentId, 'Student'),
         parseAttemptListQuery(request.query),
+        request.user,
       ),
     })
   } catch (error) {
@@ -70,6 +72,7 @@ async function studentAttemptDetail(request, response, next) {
       data: await getInstructorAttemptDetail(
         parsePositiveId(request.params.studentId, 'Student'),
         parsePositiveId(request.params.attemptId, 'Attempt'),
+        request.user,
       ),
     })
   } catch (error) {
@@ -78,11 +81,10 @@ async function studentAttemptDetail(request, response, next) {
 }
 
 async function modules(request, response, next) {
-  void request
   try {
     response.json({
       success: true,
-      data: await getInstructorModuleAnalytics(),
+      data: await getInstructorModuleAnalytics(request.user),
     })
   } catch (error) {
     next(error)
@@ -93,7 +95,10 @@ async function results(request, response, next) {
   try {
     response.json({
       success: true,
-      data: await getInstructorResults(parseAttemptListQuery(request.query)),
+      data: await getInstructorResults(
+        parseAttemptListQuery(request.query),
+        request.user,
+      ),
     })
   } catch (error) {
     next(error)
@@ -101,11 +106,10 @@ async function results(request, response, next) {
 }
 
 async function troubleshooting(request, response, next) {
-  void request
   try {
     response.json({
       success: true,
-      data: await getInstructorTroubleshootingAnalytics(),
+      data: await getInstructorTroubleshootingAnalytics(request.user),
     })
   } catch (error) {
     next(error)

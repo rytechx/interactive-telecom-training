@@ -6,6 +6,13 @@ import {
   userStatus,
 } from '../controllers/adminController.js'
 import {
+  staffClass,
+  staffClasses,
+  staffClassStudents,
+  staffCreateClass,
+  staffUpdateClass,
+} from '../controllers/classController.js'
+import {
   modules,
   overview,
   results,
@@ -21,6 +28,11 @@ import authorize from '../middleware/authorize.js'
 const instructorRouter = Router()
 
 instructorRouter.use(authenticate, authorize('instructor', 'admin'))
+instructorRouter.get('/classes', staffClasses)
+instructorRouter.post('/classes', authorize('instructor'), staffCreateClass)
+instructorRouter.get('/classes/:classId', staffClass)
+instructorRouter.get('/classes/:classId/students', staffClassStudents)
+instructorRouter.patch('/classes/:classId', staffUpdateClass)
 instructorRouter.get('/overview', overview)
 instructorRouter.get('/students', students)
 instructorRouter.get('/students/:studentId', studentDetail)

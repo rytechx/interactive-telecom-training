@@ -3,6 +3,7 @@ import { databasePool } from '../config/database.js'
 import environment from '../config/environment.js'
 import HttpError from '../utils/HttpError.js'
 import { hashPassword, verifyPassword } from '../utils/passwordSecurity.js'
+import { enrollStudent, findClassByCode } from './classService.js'
 
 const INVALID_CREDENTIALS_MESSAGE =
   'Invalid email/student number or password.'
@@ -26,45 +27,54 @@ async function registerStudent({
   lastName,
   email,
   password,
+  classCode,
 }) {
-  const [existingUsers] = await databasePool.execute(
-    `SELECT student_number, email
-     FROM users
-     WHERE student_number = ? OR email = ?
-     LIMIT 2`,
-    [studentNumber, email],
-  )
-
-  const emailExists = existingUsers.some((user) => user.email === email)
-  const studentNumberExists = existingUsers.some(
-    (user) => user.student_number === studentNumber,
-  )
-
-  if (emailExists) {
-    throw new HttpError(
-      409,
-      'An account with that email already exists.',
-      'EMAIL_EXISTS',
-    )
-  }
-
-  if (studentNumberExists) {
-    throw new HttpError(
-      409,
-      'Student number is already registered.',
-      'STUDENT_NUMBER_EXISTS',
-    )
-  }
-
   const passwordHash = await hashPassword(password)
+  const connection = await databasePool.getConnection()
 
   try {
-    const [result] = await databasePool.execute(
+    await connection.beginTransaction()
+    const classRecord = classCode
+      ? await findClassByCode(connection, classCode, { lock: true })
+      : null
+    const [existingUsers] = await connection.execute(
+      `SELECT student_number, email
+       FROM users
+       WHERE student_number = ? OR email = ?
+       LIMIT 2`,
+      [studentNumber, email],
+    )
+    const emailExists = existingUsers.some((user) => user.email === email)
+    const studentNumberExists = existingUsers.some(
+      (user) => user.student_number === studentNumber,
+    )
+
+    if (emailExists) {
+      throw new HttpError(
+        409,
+        'An account with that email already exists.',
+        'EMAIL_EXISTS',
+      )
+    }
+    if (studentNumberExists) {
+      throw new HttpError(
+        409,
+        'Student number is already registered.',
+        'STUDENT_NUMBER_EXISTS',
+      )
+    }
+
+    const [result] = await connection.execute(
       `INSERT INTO users
         (student_number, first_name, last_name, email, password_hash, role)
        VALUES (?, ?, ?, ?, ?, 'student')`,
       [studentNumber, firstName, lastName, email, passwordHash],
     )
+
+    if (classRecord) {
+      await enrollStudent(connection, classRecord.id, result.insertId)
+    }
+    await connection.commit()
 
     return {
       id: result.insertId,
@@ -76,6 +86,7 @@ async function registerStudent({
       isActive: true,
     }
   } catch (error) {
+    await connection.rollback()
     if (error.code === 'ER_DUP_ENTRY') {
       const duplicateMessage = error.message.includes('uq_users_email')
         ? 'An account with that email already exists.'
@@ -85,6 +96,8 @@ async function registerStudent({
     }
 
     throw error
+  } finally {
+    connection.release()
   }
 }
 
