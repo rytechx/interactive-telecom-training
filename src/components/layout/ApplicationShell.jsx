@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore.js'
+import useClassStore from '../../store/useClassStore.js'
 import TelecomIcon from '../../ui/TelecomIcon.jsx'
 
 const navigationItems = Object.freeze([
@@ -72,6 +73,7 @@ export default function ApplicationShell() {
   const signOut = async () => {
     setMobileNavigationOpen(false)
     setProfileMenuOpen(false)
+    useClassStore.getState().reset()
     await logout()
     navigate('/login', { replace: true })
   }

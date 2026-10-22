@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../components/dashboard/DashboardHeader.jsx'
 import ModuleCard from '../components/dashboard/ModuleCard.jsx'
+import MyClasses from '../components/dashboard/MyClasses.jsx'
 import OverallProgressCard from '../components/dashboard/OverallProgressCard.jsx'
 import RecentActivity from '../components/dashboard/RecentActivity.jsx'
 import SkillsOverview from '../components/dashboard/SkillsOverview.jsx'
@@ -56,6 +57,8 @@ export default function DashboardPage() {
                 ))}
         </div>
       </section>
+
+      <MyClasses />
 
       <div className="dashboard-lower-grid">
         <RecentActivity

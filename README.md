@@ -169,13 +169,15 @@ All API responses use a consistent `success` field. Authentication requests that
 | `GET` | `/api/auth/me` | Authenticated | Return the safe current-user profile |
 | `POST` | `/api/auth/logout` | Public | Clear the authentication cookie |
 
+Registration accepts an optional `classCode`. When supplied, the API validates an active class, creates the student, and writes the enrollment in one transaction. An invalid or inactive code rolls back registration; registration without a class code remains supported.
+
 Passwords are hashed with bcrypt and are never returned through the API. The server assigns the `student` role during public registration; client-provided role values are ignored. The staff endpoint rejects student accounts, while the student endpoint directs valid staff accounts to the Staff Portal.
 
 ## Role Architecture
 
 - `student` accounts use the existing Dashboard, Training, Laboratory, Results, Profile, and Settings routes. Student training APIs remain self-only.
-- `instructor` accounts can read student educational records and aggregate training analytics.
-- `admin` accounts share the instructor analytics portal and can manage account roles and active status from User Management.
+- `instructor` accounts can read only students enrolled in classes they own, including student detail, attempts, results, overview, module, and troubleshooting analytics.
+- `admin` accounts retain global student and class visibility and can manage account roles and active status from User Management.
 - Administrators can create instructor or administrator accounts; there is no public staff registration route.
 - Every instructor endpoint runs both `authenticate` and `authorize('instructor', 'admin')`. The React role guard improves navigation only; it is not the security boundary.
 - Instructor analytics remain read-only. Admin mutations affect only `users.role` and `users.is_active`; they never edit training results or delete history.
@@ -202,6 +204,11 @@ All endpoints require an active `instructor` or `admin` session. List endpoints 
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
+| `GET` | `/api/instructor/classes` | List owned classes; administrators receive the global class list |
+| `POST` | `/api/instructor/classes` | Instructor-only class creation with a server-generated class code |
+| `GET` | `/api/instructor/classes/:classId` | Read an owned class or any class as an administrator |
+| `GET` | `/api/instructor/classes/:classId/students` | Paginated training records for students enrolled in one authorized class |
+| `PATCH` | `/api/instructor/classes/:classId` | Rename or activate/deactivate an authorized class |
 | `GET` | `/api/instructor/overview` | Headline counts, status breakdown, module completion, and recent activity |
 | `GET` | `/api/instructor/students` | Search and filter paginated safe student records |
 | `GET` | `/api/instructor/students/:studentId` | Safe student profile and aggregated module progress |
@@ -219,6 +226,10 @@ Student status uses an intentionally small policy: no attempts is **Not Started*
 
 Module diagnostics read stored `metrics_json` in the backend and safely ignore missing legacy metrics. The implementation avoids version-specific MySQL JSON aggregation functions so it remains compatible with the current XAMPP MySQL/MariaDB workflow.
 
+## Class Enrollment API
+
+Both endpoints require an active student session. `POST /api/classes/join` accepts a normalized `TS-XXXXXX` code and is idempotent. `GET /api/classes/me` returns the student's enrolled classes and instructor display names. Students may belong to multiple classes and can continue training with no class enrollment.
+
 ## Protected Frontend Routes
 
 Student-only routes:
@@ -233,6 +244,8 @@ Student-only routes:
 Instructor/admin routes:
 
 - `/instructor` - Management overview
+- `/instructor/classes` - Owned/global class list and invite tools
+- `/instructor/classes/:classId/students` - Authorized class roster
 - `/instructor/students` - Student records
 - `/instructor/students/:studentId` - Student detail and attempt history
 - `/instructor/modules` - Module analytics
@@ -246,6 +259,7 @@ Public routes:
 - `/login` - Student login
 - `/staff/login` - Instructor and administrator login
 - `/register` - Student registration only
+- `/register?class=TS-XXXXXX` - Student registration with an invite-prefilled class code
 
 Unauthenticated student-route visits redirect to `/login`; unauthenticated management-route visits redirect to `/staff/login`. Authenticated visits to public authentication routes redirect by role: students to `/`, and instructors/admins to `/instructor`. Role-mismatched visits show the Access Restricted route or redirect to the correct role home. Student logout returns to `/login`, while staff logout returns to `/staff/login`.
 
@@ -254,6 +268,12 @@ Unauthenticated student-route visits redirect to `/login`; unauthenticated manag
 ### `users`
 
 Stores account identity, a bcrypt password hash, a server-controlled role, active status, and timestamps. `student_number` remains unique and required by student registration but is nullable for instructor and administrator accounts. Staff accounts use their unique email identity and do not receive invented student numbers. Migration `003_staff_accounts.sql` makes this change without deleting or rewriting existing accounts.
+
+### Classes and enrollments
+
+- `classes` stores the instructor owner, server-generated unique code, name, active status, and timestamps.
+- `class_enrollments` links students to any number of classes and prevents duplicate membership with a unique `(class_id, student_id)` constraint.
+- Migration `005_classes.sql` adds both tables without changing existing users, attempts, or training history. Existing students begin with zero enrollments.
 
 ### Training result persistence
 

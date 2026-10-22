@@ -6,11 +6,15 @@
 2. Enter your email or student number and password.
 3. Select **Sign In**.
 
-New students may use **Create Account** at `/register`. Registration creates student accounts only. Instructor and administrator accounts use the separate Staff Portal.
+New students may use **Create Account** at `/register`. Registration creates student accounts only. If an instructor shares an invite link, the optional Class Code field is prefilled; verify the code before submitting. Instructor and administrator accounts use the separate Staff Portal.
 
 ## Dashboard
 
 The Dashboard summarizes overall progress, recent activity, skills progress, module status, latest score, best score, and attempt count from saved MySQL records. Select a module card or open **Training Modules** to begin.
+
+## Joining a Class
+
+The **My Classes** Dashboard section lists current enrollments. Enter the `TS-XXXXXX` code provided by an instructor and select **Join Class**. Joining the same class again is safe and does not duplicate the enrollment. Invalid codes and inactive classes are rejected. A student may join more than one class, and class membership is optional; all normal training features remain available without an enrollment.
 
 ## Entering the Laboratory
 

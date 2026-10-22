@@ -9329,6 +9329,395 @@ html.settings-high-contrast .application-page time {
   color: #b9ccd2;
 }
 
+.dashboard-classes-panel {
+  grid-column: 1 / -1;
+}
+
+.dashboard-class-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+  gap: 14px;
+}
+
+.dashboard-class-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 8px;
+}
+
+.dashboard-class-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px 14px;
+  min-width: 0;
+  padding: 12px;
+  background: rgb(5 17 22 / 48%);
+  border: 1px solid rgb(108 187 209 / 10%);
+  border-radius: 8px;
+}
+
+.dashboard-class-list article > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-class-list article strong {
+  overflow: hidden;
+  color: #dcecef;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-class-list article span,
+.dashboard-class-empty span,
+.dashboard-class-note {
+  color: #7f98a1;
+  font-size: 9px;
+}
+
+.dashboard-class-list code,
+.instructor-class-code code,
+.class-created-result code {
+  color: #7cdef3;
+  font-family: "Roboto Mono", "Cascadia Code", monospace;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.dashboard-class-enrolled {
+  grid-column: 2;
+  color: #7cddb0 !important;
+  font-size: 8px !important;
+  font-weight: 800;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.dashboard-class-empty {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 82px;
+  padding: 12px;
+  background: rgb(5 17 22 / 40%);
+  border: 1px dashed rgb(108 187 209 / 15%);
+  border-radius: 8px;
+}
+
+.dashboard-class-empty strong {
+  color: #cfdee2;
+  font-size: 10px;
+}
+
+.dashboard-class-join {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 12px;
+  background: rgb(5 17 22 / 40%);
+  border: 1px solid rgb(108 187 209 / 10%);
+  border-radius: 8px;
+}
+
+.dashboard-class-join label {
+  color: #8ba3ab;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.dashboard-class-join > div {
+  display: flex;
+  gap: 7px;
+}
+
+.dashboard-class-join input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #dcecef;
+  font: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  background: rgb(3 12 16 / 65%);
+  border: 1px solid rgb(108 187 209 / 17%);
+  border-radius: 6px;
+  outline: none;
+  flex: 1;
+}
+
+.dashboard-class-join input:focus {
+  border-color: rgb(85 197 227 / 50%);
+  box-shadow: 0 0 0 3px rgb(85 197 227 / 8%);
+}
+
+.dashboard-class-join button,
+.instructor-class-card footer button,
+.class-dialog button {
+  padding: 8px 11px;
+  color: #bcecf7;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+  background: rgb(75 176 205 / 9%);
+  border: 1px solid rgb(93 197 225 / 23%);
+  border-radius: 6px;
+}
+
+.dashboard-class-join button:disabled,
+.class-dialog button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.dashboard-class-join p {
+  margin: 0;
+  font-size: 8.5px;
+}
+
+.dashboard-class-join p.is-success {
+  color: #7cddb0;
+}
+
+.dashboard-class-join p.is-error {
+  color: #e7999f;
+}
+
+.instructor-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 13px;
+}
+
+.instructor-class-card {
+  display: flex;
+  min-width: 0;
+  padding: 17px;
+  background:
+    linear-gradient(145deg, rgb(47 128 151 / 10%), transparent 58%),
+    var(--instructor-panel);
+  border: 1px solid var(--instructor-border);
+  border-radius: 9px;
+  box-shadow: 0 16px 38px rgb(0 0 0 / 12%);
+  flex-direction: column;
+}
+
+.instructor-class-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.instructor-class-card > header span:first-child,
+.instructor-class-code > span,
+.class-dialog > header span,
+.class-created-result > span {
+  display: block;
+  color: #62cce8;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.instructor-class-card h2,
+.class-dialog h2 {
+  margin: 5px 0 0;
+  color: #e5f1f3;
+  font-size: 15px;
+}
+
+.instructor-class-code {
+  display: grid;
+  gap: 5px;
+  margin: 17px 0;
+  padding: 13px;
+  background: rgb(4 15 20 / 45%);
+  border: 1px solid rgb(108 187 209 / 11%);
+  border-radius: 7px;
+}
+
+.instructor-class-code code {
+  font-size: 20px;
+}
+
+.instructor-class-card dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.instructor-class-card dl div {
+  min-width: 0;
+}
+
+.instructor-class-card dt {
+  color: #718b94;
+  font-size: 8px;
+}
+
+.instructor-class-card dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #d5e5e8;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instructor-class-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 17px;
+}
+
+.instructor-class-card footer button:hover,
+.class-dialog button:hover:not(:disabled) {
+  color: #061b22;
+  background: #67d1ec;
+  border-color: #67d1ec;
+}
+
+.class-copy-feedback {
+  margin: -9px 0 14px;
+  padding: 9px 12px;
+  color: #91e5b5;
+  font-size: 9px;
+  background: rgb(61 153 105 / 10%);
+  border: 1px solid rgb(90 199 139 / 18%);
+  border-radius: 7px;
+}
+
+.class-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  padding: 18px;
+  background: rgb(2 8 11 / 76%);
+  backdrop-filter: blur(5px);
+  place-items: center;
+}
+
+.class-dialog {
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 36px);
+  padding: 22px;
+  overflow-y: auto;
+  background: #101f26;
+  border: 1px solid rgb(96 197 224 / 23%);
+  border-radius: 11px;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 48%);
+}
+
+.class-dialog form,
+.class-created-result {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.class-dialog label {
+  color: #9ab0b7;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.class-dialog input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 11px;
+  color: #dcecef;
+  font: inherit;
+  font-size: 11px;
+  background: rgb(4 14 19 / 72%);
+  border: 1px solid rgb(118 176 194 / 18%);
+  border-radius: 6px;
+  outline: none;
+}
+
+.class-dialog form > p,
+.class-created-result p {
+  margin: 0;
+  color: #d99098;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.class-dialog form footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.class-created-result {
+  padding: 14px;
+  background: rgb(4 15 20 / 45%);
+  border: 1px solid rgb(108 187 209 / 11%);
+  border-radius: 8px;
+}
+
+.class-created-result strong {
+  color: #e5f1f3;
+  font-size: 13px;
+}
+
+.class-created-result code {
+  font-size: 24px;
+}
+
+.class-created-result p {
+  color: #8199a2;
+}
+
+.class-dialog-done {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.auth-field label > span {
+  color: #6f8790;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+@media (max-width: 840px) {
+  .dashboard-class-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-class-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-class-enrolled {
+    grid-column: 1;
+    text-align: left;
+  }
+
+  .dashboard-class-join > div {
+    flex-direction: column;
+  }
+
+  .instructor-class-card footer button {
+    flex: 1 1 120px;
+  }
+}
+
 html.settings-hide-hover-labels .tool-tooltip:not(.is-persistent),
 html.settings-hide-hover-labels .network-object-tooltip:not(.is-persistent) {
   display: none !important;

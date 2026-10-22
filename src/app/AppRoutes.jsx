@@ -8,6 +8,8 @@ import AccessRestrictedPage from '../pages/AccessRestrictedPage.jsx'
 import AdminUsersPage from '../pages/AdminUsersPage.jsx'
 import DashboardPage from '../pages/DashboardPage.jsx'
 import InstructorModulesPage from '../pages/InstructorModulesPage.jsx'
+import InstructorClassesPage from '../pages/InstructorClassesPage.jsx'
+import InstructorClassStudentsPage from '../pages/InstructorClassStudentsPage.jsx'
 import InstructorOverviewPage from '../pages/InstructorOverviewPage.jsx'
 import InstructorResultsPage from '../pages/InstructorResultsPage.jsx'
 import InstructorStudentDetailPage from '../pages/InstructorStudentDetailPage.jsx'
@@ -56,6 +58,8 @@ export default function AppRoutes() {
         <Route element={<RoleRoute allowedRoles={STAFF_ROLES} />}>
           <Route path="instructor" element={<InstructorShell />}>
             <Route index element={<InstructorOverviewPage />} />
+            <Route path="classes" element={<InstructorClassesPage />} />
+            <Route path="classes/:classId/students" element={<InstructorClassStudentsPage />} />
             <Route path="students" element={<InstructorStudentsPage />} />
             <Route
               path="students/:studentId"

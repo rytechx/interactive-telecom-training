@@ -3,10 +3,12 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '../../store/useAuthStore.js'
 import useAdminStore from '../../store/useAdminStore.js'
 import useInstructorStore from '../../store/useInstructorStore.js'
+import useClassStore from '../../store/useClassStore.js'
 import TelecomIcon from '../../ui/TelecomIcon.jsx'
 
 const staffNavigation = Object.freeze([
   Object.freeze({ path: '/instructor', label: 'Overview', icon: 'dashboard', end: true }),
+  Object.freeze({ path: '/instructor/classes', label: 'Classes', icon: 'network' }),
   Object.freeze({ path: '/instructor/students', label: 'Students', icon: 'user' }),
   Object.freeze({ path: '/instructor/modules', label: 'Modules', icon: 'modules' }),
   Object.freeze({ path: '/instructor/results', label: 'Training Results', icon: 'results' }),
@@ -45,6 +47,7 @@ export default function InstructorShell() {
   const signOut = async () => {
     setMobileNavigationOpen(false)
     useInstructorStore.getState().reset()
+    useClassStore.getState().reset()
     useAdminStore.getState().reset()
     await logout()
     navigate('/staff/login', { replace: true })

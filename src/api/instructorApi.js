@@ -14,6 +14,26 @@ function buildQuery(filters = {}) {
 }
 
 const instructorApi = Object.freeze({
+  getClasses: () =>
+    apiRequest('/instructor/classes').then((response) => response.data),
+  createClass: (classData) =>
+    apiRequest('/instructor/classes', {
+      method: 'POST',
+      body: classData,
+    }).then((response) => response.data.class),
+  getClass: (classId) =>
+    apiRequest(`/instructor/classes/${classId}`).then(
+      (response) => response.data.class,
+    ),
+  getClassStudents: (classId, filters) =>
+    apiRequest(
+      `/instructor/classes/${classId}/students${buildQuery(filters)}`,
+    ).then((response) => response.data),
+  updateClass: (classId, changes) =>
+    apiRequest(`/instructor/classes/${classId}`, {
+      method: 'PATCH',
+      body: changes,
+    }).then((response) => response.data.class),
   getOverview: () =>
     apiRequest('/instructor/overview').then((response) => response.data),
   getStudents: (filters) =>

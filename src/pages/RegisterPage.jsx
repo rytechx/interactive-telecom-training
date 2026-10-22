@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthLayout from '../components/auth/AuthLayout.jsx'
 import PasswordField from '../components/auth/PasswordField.jsx'
 import useAuthStore from '../store/useAuthStore.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_NUMBER_PATTERN = /^[A-Za-z0-9-]+$/
+const CLASS_CODE_PATTERN = /^TS-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/
 
 function validateRegistrationForm(values) {
   const errors = {}
@@ -43,23 +44,30 @@ function validateRegistrationForm(values) {
     errors.confirmPassword = 'Passwords do not match.'
   }
 
+  const classCode = values.classCode.trim().toUpperCase()
+  if (classCode && !CLASS_CODE_PATTERN.test(classCode)) {
+    errors.classCode = 'Use the class code format TS-XXXXXX.'
+  }
+
   return errors
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const register = useAuthStore((state) => state.register)
   const isLoading = useAuthStore((state) => state.isLoading)
   const authError = useAuthStore((state) => state.authError)
   const clearAuthError = useAuthStore((state) => state.clearAuthError)
-  const [values, setValues] = useState({
+  const [values, setValues] = useState(() => ({
     studentNumber: '',
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-  })
+    classCode: searchParams.get('class')?.trim().toUpperCase() || '',
+  }))
   const [fieldErrors, setFieldErrors] = useState({})
 
   useEffect(
@@ -201,6 +209,28 @@ export default function RegisterPage() {
           {fieldErrors.email && (
             <span id="email-error" className="auth-field-error" role="alert">
               {fieldErrors.email}
+            </span>
+          )}
+        </div>
+
+        <div className="auth-field field-full">
+          <label htmlFor="classCode">Class Code <span>(Optional)</span></label>
+          <input
+            id="classCode"
+            name="classCode"
+            type="text"
+            value={values.classCode}
+            onChange={updateField('classCode')}
+            placeholder="TS-XXXXXX"
+            maxLength={9}
+            autoComplete="off"
+            aria-invalid={Boolean(fieldErrors.classCode)}
+            aria-describedby={fieldErrors.classCode ? 'class-code-error' : 'class-code-hint'}
+          />
+          <small id="class-code-hint">Enter the code provided by your instructor.</small>
+          {fieldErrors.classCode && (
+            <span id="class-code-error" className="auth-field-error" role="alert">
+              {fieldErrors.classCode}
             </span>
           )}
         </div>
