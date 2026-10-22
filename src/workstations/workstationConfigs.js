@@ -1,5 +1,6 @@
 const RJ45_WORKSTATION = Object.freeze({
   id: 'rj45-workbench',
+  stationNumber: '01',
   displayName: 'RJ45 Cable Termination',
   interactionPosition: Object.freeze([-5, 0, -2.5]),
   workspacePosition: Object.freeze([-5.15, 0.95, -2.5]),
@@ -45,6 +46,7 @@ const RJ45_WORKSTATION = Object.freeze({
 
 const FIBER_WORKSTATION = Object.freeze({
   id: 'fiber-workbench',
+  stationNumber: '02',
   displayName: 'Fiber Optic Fusion Splicing',
   interactionPosition: Object.freeze([5, 0, -2.5]),
   workspacePosition: Object.freeze([5, 0.95, -2.5]),

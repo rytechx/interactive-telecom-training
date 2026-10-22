@@ -198,6 +198,167 @@ canvas {
   );
 }
 
+.lab-station-sign {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  gap: 5px;
+  width: 190px;
+  padding: 11px 14px 12px;
+  overflow: hidden;
+  color: #eefbfe;
+  font-family: system-ui, sans-serif;
+  text-align: left;
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgb(11 27 34 / 97%), rgb(8 17 22 / 97%));
+  border: 1px solid rgb(102 211 236 / 58%);
+  border-left: 4px solid #68d5ed;
+  border-radius: 4px;
+  box-shadow:
+    0 10px 24px rgb(0 0 0 / 34%),
+    0 0 18px rgb(70 194 222 / 12%);
+}
+
+.lab-station-sign::after {
+  position: absolute;
+  right: 9px;
+  bottom: 8px;
+  width: 25px;
+  height: 1px;
+  background: #66cee6;
+  box-shadow: 0 -4px 0 rgb(102 206 230 / 35%);
+  content: '';
+}
+
+.lab-station-sign span {
+  color: #75d9ef;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.lab-station-sign strong {
+  max-width: 150px;
+  font-size: 12px;
+  line-height: 1.28;
+  letter-spacing: 0.045em;
+}
+
+.training-error-feedback {
+  position: absolute;
+  top: 50%;
+  right: clamp(20px, 3vw, 48px);
+  z-index: 7;
+  box-sizing: border-box;
+  width: min(310px, calc(100% - 40px));
+  padding: 14px 16px 15px;
+  color: #f7edef;
+  font-family: system-ui, sans-serif;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgb(42 22 27 / 96%), rgb(24 19 23 / 96%));
+  border: 1px solid rgb(239 115 105 / 48%);
+  border-left: 4px solid #ef7569;
+  border-radius: 8px;
+  box-shadow: 0 16px 44px rgb(0 0 0 / 38%);
+  transform: translateY(-50%);
+}
+
+.training-error-feedback-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffaaa2;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.training-error-feedback-label i {
+  width: 7px;
+  height: 7px;
+  background: #ef7569;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(239 117 105 / 12%);
+}
+
+.training-error-feedback p {
+  margin: 9px 0 0;
+  color: #f1dfe1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.interaction-hand-indicator {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: 94px;
+  color: #ecfbff;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 48%));
+  animation: interaction-hand-bob 1.6s ease-in-out infinite;
+}
+
+.interaction-hand-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 7px;
+  background: rgb(7 21 27 / 88%);
+  border: 1px solid rgb(107 216 239 / 60%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgb(92 204 230 / 10%);
+  place-items: center;
+}
+
+.interaction-hand-icon svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: rgb(62 164 188 / 18%);
+  stroke: #e9fbff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.interaction-hand-icon .interaction-hand-click {
+  fill: none;
+  stroke: #72d8ef;
+  stroke-width: 2.2;
+}
+
+.interaction-hand-label {
+  max-width: 94px;
+  padding: 4px 7px;
+  color: #dff8fd;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+  background: rgb(7 21 27 / 88%);
+  border: 1px solid rgb(107 216 239 / 32%);
+  border-radius: 4px;
+}
+
+@keyframes interaction-hand-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 .training-panel {
   width: min(300px, calc(100% - 40px));
   padding: 18px;
@@ -2558,6 +2719,27 @@ canvas {
     padding: 14px;
   }
 
+  .training-error-feedback {
+    top: calc(var(--lab-content-top, 56px) + 4px);
+    right: 14px;
+    left: 14px;
+    width: auto;
+    padding: 11px 13px 12px;
+    transform: none;
+  }
+
+  .training-error-feedback p {
+    margin-top: 7px;
+    font-size: 12px;
+  }
+
+  .telecom-lab-page.is-workstation-active
+    .training-overlay:not(.is-assessment):has(> .training-error-feedback)
+    .procedure-panel {
+    max-height: calc(100dvh - var(--lab-content-top) - 134px);
+    margin-top: 116px;
+  }
+
   .training-panel {
     width: min(320px, calc(100% - 28px));
     padding: 18px;
@@ -2681,6 +2863,12 @@ canvas {
   .assessment-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interaction-hand-indicator {
+    animation: none;
   }
 }
 

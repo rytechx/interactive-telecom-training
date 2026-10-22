@@ -9,6 +9,7 @@ import {
   TubeGeometry,
   Vector3,
 } from 'three'
+import InteractionHandIndicator from '../../components/training/InteractionHandIndicator.jsx'
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
 import useToolStore, { TOOL_VIEW_STATES } from '../../store/useToolStore.js'
 import { FiberProtectionSleeve, FusionSplicer } from './FiberTools.jsx'
@@ -1284,17 +1285,11 @@ export default function FiberSplicingStation({
             <boxGeometry args={actionConfig.size} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
-          {actionConfig.showGuide !== false && (
-            <mesh position={actionConfig.position}>
-              <boxGeometry args={actionConfig.size} />
-              <meshBasicMaterial
-                color="#6ed7e8"
-                transparent
-                opacity={isHovered ? 0.18 : 0.08}
-                wireframe
-                toneMapped={false}
-              />
-            </mesh>
+          {canInteract && actionConfig.showGuide !== false && (
+            <InteractionHandIndicator
+              position={actionConfig.position}
+              label={actionConfig.label}
+            />
           )}
         </group>
       )}

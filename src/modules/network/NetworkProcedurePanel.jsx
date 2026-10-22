@@ -1,3 +1,4 @@
+import TrainingErrorFeedback from '../../components/training/TrainingErrorFeedback.jsx'
 import useNetworkTrainingStore from '../../store/useNetworkTrainingStore.js'
 import useSettingsStore from '../../store/useSettingsStore.js'
 import { confirmTrainingRestart } from '../../utils/trainingConfirmations.js'
@@ -117,7 +118,10 @@ export default function NetworkProcedurePanel({
     procedureFeedback?.includes('before startup') ||
     procedureFeedback?.includes('Invalid') ||
     procedureFeedback?.includes('incorrect') ||
-    procedureFeedback?.includes('failed')
+    procedureFeedback?.includes('failed') ||
+    procedureFeedback?.startsWith('Start at ') ||
+    procedureFeedback?.includes('not part of the required') ||
+    procedureFeedback?.includes('has no active connection')
   const hasSuccess =
     procedureFeedback?.includes('installed') ||
     procedureFeedback?.includes('connected') ||
@@ -128,14 +132,16 @@ export default function NetworkProcedurePanel({
     procedureFeedback?.includes('verified')
 
   return (
-    <section
-      className={`training-panel procedure-panel network-procedure-panel${
-        isCablingInteraction ? ' is-cabling-compact' : ''
-      }`}
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="network-procedure-title"
-    >
+    <>
+      <TrainingErrorFeedback message={hasError ? procedureFeedback : null} />
+      <section
+        className={`training-panel procedure-panel network-procedure-panel${
+          isCablingInteraction ? ' is-cabling-compact' : ''
+        }`}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="network-procedure-title"
+      >
       <span className="procedure-step-number">
         Step {procedureStep.stepNumber} of {NETWORK_TOTAL_STEPS}
       </span>
@@ -187,11 +193,9 @@ export default function NetworkProcedurePanel({
         </p>
       )}
 
-      {procedureFeedback && (
+      {procedureFeedback && !hasError && (
         <p
-          className={`procedure-feedback${
-            hasError ? ' is-error' : hasSuccess ? ' is-success' : ''
-          }`}
+          className={`procedure-feedback${hasSuccess ? ' is-success' : ''}`}
           role="status"
         >
           {procedureFeedback}
@@ -384,6 +388,7 @@ export default function NetworkProcedurePanel({
           Exit
         </button>
       </div>
-    </section>
+      </section>
+    </>
   )
 }

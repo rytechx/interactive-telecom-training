@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import TrainingErrorFeedback from '../../components/training/TrainingErrorFeedback.jsx'
 import useSettingsStore from '../../store/useSettingsStore.js'
 import useTrainingStore from '../../store/useTrainingStore.js'
 import useToolStore from '../../store/useToolStore.js'
@@ -217,7 +218,8 @@ export default function RJ45ProcedurePanel({
     procedureFeedback?.startsWith('Align the ') ||
     procedureFeedback?.startsWith('Position the ') ||
     procedureFeedback?.startsWith('Verify the ') ||
-    procedureFeedback?.startsWith('One or more ')
+    procedureFeedback?.startsWith('One or more ') ||
+    procedureFeedback?.startsWith('Arrangement does not ')
   const showInsertionResults =
     isConnectorInsertionActive && insertionValidationResults.some(Boolean)
   const displayedProcedureFeedback = isInsertionCompletionStep
@@ -226,6 +228,8 @@ export default function RJ45ProcedurePanel({
   const showProcedureFeedback =
     displayedProcedureFeedback &&
     getDisplayInstruction(displayedProcedureFeedback) !== displayInstruction
+  const showWrongStepFeedback =
+    showProcedureFeedback && (hasIncorrectValidation || hasProcedureError)
   const canAlignConnector =
     currentStep === RJ45_PROCEDURE_STEPS.ALIGN_CONNECTOR &&
     !connectorAligned
@@ -253,11 +257,7 @@ export default function RJ45ProcedurePanel({
     (result) => result === TEST_PIN_STATUSES.TESTING,
   )
   const feedbackClassName = `procedure-feedback${
-    isComplete
-      ? ' is-success'
-      : hasIncorrectValidation || hasProcedureError
-        ? ' is-error'
-        : ''
+    isComplete ? ' is-success' : ''
   }`
   const handleGuideToggle = () => {
     if (!isReferenceGuideVisible) {
@@ -272,18 +272,22 @@ export default function RJ45ProcedurePanel({
   }
 
   return (
-    <section
-      className={`training-panel procedure-panel${
-        isArrangementActive ? ' is-arranging' : ''
-      }${isTrimmingActive ? ' is-trimming' : ''}${
-        isConnectorInsertionActive ? ' is-inserting' : ''
-      }${isCrimpingActive ? ' is-crimping' : ''}${
-        isCableTestingActive ? ' is-testing' : ''
-      }${isTechnicianOverview ? ' is-technician-overview' : ''}`}
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="procedure-title"
-    >
+    <>
+      <TrainingErrorFeedback
+        message={showWrongStepFeedback ? displayedProcedureFeedback : null}
+      />
+      <section
+        className={`training-panel procedure-panel${
+          isArrangementActive ? ' is-arranging' : ''
+        }${isTrimmingActive ? ' is-trimming' : ''}${
+          isConnectorInsertionActive ? ' is-inserting' : ''
+        }${isCrimpingActive ? ' is-crimping' : ''}${
+          isCableTestingActive ? ' is-testing' : ''
+        }${isTechnicianOverview ? ' is-technician-overview' : ''}`}
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="procedure-title"
+      >
       <span className="procedure-step-number">
         Step {procedureStep.stepNumber} of {RJ45_TOTAL_STEPS}
       </span>
@@ -367,7 +371,7 @@ export default function RJ45ProcedurePanel({
         </div>
       )}
 
-      {showProcedureFeedback && (
+      {showProcedureFeedback && !showWrongStepFeedback && (
         <p className={feedbackClassName} role="status">
           {displayedProcedureFeedback}
         </p>
@@ -639,6 +643,7 @@ export default function RJ45ProcedurePanel({
           Exit
         </button>
       </div>
-    </section>
+      </section>
+    </>
   )
 }

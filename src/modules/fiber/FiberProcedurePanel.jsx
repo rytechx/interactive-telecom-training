@@ -1,3 +1,4 @@
+import TrainingErrorFeedback from '../../components/training/TrainingErrorFeedback.jsx'
 import useFiberTrainingStore from '../../store/useFiberTrainingStore.js'
 import useSettingsStore from '../../store/useSettingsStore.js'
 import useToolStore from '../../store/useToolStore.js'
@@ -108,6 +109,7 @@ export default function FiberProcedurePanel({
   const hasError =
     procedureFeedback?.startsWith('Use the ') ||
     procedureFeedback?.startsWith('Position the ') ||
+    procedureFeedback?.startsWith('Select the ') ||
     procedureFeedback?.startsWith('Complete ') ||
     procedureFeedback?.startsWith('Load and ') ||
     procedureFeedback?.startsWith('Use the splice')
@@ -132,12 +134,14 @@ export default function FiberProcedurePanel({
   }
 
   return (
-    <section
-      className="training-panel procedure-panel fiber-procedure-panel"
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="fiber-procedure-title"
-    >
+    <>
+      <TrainingErrorFeedback message={hasError ? procedureFeedback : null} />
+      <section
+        className="training-panel procedure-panel fiber-procedure-panel"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="fiber-procedure-title"
+      >
       <span className="procedure-step-number">
         Step {procedureStep.stepNumber} of {FIBER_TOTAL_STEPS}
       </span>
@@ -165,14 +169,13 @@ export default function FiberProcedurePanel({
       )}
 
       {procedureFeedback &&
-        procedureFeedback !== procedureStep.instruction && (
+        procedureFeedback !== procedureStep.instruction &&
+        !hasError && (
           <p
             className={`procedure-feedback${
               hasSuccessFeedback
                 ? ' is-success'
-                : hasError
-                  ? ' is-error'
-                  : ''
+                : ''
             }`}
             role="status"
           >
@@ -310,6 +313,7 @@ export default function FiberProcedurePanel({
           Exit
         </button>
       </div>
-    </section>
+      </section>
+    </>
   )
 }
