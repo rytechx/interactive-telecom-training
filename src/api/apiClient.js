@@ -12,6 +12,8 @@ const AUTH_ENTRY_PATHS = new Set([
   '/auth/register',
   '/auth/logout',
   '/auth/me',
+  '/auth/forgot-password',
+  '/auth/reset-password',
 ])
 let sessionExpiryNotified = false
 
@@ -130,6 +132,16 @@ const authApi = Object.freeze({
     apiRequest('/auth/staff/login', { method: 'POST', body: credentials }),
   register: (registration) =>
     apiRequest('/auth/register', { method: 'POST', body: registration }),
+  requestPasswordReset: (email) =>
+    apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+  resetPassword: (passwordReset) =>
+    apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: passwordReset,
+    }),
   logout: () => apiRequest('/auth/logout', { method: 'POST' }),
 })
 

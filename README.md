@@ -79,6 +79,12 @@ Required API variables:
 | `CLIENT_ORIGIN` | Exact Vite origin allowed by CORS |
 | `COOKIE_SECURE` | `true` for production HTTPS; `false` for local HTTP |
 | `COOKIE_SAME_SITE` | Cookie policy: `lax`, `strict`, or `none` |
+| `PASSWORD_RESET_ENABLED` | Enables reset emails only when set to `true` |
+| `PASSWORD_RESET_TTL_MINUTES` | Reset-link lifetime; defaults to `30` |
+| `PASSWORD_RESET_COOLDOWN_SECONDS` | Per-account request cooldown; defaults to `60` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | SMTP connection settings |
+| `SMTP_USER` / `SMTP_PASS` | SMTP credentials stored outside Git |
+| `MAIL_FROM` | Verified password-reset sender identity |
 
 ### 5. Install and start the API
 
@@ -312,7 +318,7 @@ Stores account identity, a bcrypt password hash, a server-controlled role, activ
 
 - MySQL credentials and a JWT secret must be configured before authentication can run.
 - In-progress attempts may remain when a student exits before completion; a later Begin Training action safely creates a new attempt.
-- Password reset, profile editing, permanent account deletion, and training-result editing are not included in this sprint.
+- Profile editing, permanent account deletion, and training-result editing are not included in this sprint.
 - Analytics must be compared with the corresponding database records before being treated as production-verified. The optional database integration suite can seed and remove isolated test students with `RUN_DB_INTEGRATION=1 npm test`.
 - The production build still reports non-blocking large-chunk warnings for the 3D and physics bundles.
 - Production deployment, domain, HTTPS cookie behavior, and production save/read persistence require validation on the actual deployed URL before release tagging.

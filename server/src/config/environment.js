@@ -41,6 +41,11 @@ function getBoolean(name, fallback) {
   throw new Error(`${name} must be true or false.`)
 }
 
+function getOptionalEnvironmentValue(name) {
+  const value = process.env[name]?.trim()
+  return value || null
+}
+
 function getClientOrigin() {
   const value = getRequiredEnvironmentValue('CLIENT_ORIGIN')
 
@@ -115,6 +120,29 @@ const jwtSecret = getRequiredEnvironmentValue('JWT_SECRET')
 const clientOrigin = getClientOrigin()
 const cookieSecure = getBoolean('COOKIE_SECURE', isProduction)
 const cookieSameSite = getSameSitePolicy()
+const passwordResetEnabled = getBoolean('PASSWORD_RESET_ENABLED', false)
+const smtpSecure = getBoolean('SMTP_SECURE', false)
+const mailConfiguration = {
+  host: getOptionalEnvironmentValue('SMTP_HOST'),
+  port: getPositiveInteger('SMTP_PORT', smtpSecure ? 465 : 587),
+  secure: smtpSecure,
+  user: getOptionalEnvironmentValue('SMTP_USER'),
+  password: getOptionalEnvironmentValue('SMTP_PASS'),
+  from: getOptionalEnvironmentValue('MAIL_FROM'),
+}
+
+if (passwordResetEnabled) {
+  for (const [property, variableName] of [
+    ['host', 'SMTP_HOST'],
+    ['user', 'SMTP_USER'],
+    ['password', 'SMTP_PASS'],
+    ['from', 'MAIL_FROM'],
+  ]) {
+    if (!mailConfiguration[property]) {
+      throw new Error(`Missing required environment variable: ${variableName}`)
+    }
+  }
+}
 
 if (isProduction && Buffer.byteLength(jwtSecret, 'utf8') < 32) {
   throw new Error('JWT_SECRET must be at least 32 bytes in production.')
@@ -154,6 +182,15 @@ const environment = Object.freeze({
     secure: cookieSecure,
     sameSite: cookieSameSite,
   }),
+  passwordReset: Object.freeze({
+    enabled: passwordResetEnabled,
+    ttlMinutes: getPositiveInteger('PASSWORD_RESET_TTL_MINUTES', 30),
+    cooldownSeconds: getPositiveInteger(
+      'PASSWORD_RESET_COOLDOWN_SECONDS',
+      60,
+    ),
+  }),
+  mail: Object.freeze(mailConfiguration),
 })
 
 export default environment

@@ -103,6 +103,55 @@ test('staff login endpoint requires a staff email and password', async () => {
   assert.ok(payload.errors.email)
 })
 
+test('forgot-password rejects malformed email input without caching', async () => {
+  const response = await fetch(`${apiBaseUrl}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'invalid-email' }),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 400)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+  assert.equal(payload.success, false)
+  assert.ok(payload.errors.email)
+})
+
+test('disabled forgot-password returns the generic public response', async () => {
+  const response = await fetch(`${apiBaseUrl}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'unknown@test.local' }),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+  assert.equal(payload.success, true)
+  assert.equal(
+    payload.message,
+    'If an account exists for that email address, password reset instructions have been sent.',
+  )
+})
+
+test('reset-password rejects mismatched passwords before database access', async () => {
+  const response = await fetch(`${apiBaseUrl}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: 'a'.repeat(43),
+      password: 'new-password',
+      confirmPassword: 'different-password',
+    }),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 400)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+  assert.equal(payload.success, false)
+  assert.equal(payload.errors.confirmPassword, 'Passwords do not match.')
+})
+
 test('current-user endpoint rejects requests without a session cookie', async () => {
   const response = await fetch(`${apiBaseUrl}/auth/me`)
   const payload = await response.json()

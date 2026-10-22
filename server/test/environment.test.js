@@ -57,6 +57,29 @@ test('production environment accepts secure explicit configuration', () => {
   assert.equal(result.stdout, 'configuration accepted')
 })
 
+test('password reset can remain disabled without SMTP configuration', () => {
+  const result = loadEnvironment({ PASSWORD_RESET_ENABLED: 'false' })
+
+  assert.equal(result.status, 0, result.stderr)
+})
+
+test('enabled password reset requires SMTP configuration', () => {
+  const missingSmtp = loadEnvironment({ PASSWORD_RESET_ENABLED: 'true' })
+  const configuredSmtp = loadEnvironment({
+    PASSWORD_RESET_ENABLED: 'true',
+    SMTP_HOST: 'smtp.example',
+    SMTP_PORT: '587',
+    SMTP_SECURE: 'false',
+    SMTP_USER: 'mailer',
+    SMTP_PASS: 'test-secret',
+    MAIL_FROM: 'TeleSim 3D <no-reply@example.com>',
+  })
+
+  assert.notEqual(missingSmtp.status, 0)
+  assert.match(missingSmtp.stderr, /SMTP_HOST/)
+  assert.equal(configuredSmtp.status, 0, configuredSmtp.stderr)
+})
+
 test('production environment rejects an empty database password', () => {
   const result = loadEnvironment({ DB_PASSWORD: '' })
 

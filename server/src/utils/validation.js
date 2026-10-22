@@ -1,6 +1,7 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_NUMBER_PATTERN = /^[A-Za-z0-9-]+$/
 const CLASS_CODE_PATTERN = /^TS-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/
+const PASSWORD_RESET_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -127,11 +128,58 @@ function validateStaffLoginInput(input = {}) {
   }
 }
 
+function validateForgotPasswordInput(input = {}) {
+  const values = {
+    email: normalizeText(input.email).toLowerCase(),
+  }
+  const errors = {}
+  const emailError = getEmailValidationError(values.email)
+
+  if (emailError) errors.email = emailError
+
+  return {
+    values,
+    errors,
+    isValid: Object.keys(errors).length === 0,
+  }
+}
+
+function validateResetPasswordInput(input = {}) {
+  const values = {
+    token: normalizeText(input.token),
+    password: typeof input.password === 'string' ? input.password : '',
+    confirmPassword:
+      typeof input.confirmPassword === 'string' ? input.confirmPassword : '',
+  }
+  const errors = {}
+
+  if (!values.token || !PASSWORD_RESET_TOKEN_PATTERN.test(values.token)) {
+    errors.token = 'This password reset link is invalid or has expired.'
+  }
+
+  const passwordError = getPasswordValidationError(values.password)
+
+  if (passwordError) errors.password = passwordError
+  if (!values.confirmPassword) {
+    errors.confirmPassword = 'Confirm your new password.'
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Passwords do not match.'
+  }
+
+  return {
+    values,
+    errors,
+    isValid: Object.keys(errors).length === 0,
+  }
+}
+
 export {
   getEmailValidationError,
   getPasswordValidationError,
   normalizeText,
+  validateForgotPasswordInput,
   validateLoginInput,
   validateRegistrationInput,
+  validateResetPasswordInput,
   validateStaffLoginInput,
 }

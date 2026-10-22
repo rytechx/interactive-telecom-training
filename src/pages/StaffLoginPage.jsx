@@ -80,7 +80,14 @@ export default function StaffLoginPage() {
       )}
     >
       {location.state?.message && (
-        <div className="auth-message is-error" role="alert">
+        <div
+          className={`auth-message ${
+            location.state.messageType === 'success'
+              ? 'is-success'
+              : 'is-error'
+          }`}
+          role={location.state.messageType === 'success' ? 'status' : 'alert'}
+        >
           {location.state.message}
         </div>
       )}
@@ -120,6 +127,10 @@ export default function StaffLoginPage() {
           error={fieldErrors.password}
           autoComplete="current-password"
         />
+
+        <div className="auth-password-link-row">
+          <Link to="/forgot-password?portal=staff">Forgot Password?</Link>
+        </div>
 
         <button className="auth-submit-button" type="submit" disabled={isLoading}>
           {isLoading ? 'Signing In...' : 'Sign In to Staff Portal'}

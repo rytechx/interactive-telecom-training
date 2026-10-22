@@ -128,6 +128,10 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
 
+        <div className="auth-password-link-row">
+          <Link to="/forgot-password">Forgot Password?</Link>
+        </div>
+
         <button className="auth-submit-button" type="submit" disabled={isLoading}>
           {isLoading ? 'Signing In...' : 'Sign In'}
           <span aria-hidden="true">→</span>

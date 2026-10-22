@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  validateForgotPasswordInput,
   validateLoginInput,
   validateRegistrationInput,
+  validateResetPasswordInput,
   validateStaffLoginInput,
 } from '../src/utils/validation.js'
 
@@ -75,4 +77,38 @@ test('staff login validation requires a valid email and password', () => {
   assert.equal(invalid.isValid, false)
   assert.ok(invalid.errors.email)
   assert.ok(invalid.errors.password)
+})
+
+test('forgot-password validation rejects malformed email input', () => {
+  const invalid = validateForgotPasswordInput({ email: 'not-an-email' })
+  const valid = validateForgotPasswordInput({ email: ' USER@TEST.LOCAL ' })
+
+  assert.equal(invalid.isValid, false)
+  assert.equal(invalid.errors.email, 'Enter a valid email address.')
+  assert.equal(valid.isValid, true)
+  assert.equal(valid.values.email, 'user@test.local')
+})
+
+test('reset-password validation requires a valid token and matching password', () => {
+  const result = validateResetPasswordInput({
+    token: 'invalid',
+    password: 'short',
+    confirmPassword: 'different',
+  })
+
+  assert.equal(result.isValid, false)
+  assert.match(result.errors.token, /invalid or has expired/)
+  assert.equal(result.errors.password, 'Password must be at least 8 characters.')
+  assert.equal(result.errors.confirmPassword, 'Passwords do not match.')
+})
+
+test('reset-password validation accepts the bcrypt input limit', () => {
+  const password = 'x'.repeat(72)
+  const result = validateResetPasswordInput({
+    token: 'a'.repeat(43),
+    password,
+    confirmPassword: password,
+  })
+
+  assert.equal(result.isValid, true)
 })

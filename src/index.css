@@ -8852,6 +8852,30 @@ summary:focus-visible {
   background: rgb(81 181 209 / 8%);
 }
 
+.auth-password-link-row {
+  margin-top: -4px;
+  text-align: right;
+}
+
+.auth-password-link-row a {
+  color: #75cfe5;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.auth-password-link-row a:hover {
+  color: #b9eef8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-password-link-row a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #67cce6;
+  outline-offset: 3px;
+}
+
 .auth-submit-button {
   display: flex;
   align-items: center;

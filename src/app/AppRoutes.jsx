@@ -7,6 +7,7 @@ import InstructorShell from '../components/layout/InstructorShell.jsx'
 import AccessRestrictedPage from '../pages/AccessRestrictedPage.jsx'
 import AdminUsersPage from '../pages/AdminUsersPage.jsx'
 import DashboardPage from '../pages/DashboardPage.jsx'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.jsx'
 import InstructorModulesPage from '../pages/InstructorModulesPage.jsx'
 import InstructorClassesPage from '../pages/InstructorClassesPage.jsx'
 import InstructorClassStudentsPage from '../pages/InstructorClassStudentsPage.jsx'
@@ -20,6 +21,7 @@ import LoginPage from '../pages/LoginPage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import ProfilePage from '../pages/ProfilePage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
+import ResetPasswordPage from '../pages/ResetPasswordPage.jsx'
 import ResultsPage from '../pages/ResultsPage.jsx'
 import SettingsPage from '../pages/SettingsPage.jsx'
 import StaffLoginPage from '../pages/StaffLoginPage.jsx'
@@ -36,6 +38,8 @@ export default function AppRoutes() {
         <Route path="login" element={<LoginPage />} />
         <Route path="staff/login" element={<StaffLoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>

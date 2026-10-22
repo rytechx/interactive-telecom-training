@@ -6,8 +6,15 @@ import {
   registerStudent,
 } from '../services/authService.js'
 import {
+  FORGOT_PASSWORD_PUBLIC_MESSAGE,
+  requestPasswordReset,
+  resetPassword as resetAccountPassword,
+} from '../services/passwordResetService.js'
+import {
+  validateForgotPasswordInput,
   validateLoginInput,
   validateRegistrationInput,
+  validateResetPasswordInput,
   validateStaffLoginInput,
 } from '../utils/validation.js'
 
@@ -86,6 +93,58 @@ async function staffLogin(request, response, next) {
   }
 }
 
+async function forgotPassword(request, response, next) {
+  const validation = validateForgotPasswordInput(request.body)
+
+  response.set('Cache-Control', 'no-store')
+
+  if (!validation.isValid) {
+    response.status(400).json({
+      success: false,
+      message: 'Enter a valid email address.',
+      errors: validation.errors,
+    })
+    return
+  }
+
+  try {
+    await requestPasswordReset(validation.values.email)
+    response.json({
+      success: true,
+      message: FORGOT_PASSWORD_PUBLIC_MESSAGE,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+async function resetPassword(request, response, next) {
+  const validation = validateResetPasswordInput(request.body)
+
+  response.set('Cache-Control', 'no-store')
+
+  if (!validation.isValid) {
+    response.status(400).json({
+      success: false,
+      message: 'Please correct the password reset fields.',
+      errors: validation.errors,
+    })
+    return
+  }
+
+  try {
+    const result = await resetAccountPassword(validation.values)
+
+    response.json({
+      success: true,
+      message: 'Your password has been reset successfully.',
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 function establishSession(response, user) {
   const token = createSessionToken(user)
 
@@ -123,4 +182,12 @@ function logout(request, response) {
   })
 }
 
-export { currentUser, login, logout, register, staffLogin }
+export {
+  currentUser,
+  forgotPassword,
+  login,
+  logout,
+  register,
+  resetPassword,
+  staffLogin,
+}
