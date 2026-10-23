@@ -21,7 +21,6 @@ import LoginPage from '../pages/LoginPage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import ProfilePage from '../pages/ProfilePage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
-import ResetPasswordPage from '../pages/ResetPasswordPage.jsx'
 import ResultsPage from '../pages/ResultsPage.jsx'
 import SettingsPage from '../pages/SettingsPage.jsx'
 import StaffLoginPage from '../pages/StaffLoginPage.jsx'
@@ -39,7 +38,6 @@ export default function AppRoutes() {
         <Route path="staff/login" element={<StaffLoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>

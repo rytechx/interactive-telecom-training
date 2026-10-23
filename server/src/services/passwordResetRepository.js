@@ -1,24 +1,40 @@
+import { timingSafeEqual } from 'node:crypto'
 import { databasePool } from '../config/database.js'
 
-const TOKEN_CREATION_STATUSES = Object.freeze({
+const OTP_CREATION_STATUSES = Object.freeze({
   CREATED: 'created',
   COOLDOWN: 'cooldown',
   NOT_ELIGIBLE: 'not_eligible',
 })
 
-async function createPasswordResetToken({
+const OTP_VERIFICATION_STATUSES = Object.freeze({
+  VERIFIED: 'verified',
+  INCORRECT: 'incorrect',
+  ATTEMPTS_EXHAUSTED: 'attempts_exhausted',
+  INVALID: 'invalid',
+})
+
+function hashesMatch(storedHash, candidateHash) {
+  const stored = Buffer.from(storedHash, 'hex')
+  const candidate = Buffer.from(candidateHash, 'hex')
+
+  return stored.length === candidate.length && timingSafeEqual(stored, candidate)
+}
+
+async function createPasswordResetOtp({
   email,
-  tokenHash,
+  otpHash,
   expiresAt,
   createdAt,
   cooldownCutoff,
+  maxAttempts,
 }) {
   const connection = await databasePool.getConnection()
 
   try {
     await connection.beginTransaction()
     const [users] = await connection.execute(
-      `SELECT id, email, role, is_active
+      `SELECT id, email, is_active
        FROM users
        WHERE email = ?
        LIMIT 1
@@ -29,43 +45,41 @@ async function createPasswordResetToken({
 
     if (!user || !user.is_active) {
       await connection.commit()
-      return { status: TOKEN_CREATION_STATUSES.NOT_ELIGIBLE }
+      return { status: OTP_CREATION_STATUSES.NOT_ELIGIBLE }
     }
 
-    const [recentTokens] = await connection.execute(
+    const [recentRequests] = await connection.execute(
       `SELECT id
-       FROM password_reset_tokens
+       FROM password_reset_otps
        WHERE user_id = ? AND created_at > ?
-       ORDER BY created_at DESC
+       ORDER BY created_at DESC, id DESC
        LIMIT 1`,
       [user.id, cooldownCutoff],
     )
 
-    if (recentTokens.length) {
+    if (recentRequests.length) {
       await connection.commit()
-      return { status: TOKEN_CREATION_STATUSES.COOLDOWN }
+      return { status: OTP_CREATION_STATUSES.COOLDOWN }
     }
 
     await connection.execute(
-      `UPDATE password_reset_tokens
+      `UPDATE password_reset_otps
        SET used_at = ?
        WHERE user_id = ? AND used_at IS NULL`,
       [createdAt, user.id],
     )
-    await connection.execute(
-      `INSERT INTO password_reset_tokens
-        (user_id, token_hash, expires_at, created_at)
-       VALUES (?, ?, ?, ?)`,
-      [user.id, tokenHash, expiresAt, createdAt],
+    const [result] = await connection.execute(
+      `INSERT INTO password_reset_otps
+        (user_id, otp_hash, attempts_remaining, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [user.id, otpHash, maxAttempts, expiresAt, createdAt],
     )
     await connection.commit()
 
     return {
-      status: TOKEN_CREATION_STATUSES.CREATED,
-      account: {
-        email: user.email,
-        role: user.role,
-      },
+      status: OTP_CREATION_STATUSES.CREATED,
+      requestId: result.insertId,
+      account: { email: user.email },
     }
   } catch (error) {
     await connection.rollback()
@@ -75,28 +89,131 @@ async function createPasswordResetToken({
   }
 }
 
-async function invalidatePasswordResetToken(tokenHash, usedAt = new Date()) {
+async function discardPasswordResetOtp(requestId) {
   await databasePool.execute(
-    `UPDATE password_reset_tokens
-     SET used_at = ?
-     WHERE token_hash = ? AND used_at IS NULL`,
-    [usedAt, tokenHash],
+    'DELETE FROM password_reset_otps WHERE id = ? AND verified_at IS NULL',
+    [requestId],
   )
 }
 
-async function resetPasswordWithToken({ tokenHash, passwordHash, now }) {
-  const [tokenOwners] = await databasePool.execute(
-    `SELECT user_id
-     FROM password_reset_tokens
-     WHERE token_hash = ?
-     LIMIT 1`,
-    [tokenHash],
-  )
-  const userId = tokenOwners[0]?.user_id
+async function verifyPasswordResetOtp({
+  email,
+  otpHash,
+  resetTokenHash,
+  resetTokenExpiresAt,
+  now,
+}) {
+  const connection = await databasePool.getConnection()
 
-  if (!userId) {
-    return null
+  try {
+    await connection.beginTransaction()
+    const [users] = await connection.execute(
+      `SELECT id
+       FROM users
+       WHERE email = ? AND is_active = TRUE
+       LIMIT 1
+       FOR UPDATE`,
+      [email],
+    )
+    const user = users[0]
+
+    if (!user) {
+      await connection.commit()
+      return { status: OTP_VERIFICATION_STATUSES.INVALID }
+    }
+
+    const [requests] = await connection.execute(
+      `SELECT id, otp_hash, attempts_remaining, expires_at, verified_at
+       FROM password_reset_otps
+       WHERE user_id = ? AND used_at IS NULL
+       ORDER BY created_at DESC, id DESC
+       LIMIT 1
+       FOR UPDATE`,
+      [user.id],
+    )
+    const resetRequest = requests[0]
+
+    if (!resetRequest || resetRequest.verified_at) {
+      await connection.commit()
+      return { status: OTP_VERIFICATION_STATUSES.INVALID }
+    }
+
+    if (new Date(resetRequest.expires_at) <= now) {
+      await connection.execute(
+        'UPDATE password_reset_otps SET used_at = ? WHERE id = ?',
+        [now, resetRequest.id],
+      )
+      await connection.commit()
+      return { status: OTP_VERIFICATION_STATUSES.INVALID }
+    }
+
+    if (resetRequest.attempts_remaining <= 0) {
+      await connection.execute(
+        'UPDATE password_reset_otps SET used_at = ? WHERE id = ?',
+        [now, resetRequest.id],
+      )
+      await connection.commit()
+      return { status: OTP_VERIFICATION_STATUSES.ATTEMPTS_EXHAUSTED }
+    }
+
+    if (!hashesMatch(resetRequest.otp_hash, otpHash)) {
+      const attemptsRemaining = Math.max(
+        0,
+        resetRequest.attempts_remaining - 1,
+      )
+
+      await connection.execute(
+        `UPDATE password_reset_otps
+         SET attempts_remaining = ?, used_at = ?
+         WHERE id = ?`,
+        [
+          attemptsRemaining,
+          attemptsRemaining === 0 ? now : null,
+          resetRequest.id,
+        ],
+      )
+      await connection.commit()
+
+      return {
+        status: attemptsRemaining === 0
+          ? OTP_VERIFICATION_STATUSES.ATTEMPTS_EXHAUSTED
+          : OTP_VERIFICATION_STATUSES.INCORRECT,
+        attemptsRemaining,
+      }
+    }
+
+    await connection.execute(
+      `UPDATE password_reset_otps
+       SET verified_at = ?, reset_token_hash = ?, reset_token_expires_at = ?
+       WHERE id = ?`,
+      [now, resetTokenHash, resetTokenExpiresAt, resetRequest.id],
+    )
+    await connection.commit()
+
+    return { status: OTP_VERIFICATION_STATUSES.VERIFIED }
+  } catch (error) {
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
   }
+}
+
+async function resetPasswordWithAuthorization({
+  resetTokenHash,
+  passwordHash,
+  now,
+}) {
+  const [requestOwners] = await databasePool.execute(
+    `SELECT user_id
+     FROM password_reset_otps
+     WHERE reset_token_hash = ?
+     LIMIT 1`,
+    [resetTokenHash],
+  )
+  const userId = requestOwners[0]?.user_id
+
+  if (!userId) return null
 
   const connection = await databasePool.getConnection()
 
@@ -117,31 +234,30 @@ async function resetPasswordWithToken({ tokenHash, passwordHash, now }) {
       return null
     }
 
-    const [tokens] = await connection.execute(
+    const [requests] = await connection.execute(
       `SELECT id
-       FROM password_reset_tokens
-       WHERE token_hash = ?
+       FROM password_reset_otps
+       WHERE reset_token_hash = ?
          AND user_id = ?
+         AND verified_at IS NOT NULL
          AND used_at IS NULL
-         AND expires_at > ?
+         AND reset_token_expires_at > ?
        LIMIT 1
        FOR UPDATE`,
-      [tokenHash, userId, now],
+      [resetTokenHash, userId, now],
     )
 
-    if (!tokens.length) {
+    if (!requests.length) {
       await connection.rollback()
       return null
     }
 
     await connection.execute(
-      `UPDATE users
-       SET password_hash = ?
-       WHERE id = ?`,
+      'UPDATE users SET password_hash = ? WHERE id = ?',
       [passwordHash, userId],
     )
     await connection.execute(
-      `UPDATE password_reset_tokens
+      `UPDATE password_reset_otps
        SET used_at = ?
        WHERE user_id = ? AND used_at IS NULL`,
       [now, userId],
@@ -158,10 +274,11 @@ async function resetPasswordWithToken({ tokenHash, passwordHash, now }) {
 }
 
 const passwordResetRepository = Object.freeze({
-  createPasswordResetToken,
-  invalidatePasswordResetToken,
-  resetPasswordWithToken,
+  createPasswordResetOtp,
+  discardPasswordResetOtp,
+  resetPasswordWithAuthorization,
+  verifyPasswordResetOtp,
 })
 
-export { TOKEN_CREATION_STATUSES }
+export { OTP_CREATION_STATUSES, OTP_VERIFICATION_STATUSES }
 export default passwordResetRepository

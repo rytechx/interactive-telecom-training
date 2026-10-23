@@ -130,8 +130,23 @@ test('disabled forgot-password returns the generic public response', async () =>
   assert.equal(payload.success, true)
   assert.equal(
     payload.message,
-    'If an account exists for that email address, password reset instructions have been sent.',
+    'If an account exists for that email address, a verification code has been sent.',
   )
+})
+
+test('verify-reset-otp rejects malformed verification input without caching', async () => {
+  const response = await fetch(`${apiBaseUrl}/auth/verify-reset-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'invalid-email', otp: '12ab' }),
+  })
+  const payload = await response.json()
+
+  assert.equal(response.status, 400)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+  assert.equal(payload.success, false)
+  assert.ok(payload.errors.email)
+  assert.ok(payload.errors.otp)
 })
 
 test('reset-password rejects mismatched passwords before database access', async () => {
@@ -139,7 +154,7 @@ test('reset-password rejects mismatched passwords before database access', async
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      token: 'a'.repeat(43),
+      resetAuthorization: 'a'.repeat(43),
       password: 'new-password',
       confirmPassword: 'different-password',
     }),

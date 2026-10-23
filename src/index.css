@@ -8876,6 +8876,70 @@ summary:focus-visible {
   outline-offset: 3px;
 }
 
+.auth-recovery-email {
+  margin: 0;
+  color: #78939d;
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.auth-recovery-email strong {
+  color: #b9d7df;
+  font-weight: 750;
+}
+
+.auth-otp-field input {
+  min-height: 58px;
+  padding-left: 18px;
+  font-size: clamp(22px, 4vw, 28px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  text-align: center;
+}
+
+.auth-otp-field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.auth-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.auth-recovery-actions button {
+  padding: 3px 0;
+  color: #75cfe5;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.auth-recovery-actions button:hover:not(:disabled) {
+  color: #b9eef8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-recovery-actions button:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #67cce6;
+  outline-offset: 3px;
+}
+
+.auth-recovery-actions button:disabled {
+  color: #647b84;
+  cursor: not-allowed;
+}
+
 .auth-submit-button {
   display: flex;
   align-items: center;
@@ -10038,6 +10102,16 @@ html.settings-hide-hover-labels .network-object-tooltip:not(.is-persistent) {
 
   .auth-form-region {
     padding-inline: 16px;
+  }
+
+  .auth-recovery-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .auth-recovery-actions button {
+    min-height: 34px;
+    text-align: left;
   }
 
   .profile-summary-card {

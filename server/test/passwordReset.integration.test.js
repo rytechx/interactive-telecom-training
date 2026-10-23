@@ -22,7 +22,7 @@ if (!runIntegration) {
   const {
     createPasswordResetService,
     FORGOT_PASSWORD_PUBLIC_MESSAGE,
-    hashResetToken,
+    hashResetOtp,
   } = await import('../src/services/passwordResetService.js')
   const createdUserIds = []
 
@@ -37,36 +37,36 @@ if (!runIntegration) {
     await databasePool.end()
   })
 
-  test('student and staff password reset is hashed, single-use, and role-aware', async () => {
-    const marker = `RESET-${Date.now()}-${randomBytes(2).toString('hex')}`
+  test('student and staff OTP resets are secure, single-use, and role-aware', async () => {
+    const marker = `OTP-${Date.now()}-${randomBytes(2).toString('hex')}`
     const oldPassword = randomBytes(18).toString('base64url')
     const studentPassword = randomBytes(18).toString('base64url')
     const instructorPassword = randomBytes(18).toString('base64url')
     const adminPassword = randomBytes(18).toString('base64url')
     const student = await registerStudent({
       studentNumber: `${marker}-STUDENT`,
-      firstName: 'Reset',
+      firstName: 'Otp',
       lastName: 'Student',
       email: `${marker}-student@test.local`.toLowerCase(),
       password: oldPassword,
       classCode: '',
     })
     const instructor = await createStaffAccount({
-      firstName: 'Reset',
+      firstName: 'Otp',
       lastName: 'Instructor',
       email: `${marker}-instructor@test.local`.toLowerCase(),
       password: oldPassword,
       role: 'instructor',
     })
     const admin = await createStaffAccount({
-      firstName: 'Reset',
+      firstName: 'Otp',
       lastName: 'Admin',
       email: `${marker}-admin@test.local`.toLowerCase(),
       password: oldPassword,
       role: 'admin',
     })
     const inactive = await createStaffAccount({
-      firstName: 'Reset',
+      firstName: 'Otp',
       lastName: 'Inactive',
       email: `${marker}-inactive@test.local`.toLowerCase(),
       password: oldPassword,
@@ -78,24 +78,38 @@ if (!runIntegration) {
       [inactive.id],
     )
 
+    const otpHashSecret = randomBytes(48).toString('hex')
     const sentMail = []
-    const tokenQueue = [
-      randomBytes(32).toString('base64url'),
-      randomBytes(32).toString('base64url'),
-      randomBytes(32).toString('base64url'),
-      randomBytes(32).toString('base64url'),
+    const otpQueue = [
+      '101010',
+      '202020',
+      '303030',
+      '404040',
+      '505050',
+      '606060',
     ]
-    let currentTime = new Date()
+    const authorizationQueue = [
+      's'.repeat(43),
+      'i'.repeat(43),
+      'a'.repeat(43),
+      'b'.repeat(43),
+      'c'.repeat(43),
+      'd'.repeat(43),
+      'e'.repeat(43),
+    ]
+    let currentTime = new Date('2026-10-23T08:00:00.000Z')
     const service = createPasswordResetService({
       configuration: {
         enabled: true,
-        ttlMinutes: 30,
+        otpTtlMinutes: 10,
+        maxAttempts: 3,
         cooldownSeconds: 60,
       },
-      clientOrigin: 'https://telesim3d.site',
+      otpHashSecret,
       repository: passwordResetRepository,
-      sendResetEmail: async (message) => sentMail.push(message),
-      tokenFactory: () => tokenQueue.shift(),
+      sendOtpEmail: async (message) => sentMail.push(message),
+      otpFactory: () => otpQueue.shift(),
+      resetAuthorizationFactory: () => authorizationQueue.shift(),
       clock: () => new Date(currentTime),
     })
 
@@ -108,36 +122,53 @@ if (!runIntegration) {
     assert.equal(sentMail.length, 0)
 
     await service.requestPasswordReset(student.email)
-    const firstStudentToken = new URL(sentMail.at(-1).resetUrl).searchParams.get(
-      'token',
-    )
-    const [storedStudentTokens] = await databasePool.execute(
-      `SELECT token_hash, used_at
-       FROM password_reset_tokens
-       WHERE user_id = ?`,
+    const firstStudentOtp = sentMail.at(-1).otp
+    const [firstStudentRequests] = await databasePool.execute(
+      `SELECT otp_hash, attempts_remaining, used_at
+       FROM password_reset_otps
+       WHERE user_id = ?
+       ORDER BY id`,
       [student.id],
     )
-    assert.equal(storedStudentTokens.length, 1)
+    assert.equal(firstStudentRequests.length, 1)
+    assert.equal(firstStudentRequests[0].attempts_remaining, 3)
     assert.equal(
-      storedStudentTokens[0].token_hash,
-      hashResetToken(firstStudentToken),
+      firstStudentRequests[0].otp_hash,
+      hashResetOtp(student.email, firstStudentOtp, otpHashSecret),
     )
-    assert.notEqual(storedStudentTokens[0].token_hash, firstStudentToken)
+    assert.notEqual(firstStudentRequests[0].otp_hash, firstStudentOtp)
+
+    for (const expectedRemaining of [2, 1, 0]) {
+      await assert.rejects(
+        service.verifyResetOtp({ email: student.email, otp: '999999' }),
+        (error) => error.data?.attemptsRemaining === expectedRemaining,
+      )
+    }
+    await assert.rejects(
+      service.verifyResetOtp({ email: student.email, otp: firstStudentOtp }),
+      (error) => error.code === 'INVALID_RESET_OTP',
+    )
 
     currentTime = new Date(currentTime.getTime() + 61_000)
     await service.requestPasswordReset(student.email)
-    const secondStudentToken = new URL(sentMail.at(-1).resetUrl).searchParams.get(
-      'token',
+    const secondStudentOtp = sentMail.at(-1).otp
+    const [studentRequests] = await databasePool.execute(
+      `SELECT attempts_remaining, used_at
+       FROM password_reset_otps
+       WHERE user_id = ?
+       ORDER BY id`,
+      [student.id],
     )
-    await assert.rejects(
-      service.resetPassword({
-        token: firstStudentToken,
-        password: studentPassword,
-      }),
-      (error) => error.code === 'INVALID_PASSWORD_RESET_TOKEN',
-    )
+    assert.ok(studentRequests[0].used_at)
+    assert.equal(studentRequests[1].attempts_remaining, 3)
+    assert.equal(studentRequests[1].used_at, null)
+
+    const studentVerification = await service.verifyResetOtp({
+      email: student.email,
+      otp: secondStudentOtp,
+    })
     const studentReset = await service.resetPassword({
-      token: secondStudentToken,
+      resetAuthorization: studentVerification.resetAuthorization,
       password: studentPassword,
     })
     assert.equal(studentReset.loginPortal, 'student')
@@ -154,19 +185,27 @@ if (!runIntegration) {
     )
     await assert.rejects(
       service.resetPassword({
-        token: secondStudentToken,
+        resetAuthorization: studentVerification.resetAuthorization,
         password: randomBytes(18).toString('base64url'),
       }),
-      (error) => error.code === 'INVALID_PASSWORD_RESET_TOKEN',
+      (error) => error.code === 'INVALID_RESET_AUTHORIZATION',
     )
 
     for (const [account, password] of [
       [instructor, instructorPassword],
       [admin, adminPassword],
     ]) {
+      currentTime = new Date(currentTime.getTime() + 61_000)
       await service.requestPasswordReset(account.email)
-      const token = new URL(sentMail.at(-1).resetUrl).searchParams.get('token')
-      const result = await service.resetPassword({ token, password })
+      const otp = sentMail.at(-1).otp
+      const verification = await service.verifyResetOtp({
+        email: account.email,
+        otp,
+      })
+      const result = await service.resetPassword({
+        resetAuthorization: verification.resetAuthorization,
+        password,
+      })
 
       assert.equal(result.loginPortal, 'staff')
       await assert.rejects(

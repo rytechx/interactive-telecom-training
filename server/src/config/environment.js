@@ -28,6 +28,16 @@ function getPositiveInteger(name, fallback) {
   return parsedValue
 }
 
+function getBoundedPositiveInteger(name, fallback, maximum) {
+  const value = getPositiveInteger(name, fallback)
+
+  if (value > maximum) {
+    throw new Error(`${name} must be between 1 and ${maximum}.`)
+  }
+
+  return value
+}
+
 function getBoolean(name, fallback) {
   const value = process.env[name]?.trim().toLowerCase()
 
@@ -184,7 +194,15 @@ const environment = Object.freeze({
   }),
   passwordReset: Object.freeze({
     enabled: passwordResetEnabled,
-    ttlMinutes: getPositiveInteger('PASSWORD_RESET_TTL_MINUTES', 30),
+    otpTtlMinutes: getPositiveInteger(
+      'PASSWORD_RESET_OTP_TTL_MINUTES',
+      10,
+    ),
+    maxAttempts: getBoundedPositiveInteger(
+      'PASSWORD_RESET_MAX_ATTEMPTS',
+      3,
+      3,
+    ),
     cooldownSeconds: getPositiveInteger(
       'PASSWORD_RESET_COOLDOWN_SECONDS',
       60,

@@ -1,7 +1,8 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const STUDENT_NUMBER_PATTERN = /^[A-Za-z0-9-]+$/
 const CLASS_CODE_PATTERN = /^TS-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/
-const PASSWORD_RESET_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+const RESET_AUTHORIZATION_PATTERN = /^[A-Za-z0-9_-]{43}$/
+const RESET_OTP_PATTERN = /^\d{6}$/
 
 function normalizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -146,15 +147,19 @@ function validateForgotPasswordInput(input = {}) {
 
 function validateResetPasswordInput(input = {}) {
   const values = {
-    token: normalizeText(input.token),
+    resetAuthorization: normalizeText(input.resetAuthorization),
     password: typeof input.password === 'string' ? input.password : '',
     confirmPassword:
       typeof input.confirmPassword === 'string' ? input.confirmPassword : '',
   }
   const errors = {}
 
-  if (!values.token || !PASSWORD_RESET_TOKEN_PATTERN.test(values.token)) {
-    errors.token = 'This password reset link is invalid or has expired.'
+  if (
+    !values.resetAuthorization ||
+    !RESET_AUTHORIZATION_PATTERN.test(values.resetAuthorization)
+  ) {
+    errors.resetAuthorization =
+      'This password reset authorization is invalid or has expired.'
   }
 
   const passwordError = getPasswordValidationError(values.password)
@@ -173,6 +178,26 @@ function validateResetPasswordInput(input = {}) {
   }
 }
 
+function validateVerifyResetOtpInput(input = {}) {
+  const values = {
+    email: normalizeText(input.email).toLowerCase(),
+    otp: normalizeText(input.otp),
+  }
+  const errors = {}
+  const emailError = getEmailValidationError(values.email)
+
+  if (emailError) errors.email = emailError
+  if (!RESET_OTP_PATTERN.test(values.otp)) {
+    errors.otp = 'Enter the 6-digit verification code.'
+  }
+
+  return {
+    values,
+    errors,
+    isValid: Object.keys(errors).length === 0,
+  }
+}
+
 export {
   getEmailValidationError,
   getPasswordValidationError,
@@ -182,4 +207,5 @@ export {
   validateRegistrationInput,
   validateResetPasswordInput,
   validateStaffLoginInput,
+  validateVerifyResetOtpInput,
 }

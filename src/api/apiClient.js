@@ -13,17 +13,22 @@ const AUTH_ENTRY_PATHS = new Set([
   '/auth/logout',
   '/auth/me',
   '/auth/forgot-password',
+  '/auth/verify-reset-otp',
   '/auth/reset-password',
 ])
 let sessionExpiryNotified = false
 
 class ApiError extends Error {
-  constructor(message, { status = 0, code = null, errors = null } = {}) {
+  constructor(
+    message,
+    { status = 0, code = null, errors = null, data = null } = {},
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.errors = errors
+    this.data = data
   }
 }
 
@@ -91,6 +96,7 @@ async function apiRequest(
           status: response.status,
           code: payload?.code ?? null,
           errors: payload?.errors ?? null,
+          data: payload?.data ?? null,
         },
       )
     }
@@ -136,6 +142,11 @@ const authApi = Object.freeze({
     apiRequest('/auth/forgot-password', {
       method: 'POST',
       body: { email },
+    }),
+  verifyPasswordResetOtp: (verification) =>
+    apiRequest('/auth/verify-reset-otp', {
+      method: 'POST',
+      body: verification,
     }),
   resetPassword: (passwordReset) =>
     apiRequest('/auth/reset-password', {

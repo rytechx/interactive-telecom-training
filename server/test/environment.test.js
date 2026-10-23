@@ -80,6 +80,28 @@ test('enabled password reset requires SMTP configuration', () => {
   assert.equal(configuredSmtp.status, 0, configuredSmtp.stderr)
 })
 
+test('password reset accepts OTP defaults and rejects more than three attempts', () => {
+  const configured = loadEnvironment({
+    PASSWORD_RESET_ENABLED: 'true',
+    PASSWORD_RESET_OTP_TTL_MINUTES: '10',
+    PASSWORD_RESET_MAX_ATTEMPTS: '3',
+    PASSWORD_RESET_COOLDOWN_SECONDS: '60',
+    SMTP_HOST: 'smtp.example',
+    SMTP_PORT: '465',
+    SMTP_SECURE: 'true',
+    SMTP_USER: 'mailer',
+    SMTP_PASS: 'test-secret',
+    MAIL_FROM: 'TeleSim 3D <no-reply@example.com>',
+  })
+  const unsafeAttempts = loadEnvironment({
+    PASSWORD_RESET_MAX_ATTEMPTS: '4',
+  })
+
+  assert.equal(configured.status, 0, configured.stderr)
+  assert.notEqual(unsafeAttempts.status, 0)
+  assert.match(unsafeAttempts.stderr, /PASSWORD_RESET_MAX_ATTEMPTS/)
+})
+
 test('production environment rejects an empty database password', () => {
   const result = loadEnvironment({ DB_PASSWORD: '' })
 

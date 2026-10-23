@@ -9,6 +9,7 @@ import {
   FORGOT_PASSWORD_PUBLIC_MESSAGE,
   requestPasswordReset,
   resetPassword as resetAccountPassword,
+  verifyResetOtp as verifyAccountResetOtp,
 } from '../services/passwordResetService.js'
 import {
   validateForgotPasswordInput,
@@ -16,6 +17,7 @@ import {
   validateRegistrationInput,
   validateResetPasswordInput,
   validateStaffLoginInput,
+  validateVerifyResetOtpInput,
 } from '../utils/validation.js'
 
 function getSessionCookieOptions() {
@@ -145,6 +147,33 @@ async function resetPassword(request, response, next) {
   }
 }
 
+async function verifyResetOtp(request, response, next) {
+  const validation = validateVerifyResetOtpInput(request.body)
+
+  response.set('Cache-Control', 'no-store')
+
+  if (!validation.isValid) {
+    response.status(400).json({
+      success: false,
+      message: 'Enter a valid email address and 6-digit verification code.',
+      errors: validation.errors,
+    })
+    return
+  }
+
+  try {
+    const result = await verifyAccountResetOtp(validation.values)
+
+    response.json({
+      success: true,
+      message: 'Verification code confirmed.',
+      data: result,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 function establishSession(response, user) {
   const token = createSessionToken(user)
 
@@ -190,4 +219,5 @@ export {
   register,
   resetPassword,
   staffLogin,
+  verifyResetOtp,
 }

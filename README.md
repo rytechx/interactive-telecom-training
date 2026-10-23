@@ -80,7 +80,8 @@ Required API variables:
 | `COOKIE_SECURE` | `true` for production HTTPS; `false` for local HTTP |
 | `COOKIE_SAME_SITE` | Cookie policy: `lax`, `strict`, or `none` |
 | `PASSWORD_RESET_ENABLED` | Enables reset emails only when set to `true` |
-| `PASSWORD_RESET_TTL_MINUTES` | Reset-link lifetime; defaults to `30` |
+| `PASSWORD_RESET_OTP_TTL_MINUTES` | Email OTP and reset-authorization lifetime; defaults to `10` |
+| `PASSWORD_RESET_MAX_ATTEMPTS` | Incorrect OTP limit; defaults to and cannot exceed `3` |
 | `PASSWORD_RESET_COOLDOWN_SECONDS` | Per-account request cooldown; defaults to `60` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | SMTP connection settings |
 | `SMTP_USER` / `SMTP_PASS` | SMTP credentials stored outside Git |

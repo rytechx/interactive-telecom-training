@@ -40,6 +40,7 @@ function errorHandler(error, request, response, next) {
     success: false,
     message,
     ...(error instanceof HttpError && error.code ? { code: error.code } : {}),
+    ...(error instanceof HttpError && error.data ? { data: error.data } : {}),
   })
 }
 

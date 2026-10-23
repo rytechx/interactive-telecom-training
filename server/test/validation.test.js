@@ -6,6 +6,7 @@ import {
   validateRegistrationInput,
   validateResetPasswordInput,
   validateStaffLoginInput,
+  validateVerifyResetOtpInput,
 } from '../src/utils/validation.js'
 
 const TEST_PASSWORD = 'x'.repeat(16)
@@ -89,15 +90,33 @@ test('forgot-password validation rejects malformed email input', () => {
   assert.equal(valid.values.email, 'user@test.local')
 })
 
-test('reset-password validation requires a valid token and matching password', () => {
+test('OTP verification requires a normalized email and six digits', () => {
+  const invalid = validateVerifyResetOtpInput({
+    email: 'not-an-email',
+    otp: '12a45',
+  })
+  const valid = validateVerifyResetOtpInput({
+    email: ' USER@TEST.LOCAL ',
+    otp: '004271',
+  })
+
+  assert.equal(invalid.isValid, false)
+  assert.ok(invalid.errors.email)
+  assert.equal(invalid.errors.otp, 'Enter the 6-digit verification code.')
+  assert.equal(valid.isValid, true)
+  assert.equal(valid.values.email, 'user@test.local')
+  assert.equal(valid.values.otp, '004271')
+})
+
+test('reset-password validation requires authorization and matching password', () => {
   const result = validateResetPasswordInput({
-    token: 'invalid',
+    resetAuthorization: 'invalid',
     password: 'short',
     confirmPassword: 'different',
   })
 
   assert.equal(result.isValid, false)
-  assert.match(result.errors.token, /invalid or has expired/)
+  assert.match(result.errors.resetAuthorization, /invalid or has expired/)
   assert.equal(result.errors.password, 'Password must be at least 8 characters.')
   assert.equal(result.errors.confirmPassword, 'Passwords do not match.')
 })
@@ -105,7 +124,7 @@ test('reset-password validation requires a valid token and matching password', (
 test('reset-password validation accepts the bcrypt input limit', () => {
   const password = 'x'.repeat(72)
   const result = validateResetPasswordInput({
-    token: 'a'.repeat(43),
+    resetAuthorization: 'a'.repeat(43),
     password,
     confirmPassword: password,
   })

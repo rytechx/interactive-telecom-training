@@ -9,7 +9,7 @@ TeleSim 3D uses open-source JavaScript libraries declared in the root and `serve
 | React, React DOM, React Router, Zustand | MIT |
 | Three.js, React Three Fiber, Drei | MIT |
 | React Three Rapier | The installed package manifest does not declare a license; verify the upstream release notice before redistribution |
-| Express, mysql2, jsonwebtoken, cors, cookie-parser | MIT |
+| Express, mysql2, jsonwebtoken, cors, cookie-parser, Nodemailer | MIT |
 | bcryptjs | BSD-3-Clause |
 | dotenv | BSD-2-Clause |
 

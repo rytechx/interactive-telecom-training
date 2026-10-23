@@ -30,12 +30,13 @@ function getMailTransport() {
   return mailTransport
 }
 
-async function sendPasswordResetEmail({
+async function sendPasswordResetOtpEmail({
   to,
-  resetUrl,
+  otp,
   expiresInMinutes,
+  maxAttempts,
 }) {
-  const safeResetUrl = escapeHtml(resetUrl)
+  const safeOtp = escapeHtml(otp)
   const expirationText = `${expiresInMinutes} minute${
     expiresInMinutes === 1 ? '' : 's'
   }`
@@ -43,27 +44,32 @@ async function sendPasswordResetEmail({
   await getMailTransport().sendMail({
     from: environment.mail.from,
     to,
-    subject: 'Reset your TeleSim 3D password',
+    subject: 'Your TeleSim 3D password reset code',
     text: [
-      'A password reset was requested for your TeleSim 3D account.',
+      'TeleSim 3D Password Reset',
       '',
-      'Use the link below to create a new password:',
-      resetUrl,
+      'Your verification code is:',
+      otp,
       '',
-      `This link expires in ${expirationText}.`,
-      'If you did not request this change, you can ignore this email.',
+      `This code expires in ${expirationText}.`,
+      `You have a maximum of ${maxAttempts} verification attempts.`,
+      '',
+      'If you did not request a password reset, you can safely ignore this email.',
+      '',
+      '— TeleSim 3D Support',
     ].join('\n'),
     html: `
       <div style="font-family:Arial,sans-serif;color:#15242b;line-height:1.6">
-        <h1 style="font-size:22px">Reset your TeleSim 3D password</h1>
-        <p>A password reset was requested for your TeleSim 3D account.</p>
-        <p>Use the link below to create a new password.</p>
-        <p><a href="${safeResetUrl}">Reset Password</a></p>
-        <p>This link expires in ${expirationText}.</p>
-        <p>If you did not request this change, you can ignore this email.</p>
+        <h1 style="font-size:22px">TeleSim 3D Password Reset</h1>
+        <p>Your verification code is:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#087d8b">${safeOtp}</p>
+        <p>This code expires in ${expirationText}.</p>
+        <p>You have a maximum of ${maxAttempts} verification attempts.</p>
+        <p>If you did not request a password reset, you can safely ignore this email.</p>
+        <p>— TeleSim 3D Support</p>
       </div>
     `,
   })
 }
 
-export { sendPasswordResetEmail }
+export { sendPasswordResetOtpEmail }

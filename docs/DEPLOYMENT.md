@@ -26,6 +26,7 @@ The migration runner applies this order:
 4. `server/sql/004_production_indexes.sql`
 5. `server/sql/005_classes.sql`
 6. `server/sql/006_password_reset_tokens.sql`
+7. `server/sql/007_password_reset_otps.sql`
 
 The scripts create missing tables, apply guarded refinements, and upsert the `rj45`, `fiber`, and `network` module definitions. They do not drop the database, truncate user history, or seed staff credentials.
 
@@ -54,7 +55,8 @@ Configure these variables outside Git:
 | `COOKIE_SECURE` | `true` |
 | `COOKIE_SAME_SITE` | Normally `lax`; use `none` only for a reviewed cross-site architecture |
 | `PASSWORD_RESET_ENABLED` | Set to `true` only after SMTP is fully configured |
-| `PASSWORD_RESET_TTL_MINUTES` | Reset-link lifetime; defaults to `30` |
+| `PASSWORD_RESET_OTP_TTL_MINUTES` | Email OTP and reset-authorization lifetime; defaults to `10` |
+| `PASSWORD_RESET_MAX_ATTEMPTS` | Incorrect OTP limit; defaults to and cannot exceed `3` |
 | `PASSWORD_RESET_COOLDOWN_SECONDS` | Per-account reset-request cooldown; defaults to `60` |
 | `SMTP_HOST` | SMTP server hostname; required when password reset is enabled |
 | `SMTP_PORT` | SMTP port, normally `587` or `465` |
@@ -66,9 +68,22 @@ Configure these variables outside Git:
 Production startup fails with the missing or invalid variable name but never prints its secret value. Rotate `JWT_SECRET` deliberately because rotation invalidates current sessions.
 
 Password reset is disabled unless `PASSWORD_RESET_ENABLED=true`. When enabled,
-all SMTP identity and credential variables are required. Reset links are built
-from the trusted `CLIENT_ORIGIN`, expire after the configured TTL, and store only
-a SHA-256 token hash in MySQL. Never log reset links or raw reset tokens.
+all SMTP identity and credential variables are required. Six-digit codes expire
+after 10 minutes by default, allow at most three incorrect attempts, and are
+stored only as keyed HMAC-SHA-256 digests. Successful verification creates a
+short-lived, one-time reset authorization whose SHA-256 hash is stored in MySQL.
+Never log verification codes or reset authorizations.
+
+Hostinger Mail can be configured without committing secrets:
+
+```text
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=support@telesim3d.site
+SMTP_PASS=<mailbox password stored in Hostinger environment settings>
+MAIL_FROM=TeleSim 3D <support@telesim3d.site>
+```
 
 Start the API with:
 
@@ -127,7 +142,7 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]
 ```
 
-Configure an equivalent rewrite on a managed static host. Direct refresh must work for `/login`, `/staff/login`, `/forgot-password`, `/reset-password`, `/settings`, `/results`, `/instructor`, `/instructor/students`, `/instructor/modules`, and `/instructor/troubleshooting`.
+Configure an equivalent rewrite on a managed static host. Direct refresh must work for `/login`, `/staff/login`, `/forgot-password`, `/settings`, `/results`, `/instructor`, `/instructor/students`, `/instructor/modules`, and `/instructor/troubleshooting`.
 
 ## 6. Configure CORS and Cookies
 
